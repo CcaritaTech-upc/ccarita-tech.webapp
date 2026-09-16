@@ -18,6 +18,9 @@ Use after implementation or before claiming a behavior change complete.
 - Use clean data and browser context for system tests.
 - Never treat retries, MCP interaction, or manual observation as final proof.
 - Do not run irrelevant gates; record why they were skipped.
+- Every open risk needs an owner and a review date.
+- A `passed` gate needs a command plus a verifiable result.
+- When a journey serves multiple actors, prove the happy path per actor.
 
 ## Decision Gates
 

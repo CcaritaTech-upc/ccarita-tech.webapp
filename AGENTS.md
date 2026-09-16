@@ -34,3 +34,7 @@ The gate may be proportionate: documentation-only changes do not require E2E, bu
 - Antigravity: mention `convergent-testing` or delegate to `convergent-qa`.
 
 Run `node scripts/verify-agent-compatibility.mjs` after changing agent integration files.
+
+## Delivery discipline
+
+Follow `docs/delivery-discipline.md`. Business rules and evidence ledgers live in `docs/bounded-contexts/<context>/`. Keep skills and this file free of product content.
