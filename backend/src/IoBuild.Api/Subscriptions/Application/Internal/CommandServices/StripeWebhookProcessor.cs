@@ -29,7 +29,7 @@ public static class StripeRestrictedKeyResolver
         return null;
     }
 
-    public static bool IsRestrictedKey(string? key) => !string.IsNullOrWhiteSpace(key) && (key.StartsWith("rk_", StringComparison.Ordinal) || key.StartsWith("sk_", StringComparison.Ordinal));
+    public static bool IsRestrictedKey(string? key) => !string.IsNullOrWhiteSpace(key) && key.StartsWith("rk_", StringComparison.Ordinal);
 }
 
 public sealed record StripeIntegrationOptions(string RestrictedApiKey, bool UsesDynamicPaymentMethods)
