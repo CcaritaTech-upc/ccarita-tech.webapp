@@ -97,3 +97,46 @@ export function isValidUrl(url) {
     return false;
   }
 }
+
+/**
+ * Cross-field: password confirmation must match (case-sensitive, no trim).
+ * Empty confirmation never matches.
+ */
+export function doPasswordsMatch(password, confirmation) {
+  if (typeof password !== 'string' || typeof confirmation !== 'string') return false;
+  if (!confirmation) return false;
+  return password === confirmation;
+}
+
+/**
+ * Business rule: new password must differ from current password.
+ * Returns false when either value is missing.
+ */
+export function isNewPasswordDifferent(currentPassword, newPassword) {
+  if (typeof currentPassword !== 'string' || typeof newPassword !== 'string') return false;
+  if (!currentPassword || !newPassword) return false;
+  return currentPassword !== newPassword;
+}
+
+/**
+ * Contextual eligibility policy (NOT a hardcoded age >= 18).
+ * Business context decides the minimum age: product, jurisdiction, account type.
+ */
+export function isEligible({ dateOfBirth, product = 'default', jurisdiction = 'default', evaluationDate = new Date(), policies = null } = {}) {
+  if (!dateOfBirth) return false;
+  const dob = dateOfBirth instanceof Date ? dateOfBirth : new Date(dateOfBirth);
+  const evalDate = evaluationDate instanceof Date ? evaluationDate : new Date(evaluationDate);
+  if (Number.isNaN(dob.getTime()) || Number.isNaN(evalDate.getTime())) return false;
+  if (dob > evalDate) return false;
+
+  const defaultPolicies = {
+    default: { default: 18 },
+  };
+  const table = policies ?? defaultPolicies;
+  const minAge = table?.[product]?.[jurisdiction] ?? table?.[product]?.default ?? table?.default?.[jurisdiction] ?? 18;
+
+  let age = evalDate.getFullYear() - dob.getFullYear();
+  const monthDiff = evalDate.getMonth() - dob.getMonth();
+  if (monthDiff < 0 || (monthDiff === 0 && evalDate.getDate() < dob.getDate())) age -= 1;
+  return age >= minAge;
+}
