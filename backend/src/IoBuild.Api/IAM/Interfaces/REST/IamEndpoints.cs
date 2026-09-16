@@ -14,8 +14,8 @@ public static class IamEndpoints
     {
         var group = app.MapGroup("/api/v1").WithTags("IAM");
 
-        group.MapPost("/users", async (RegisterUser request, IamService iam, CancellationToken ct) => { await iam.RegisterAsync(request, ct); return Results.Created("/api/v1/users", new { message = "User created successfully." }); }).AllowAnonymous();
-        group.MapPost("/authentication/sign-up", async (RegisterUser request, IamService iam, CancellationToken ct) => { await iam.RegisterAsync(request, ct); return Results.Created("/api/v1/authentication/sign-up", new { message = "User created successfully." }); }).AllowAnonymous();
+        group.MapPost("/users", async (RegisterUser request, IamService iam, CancellationToken ct) => { try { await iam.RegisterAsync(request, ct); return Results.Created("/api/v1/users", new { message = "User created successfully." }); } catch (InvalidOperationException) { return Results.BadRequest(new { error = "Invalid registration data." }); } }).AllowAnonymous();
+        group.MapPost("/authentication/sign-up", async (RegisterUser request, IamService iam, CancellationToken ct) => { try { await iam.RegisterAsync(request, ct); return Results.Created("/api/v1/authentication/sign-up", new { message = "User created successfully." }); } catch (InvalidOperationException) { return Results.BadRequest(new { error = "Invalid registration data." }); } }).AllowAnonymous();
 
         group.MapGet("/authentication/invitation", async (string? email, IoBuildDbContext db, CancellationToken ct) =>
         {

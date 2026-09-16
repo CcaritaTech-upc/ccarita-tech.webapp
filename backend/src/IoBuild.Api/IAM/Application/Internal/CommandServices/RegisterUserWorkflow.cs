@@ -23,7 +23,14 @@ public sealed class RegisterUserWorkflow(
     public Task<int> ExecuteAsync(RegisterUser request, CancellationToken cancellationToken = default) =>
         workflowExecutor.ExecuteAsync(async cancellationToken =>
         {
-            var email = request.Email.Trim().ToLowerInvariant();
+            // Fail-closed input guard: backend is authoritative (Tier D discovery:
+            // InMemory ignores column limits, so oversized input must be rejected here).
+            var rawEmail = request.Email?.Trim() ?? string.Empty;
+            if (string.IsNullOrWhiteSpace(rawEmail) || rawEmail.Length > 320)
+                throw new InvalidOperationException("Invalid registration data.");
+            if (string.IsNullOrWhiteSpace(request.Password))
+                throw new InvalidOperationException("Invalid registration data.");
+            var email = rawEmail.ToLowerInvariant();
             var existing = await dbContext.IamUsers.SingleOrDefaultAsync(user => user.Email == email, cancellationToken);
             if (existing is not null) return 0;
 
