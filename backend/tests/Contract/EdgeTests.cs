@@ -88,8 +88,11 @@ public sealed class EdgeTests
         var root = FindWrappedRoot();
         var nginxPath = Path.Combine(root, "nginx", "nginx.conf");
         var content = ReadFileOrEmpty(nginxPath);
-        Assert.Contains("try_files", content);
-        Assert.Contains("/index.html", content);
+        // Valid SPA strategies: static try_files fallback or proxy to frontend container.
+        var hasStaticFallback = content.Contains("try_files") && content.Contains("/index.html");
+        var hasFrontendProxy = content.Contains("location /") && content.Contains("proxy_pass http://frontend");
+        Assert.True(hasStaticFallback || hasFrontendProxy,
+            "nginx must serve SPA via try_files /index.html or proxy / to frontend container");
     }
 
     // ── Forwarded host / Cloudflare recovery ───────────────────────────────

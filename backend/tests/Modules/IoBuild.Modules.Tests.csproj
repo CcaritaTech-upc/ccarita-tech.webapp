@@ -15,4 +15,5 @@
   </ItemGroup>
   <ItemGroup><Using Include="Xunit" /></ItemGroup>
   <ItemGroup><ProjectReference Include="..\\..\\src\\IoBuild.Api\\IoBuild.Api.csproj" /></ItemGroup>
+  <ItemGroup><ProjectReference Include="..\\TestKit\\IoBuild.TestKit.csproj" /></ItemGroup>
 </Project>

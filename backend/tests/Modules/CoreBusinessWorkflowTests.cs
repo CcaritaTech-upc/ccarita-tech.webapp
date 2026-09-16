@@ -16,6 +16,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Hosting;
 namespace IoBuild.Modules.Tests;
 public sealed class CoreBusinessWorkflowTests
 {
@@ -389,9 +390,11 @@ public sealed class CoreBusinessWorkflowTests
                 services.AddSingleton(readiness);
                 services.RemoveAll<IPaymentProvider>();
                 services.AddSingleton<IPaymentProvider, FakePaymentProvider>();
+                services.RemoveAll<IHostedService>();
             }).ConfigureAppConfiguration((_, configuration) => configuration.AddInMemoryCollection(new Dictionary<string, string?>
             {
-                ["Stripe:RestrictedApiKey"] = "rk_test_minimum"
+                ["Stripe:RestrictedApiKey"] = "rk_test_minimum",
+                ["Mqtt:Enabled"] = "false"
             }));
         }
     }

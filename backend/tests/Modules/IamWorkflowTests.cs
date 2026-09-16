@@ -1,7 +1,9 @@
 using System.Net.Http.Json;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Hosting;
 using IoBuild.Api.IAM.Application.Internal.CommandServices;
 using IoBuild.Api.IAM.Domain.Model.Aggregates;
 using IoBuild.Api.IAM.Domain.Model.Commands;
@@ -26,6 +28,9 @@ public sealed class IamWorkflowTests
 
     [Fact]
     [Trait("Category", "IAM")]
+    [Trait("Flow", "IAM.REGISTRATION")]
+    [Trait("Layer", "Application")]
+    [Trait("Risk", "A")]
     public async Task Registration_is_idempotent_and_creates_a_durable_dispatch_record()
     {
         await using var db = CreateDb();
@@ -243,6 +248,9 @@ public sealed class IamWorkflowTests
 
     [Fact]
     [Trait("Category", "IAM")]
+    [Trait("Flow", "IAM.LOGOUT")]
+    [Trait("Layer", "Application")]
+    [Trait("Risk", "A")]
     public async Task Revoked_tokens_are_rejected_from_the_durable_store()
     {
         await using var db = CreateDb();
@@ -271,6 +279,9 @@ public sealed class IamApiContractTests
 {
     [Fact]
     [Trait("Category", "IAM")]
+    [Trait("Flow", "IAM.REGISTRATION")]
+    [Trait("Layer", "Api")]
+    [Trait("Risk", "A")]
     public async Task Registration_sign_in_and_durable_logout_preserve_the_characterized_contract()
     {
         await using var factory = new IamApiFactory();
@@ -299,6 +310,10 @@ public sealed class IamApiContractTests
             services.AddDbContext<IoBuildDbContext>(options => options.UseInMemoryDatabase(databaseName));
             var readiness = new IoBuild.Api.Readiness.MigrationReadiness(); readiness.RecordMigrationSuccess();
             services.AddSingleton(readiness);
-        });
+            services.RemoveAll<IHostedService>();
+        }).ConfigureAppConfiguration((_, configuration) => configuration.AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            ["Mqtt:Enabled"] = "false"
+        }));
     }
 }

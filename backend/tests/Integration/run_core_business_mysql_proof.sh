@@ -23,7 +23,7 @@ python3 backend/tests/Integration/fake_stripe_server.py "$stripe_port" >/tmp/iob
 for _ in $(seq 1 30); do curl -fsS "http://127.0.0.1:$stripe_port/health" >/dev/null 2>&1 && break; sleep 1; done
 curl -fsS "http://127.0.0.1:$stripe_port/health" >/dev/null
 sudo -n -u hermes docker network create "$network" >/dev/null
-sudo -n -u hermes docker run -d --name "$container" --network "$network" -p "127.0.0.1:$port:3306" -e MYSQL_ROOT_PASSWORD=iobuild -e MYSQL_DATABASE=iobuild mysql:8.4 >/dev/null
+sudo -n -u hermes docker run -d --name "$container" --network "$network" -p "127.0.0.1:$port:3306" -e MYSQL_ROOT_PASSWORD=iobuild -e MYSQL_DATABASE=iobuild mysql:8.0 >/dev/null
 for _ in $(seq 1 60); do sudo -n -u hermes docker exec "$container" mysqladmin ping -h 127.0.0.1 -uroot -piobuild --silent >/dev/null 2>&1 && break; sleep 1; done
 conn="Server=127.0.0.1;Port=$port;Database=iobuild;User=root;Password=iobuild"
 payload='{"id":"evt_paid","type":"checkout.session.completed","data":{"object":{"payment_status":"paid","metadata":{"builder_id":"1","plan_id":"3"}}}}'

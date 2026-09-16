@@ -40,7 +40,7 @@ retained_payload() {
   sudo -n -u hermes docker exec "$mosquitto" mosquitto_sub -h localhost -t "$1" -C 1 -W 10
 }
 sudo -n -u hermes docker network create "$network" >/dev/null
-sudo -n -u hermes docker run -d --name "$mysql" --network "$network" -p "127.0.0.1:$mysql_port:3306" -e MYSQL_ROOT_PASSWORD=iobuild -e MYSQL_DATABASE=iobuild mysql:8.4 >/dev/null
+sudo -n -u hermes docker run -d --name "$mysql" --network "$network" -p "127.0.0.1:$mysql_port:3306" -e MYSQL_ROOT_PASSWORD=iobuild -e MYSQL_DATABASE=iobuild mysql:8.0 >/dev/null
 sudo -n -u hermes docker run -d --name "$mosquitto" --network "$network" -p "127.0.0.1:$mqtt_port:1883" eclipse-mosquitto:2 >/dev/null
 sudo -n -u hermes docker run -d --name "$influx" --network "$network" -p "127.0.0.1:$influx_port:8086" \
   -e DOCKER_INFLUXDB_INIT_MODE=setup -e DOCKER_INFLUXDB_INIT_USERNAME=iobuild -e DOCKER_INFLUXDB_INIT_PASSWORD=iobuild-pass -e DOCKER_INFLUXDB_INIT_ORG=iobuild -e DOCKER_INFLUXDB_INIT_BUCKET=telemetry -e DOCKER_INFLUXDB_INIT_ADMIN_TOKEN=wu4-token influxdb:2.7 >/dev/null
