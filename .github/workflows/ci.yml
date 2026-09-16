@@ -7,6 +7,16 @@ on:
     branches: [main]
 
 jobs:
+  agent-compatibility:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Verify agent integration
+        run: node scripts/verify-agent-compatibility.mjs
+
   build-and-test:
     runs-on: ubuntu-latest
     steps:
@@ -23,8 +33,16 @@ jobs:
       - name: Build
         run: dotnet build backend/IoBuild.sln --no-restore
 
-      - name: Test
-        run: dotnet test backend/IoBuild.sln --no-restore --verbosity normal
+      - name: Test (Gate 1 — Tier A fast)
+        run: dotnet test backend/IoBuild.sln --no-restore --verbosity minimal --filter "Risk=A"
+
+      - name: Test (Gate 2 — full convergence suite)
+        run: dotnet test backend/IoBuild.sln --no-restore --verbosity minimal
+
+      - name: Guard MySQL engine version (8.0)
+        run: |
+          if grep -R "mysql:8\.4" backend/tests --include="*.sh"; then echo "mysql:8.4 proof script found"; exit 1; fi
+          grep -R "mysql:8\.0" backend/tests/Integration --include="*.sh"
 
       - name: Docker build (monolith)
         run: docker build -f backend/Dockerfile -t iobuild-api:ci ./backend
@@ -61,6 +79,20 @@ jobs:
       - name: Compose down
         if: always()
         run: docker compose -f docker-compose.yml down -v
+
+  frontend-unit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install frontend
+        run: npm ci
+        working-directory: frontend
+      - name: Unit (Vitest — validators and Tier A)
+        run: npm run test:unit
+        working-directory: frontend
 
   simulator-smoke:
     runs-on: ubuntu-latest

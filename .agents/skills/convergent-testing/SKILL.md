@@ -1,0 +1,49 @@
+---
+name: convergent-testing
+description: "Trigger: new feature, convergent testing, validation gate, system journey. Orchestrates self-contained flow-first testing before feature completion."
+license: Apache-2.0
+metadata:
+  author: "ccarita-tech"
+  version: "0.3"
+---
+
+## Activation Contract
+
+Use for every new behavior or feature and whenever the user requests a testing gate. Orchestrate journey design, layered evidence, risk coverage, diagnosis, and deterministic acceptance.
+
+## Hard Rules
+
+- Treat a feature as incomplete until its gate passes.
+- Start from observable outcomes, never test folders or tools.
+- Give every assertion one owning layer; sample lower rules in E2E, never duplicate them exhaustively.
+- Keep backend business rules authoritative and use production infrastructure for infrastructure guarantees.
+- Never change an expectation merely to make a test green.
+- MCP and browser exploration diagnose only; versioned tests provide final proof.
+- Do not request or expose hidden chain-of-thought. Record decisions, evidence, hypotheses, and verdicts instead.
+
+## Decision Gates
+
+| Condition | Required action |
+|---|---|
+| Journey or expected outcome unclear | Load `convergent-journey-design`; stop before implementation if ambiguity changes behavior |
+| Feature changes behavior | Require G0 and relevant G1; add G2 for critical user-visible journeys |
+| Failure blocks a gate | Load `convergent-failure-diagnosis` |
+| Evidence is ready | Load `convergent-gate-execution` for deterministic verification |
+
+## Execution Steps
+
+1. Produce a journey record and risk matrix.
+2. Map assertions to layers and convergence points.
+3. Implement behavior and tests as one work unit.
+4. Execute G0→G4 in order, skipping only demonstrably irrelevant gates.
+5. Diagnose failures with bounded hypothesis branching and rerun without MCP.
+6. Return the evidence ledger and unresolved risks.
+
+## Output Contract
+
+Return `journey`, `scenarios_by_tier`, `layer_ownership`, `commands_run`, `gate_results`, `artifacts`, `diagnostic_verdicts`, and `open_risks`. Never say complete when a required gate is skipped or red.
+
+## References
+
+- `references/gate-protocol.md`
+- `references/scenario-schema.md`
