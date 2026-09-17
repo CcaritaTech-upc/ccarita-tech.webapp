@@ -59,7 +59,7 @@ jobs:
       - name: Wait for API health
         run: |
           for i in $(seq 1 30); do
-            if curl -f http://localhost:80/health || curl -f http://localhost:8080/health; then
+            if curl -f http://localhost:8081/health || curl -f http://localhost:8080/health; then
               echo "health ok on attempt $i"
               exit 0
             fi
@@ -73,8 +73,8 @@ jobs:
 
       - name: Curl health endpoint
         run: |
-          curl -f http://localhost:80/health
-          curl -f http://localhost:80/api/v1/cutover/status || true
+          curl -f http://localhost:8081/health
+          curl -f http://localhost:8081/api/v1/cutover/status || true
 
       - name: Compose down
         if: always()
@@ -93,6 +93,30 @@ jobs:
       - name: Unit (Vitest — validators and Tier A)
         run: npm run test:unit
         working-directory: frontend
+
+  frontend-e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install frontend
+        run: npm ci
+        working-directory: frontend
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+        working-directory: frontend
+      - name: Compose up (system under test)
+        run: docker compose -f docker-compose.yml up -d --wait
+      - name: E2E (Playwright — IAM journeys per actor)
+        run: E2E_BASE_URL=http://localhost:8081 npx playwright test
+        working-directory: frontend
+        env:
+          CI: true
+      - name: Compose down
+        if: always()
+        run: docker compose -f docker-compose.yml down -v
 
   simulator-smoke:
     runs-on: ubuntu-latest

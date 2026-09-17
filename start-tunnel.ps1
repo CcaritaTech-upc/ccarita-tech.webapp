@@ -11,7 +11,7 @@ if (!(Test-Path $cloudflared)) {
     Invoke-WebRequest -Uri "https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-windows-amd64.exe" -OutFile $cloudflared
 }
 
-Write-Host "Iniciando túnel seguro de Cloudflare hacia http://localhost:80..." -ForegroundColor Green
+Write-Host "Iniciando túnel seguro de Cloudflare hacia http://localhost:8081..." -ForegroundColor Green
 Write-Host "Copia el enlace .trycloudflare.com que aparezca a continuacion:`n" -ForegroundColor Yellow
 
-& $cloudflared tunnel --url http://localhost:80
+& $cloudflared tunnel --url http://localhost:8081
