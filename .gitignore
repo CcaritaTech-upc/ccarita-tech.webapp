@@ -29,6 +29,8 @@ frontend/node_modules/
 node_modules/
 frontend/test-results/
 frontend/playwright-report/
+test-results/
+playwright-report/
 
 # Operating system files
 .DS_Store
