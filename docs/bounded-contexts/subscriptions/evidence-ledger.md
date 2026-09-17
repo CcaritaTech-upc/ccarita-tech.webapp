@@ -27,6 +27,8 @@ commands:
     result: 1/1 passed against live MySQL 8.0 (activation plus supersede expiry with EndDate); probe rows cleaned, table left without test residue
   - command: E2E_BASE_URL=http://localhost:8081 npx playwright test (deployed nginx + dist + API + MySQL)
     result: 5/5 passed — IAM journeys plus SUBSCRIPTIONS purchase (browse plans, simulated pay, active Starter); e2e evidence rows cleaned afterwards
+  - command: CI run on main with the purchase spec (frontend-e2e job against the compose stack)
+    result: success after scoping the dummy Stripe key to job level (first attempt failed with no checkout redirect because the dist built without the key)
 artifacts: []
 failures:
   - class: product
@@ -38,9 +40,6 @@ open_risks:
     owner: ccarita-tech
     review_by: 2026-10-01
   - risk: webhook path scheduled, not evidenced (needs real Stripe keys plus public URL)
-    owner: ccarita-tech
-    review_by: 2026-10-01
-  - risk: purchase E2E added but not yet observed green on a real CI run
     owner: ccarita-tech
     review_by: 2026-10-01
 roles_covered:
