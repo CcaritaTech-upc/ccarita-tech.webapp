@@ -9,6 +9,18 @@ namespace IoBuild.Api.Devices.Interfaces.REST;
 
 public static class DevicesEndpoints
 {
+    // Mutations need a manager: the unit owner for unit devices, the project
+    // builder for project (floor) devices. Anything else reads as not found.
+    private static async Task<bool> ManagesDeviceAsync(System.Security.Claims.ClaimsPrincipal user, IoBuild.Api.Persistence.IoBuildDbContext db, IoBuild.Api.Devices.Domain.Model.Aggregates.Device device, CancellationToken ct)
+    {
+        if (!int.TryParse(user.FindFirst(System.Security.Claims.ClaimTypes.Sid)?.Value, out var id)) return false;
+        var role = user.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value;
+        if (device.UnitId.HasValue && string.Equals(role, "Owner", StringComparison.Ordinal)
+            && await db.UnitOwnerProjections.AnyAsync(item => item.UnitId == device.UnitId && item.OwnerUserId == id, ct)) return true;
+        var project = await db.Projects.FindAsync([device.ProjectId], ct);
+        return project is not null && string.Equals(role, "Builder", StringComparison.OrdinalIgnoreCase) && project.BuilderId == id;
+    }
+
     public static void MapDevicesEndpoints(this WebApplication app)
     {
         var deviceTypesResult = new
@@ -67,8 +79,8 @@ public static class DevicesEndpoints
             await db.SaveChangesAsync(ct);
             await registry.AnnounceAsync(device, ct); return Results.Created($"/api/v1/devices/{device.Id}", DeviceResponse.From(device));
         }).RequireAuthorization();
-        group.MapPut("/devices/{id:int}", async (int id, CreateDeviceRequest request, IoBuildDbContext db, DeviceRegistryService registry, CancellationToken ct) => { var device = await db.Devices.FindAsync([id], ct); if (device is null) return Results.NotFound(); device.Name = request.Name; device.Type = request.Type; device.Location = request.Location; device.MacAddress = request.MacAddress; device.ProjectId = request.ProjectId; device.Status = request.Status; await db.SaveChangesAsync(ct); await registry.AnnounceAsync(device, ct); return Results.NoContent(); }).RequireAuthorization();
-        group.MapDelete("/devices/{id:int}", async (int id, IoBuildDbContext db, DeviceRegistryService registry, CancellationToken ct) => { var device = await db.Devices.FindAsync([id], ct); if (device is null) return Results.NotFound(); registry.QueueTombstone(id); var devProj = await db.DeviceProjections.FindAsync([id], ct); if (devProj is not null) db.DeviceProjections.Remove(devProj); db.Devices.Remove(device); await db.SaveChangesAsync(ct); try { await registry.ReconcileAsync(ct); } catch (HttpRequestException) { } return Results.NoContent(); }).RequireAuthorization();
+        group.MapPut("/devices/{id:int}", async (int id, CreateDeviceRequest request, System.Security.Claims.ClaimsPrincipal user, IoBuildDbContext db, DeviceRegistryService registry, CancellationToken ct) => { var device = await db.Devices.FindAsync([id], ct); if (device is null || !await ManagesDeviceAsync(user, db, device, ct)) return Results.NotFound(); device.Name = request.Name; device.Type = request.Type; device.Location = request.Location; device.MacAddress = request.MacAddress; device.ProjectId = request.ProjectId; device.Status = request.Status; await db.SaveChangesAsync(ct); await registry.AnnounceAsync(device, ct); return Results.NoContent(); }).RequireAuthorization();
+        group.MapDelete("/devices/{id:int}", async (int id, System.Security.Claims.ClaimsPrincipal user, IoBuildDbContext db, DeviceRegistryService registry, CancellationToken ct) => { var device = await db.Devices.FindAsync([id], ct); if (device is null || !await ManagesDeviceAsync(user, db, device, ct)) return Results.NotFound(); registry.QueueTombstone(id); var devProj = await db.DeviceProjections.FindAsync([id], ct); if (devProj is not null) db.DeviceProjections.Remove(devProj); db.Devices.Remove(device); await db.SaveChangesAsync(ct); try { await registry.ReconcileAsync(ct); } catch (HttpRequestException) { } return Results.NoContent(); }).RequireAuthorization();
         group.MapPost("/devices/{id:int}/commands", async (int id, DeviceCommandRequest request, System.Security.Claims.ClaimsPrincipal user, DeviceCommandService commands, CancellationToken ct) => { var ownerId = int.TryParse(user.FindFirst(System.Security.Claims.ClaimTypes.Sid)?.Value, out var value) ? value : 0; var role = user.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value; try { var command = await commands.SendAuthorizedAsync(id, ownerId, role, request.Attribute, request.Value, ct); return Results.Ok(new { deviceId = id, attribute = request.Attribute, value = request.Value, acceptedAt = command.IssuedAt }); } catch (ArgumentException exception) { return Results.BadRequest(new { error = exception.Message }); } catch (UnauthorizedAccessException exception) { return Results.Json(new { error = exception.Message }, statusCode: 403); } catch (KeyNotFoundException exception) { return Results.NotFound(new { error = exception.Message }); } catch (HttpRequestException exception) { return Results.Json(new { error = exception.Message }, statusCode: 503); } }).RequireAuthorization();
         group.MapPost("/devices/telemetry", async (TelemetryMessage request, DeviceTelemetryService telemetry, CancellationToken ct) => await telemetry.IngestAsync(request, ct) ? Results.Ok(new { received = true }) : Results.NotFound()).AllowAnonymous();
         group.MapPost("/devices/telemetry/replay", async (DeviceTelemetryService telemetry, CancellationToken ct) => Results.Ok(new { replayed = await telemetry.ReplayInfluxAsync(ct) })).RequireAuthorization();
