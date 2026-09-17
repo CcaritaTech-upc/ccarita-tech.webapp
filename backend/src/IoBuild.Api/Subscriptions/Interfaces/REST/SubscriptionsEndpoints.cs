@@ -13,6 +13,15 @@ namespace IoBuild.Api.Subscriptions.Interfaces.REST;
 
 public static class SubscriptionsEndpoints
 {
+    // The JWT carries the user id in ClaimTypes.Sid (see JwtTokenIssuer).
+    // In this bounded context the builder id IS the user id: every purchase
+    // endpoint requires the caller to act only on their own builder id.
+    private static bool OwnsBuilder(System.Security.Claims.ClaimsPrincipal user, int builderId) =>
+        int.TryParse(user.FindFirst(System.Security.Claims.ClaimTypes.Sid)?.Value, out var id) && id == builderId;
+
+    private static int SelfId(System.Security.Claims.ClaimsPrincipal user) =>
+        int.TryParse(user.FindFirst(System.Security.Claims.ClaimTypes.Sid)?.Value, out var id) ? id : 0;
+
     private static System.Text.Json.JsonDocument? ParseWebhookPayload(string payload)
     {
         try
@@ -67,9 +76,9 @@ public static class SubscriptionsEndpoints
         // ── Subscriptions Endpoints ──
         var subs = app.MapGroup("/api/v1").WithTags("Subscriptions");
 
-        subs.MapGet("/subscriptions", async (IoBuildDbContext db, CancellationToken ct) =>
+        subs.MapGet("/subscriptions", async (System.Security.Claims.ClaimsPrincipal user, IoBuildDbContext db, CancellationToken ct) =>
         {
-            var subscriptions = await db.Subscriptions.ToListAsync(ct);
+            var subscriptions = await db.Subscriptions.Where(s => s.BuilderId == SelfId(user)).ToListAsync(ct);
             var plans = await db.Plans.ToDictionaryAsync(p => p.Id, ct);
             var result = subscriptions.Select(s => new
             {
@@ -91,11 +100,11 @@ public static class SubscriptionsEndpoints
                 } : null
             });
             return Results.Ok(result);
-        });
-        subs.MapGet("/subscriptions/{id:int}", async (int id, IoBuildDbContext db, CancellationToken ct) =>
+        }).RequireAuthorization();
+        subs.MapGet("/subscriptions/{id:int}", async (int id, System.Security.Claims.ClaimsPrincipal user, IoBuildDbContext db, CancellationToken ct) =>
         {
             var s = await db.Subscriptions.FindAsync([id], ct);
-            if (s is null) return Results.NotFound();
+            if (s is null || !OwnsBuilder(user, s.BuilderId)) return Results.NotFound();
             var plan = await db.Plans.FindAsync([s.PlanId], ct);
             return Results.Ok(new
             {
@@ -116,11 +125,12 @@ public static class SubscriptionsEndpoints
                         : new List<string>()
                 } : null
             });
-        });
-        subs.MapPut("/subscriptions/{id:int}", async (int id, CreateSubscriptionRequest request, IoBuildDbContext db, CancellationToken ct) => { var item = await db.Subscriptions.FindAsync([id], ct); if (item is null) return Results.NotFound(); item.PlanId = request.PlanId; item.EndDate = request.EndDate; await db.SaveChangesAsync(ct); return Results.NoContent(); });
-        subs.MapPost("/subscriptions/{id:int}/cancel", async (int id, IoBuildDbContext db, CancellationToken ct) => { var item = await db.Subscriptions.FindAsync([id], ct); if (item is null) return Results.NotFound(); item.Status = "cancelled"; await db.SaveChangesAsync(ct); return Results.NoContent(); });
-        subs.MapPost("/subscriptions/payments/sessions", async (PaymentCheckoutRequest request, IConfiguration configuration, IPaymentProvider provider, IoBuildDbContext db, CancellationToken ct) =>
+        }).RequireAuthorization();
+        subs.MapPut("/subscriptions/{id:int}", async (int id, CreateSubscriptionRequest request, System.Security.Claims.ClaimsPrincipal user, IoBuildDbContext db, CancellationToken ct) => { var item = await db.Subscriptions.FindAsync([id], ct); if (item is null || !OwnsBuilder(user, item.BuilderId)) return Results.NotFound(); item.PlanId = request.PlanId; item.EndDate = request.EndDate; await db.SaveChangesAsync(ct); return Results.NoContent(); }).RequireAuthorization();
+        subs.MapPost("/subscriptions/{id:int}/cancel", async (int id, System.Security.Claims.ClaimsPrincipal user, IoBuildDbContext db, CancellationToken ct) => { var item = await db.Subscriptions.FindAsync([id], ct); if (item is null || !OwnsBuilder(user, item.BuilderId)) return Results.NotFound(); item.Status = "cancelled"; await db.SaveChangesAsync(ct); return Results.NoContent(); }).RequireAuthorization();
+        subs.MapPost("/subscriptions/payments/sessions", async (PaymentCheckoutRequest request, System.Security.Claims.ClaimsPrincipal user, IConfiguration configuration, IPaymentProvider provider, IoBuildDbContext db, CancellationToken ct) =>
         {
+            if (!OwnsBuilder(user, request.BuilderId)) return Results.Forbid();
             var restrictedKey = StripeRestrictedKeyResolver.Resolve(configuration);
             if (restrictedKey is null) return Results.Problem(statusCode: 503);
             if (await db.Plans.FindAsync([request.PlanId], ct) is null) return Results.NotFound();
@@ -135,7 +145,7 @@ public static class SubscriptionsEndpoints
                 session.AmountInCents,
                 options.UsesDynamicPaymentMethods
             });
-        });
+        }).RequireAuthorization();
         subs.MapPatch("/subscriptions/payments/sessions/{sessionId}", async (string sessionId, IPaymentProvider provider, IoBuildDbContext db, CancellationToken ct) =>
         {
             var confirmation = await provider.ConfirmSessionAsync(sessionId, ct);
@@ -177,8 +187,9 @@ public static class SubscriptionsEndpoints
 
             return Results.Ok(confirmation);
         });
-        subs.MapGet("/subscriptions/payments/invoices", async (int builderId, IPaymentProvider provider, IoBuildDbContext db, CancellationToken ct) =>
+        subs.MapGet("/subscriptions/payments/invoices", async (int builderId, System.Security.Claims.ClaimsPrincipal user, IPaymentProvider provider, IoBuildDbContext db, CancellationToken ct) =>
         {
+            if (!OwnsBuilder(user, builderId)) return Results.Forbid();
             var invoices = await provider.GetInvoicesAsync(builderId, ct);
             if (invoices is not null)
             {
@@ -208,14 +219,15 @@ public static class SubscriptionsEndpoints
             }).ToList();
 
             return Results.Ok(fallbackInvoices);
-        });
-        subs.MapPost("/subscriptions", async (CreateSubscriptionRequest request, IoBuildDbContext db, CancellationToken ct) =>
+        }).RequireAuthorization();
+        subs.MapPost("/subscriptions", async (CreateSubscriptionRequest request, System.Security.Claims.ClaimsPrincipal user, IoBuildDbContext db, CancellationToken ct) =>
         {
+            if (!OwnsBuilder(user, request.BuilderId)) return Results.Forbid();
             var subscription = new Subscription { BuilderId = request.BuilderId, PlanId = request.PlanId, StartDate = request.StartDate, EndDate = request.EndDate };
             db.Subscriptions.Add(subscription);
             await db.SaveChangesAsync(ct);
             return Results.Created($"/api/v1/subscriptions/{subscription.Id}", subscription);
-        });
+        }).RequireAuthorization();
         subs.MapPost("/webhooks/stripe", async (HttpRequest request, StripeWebhookProcessor processor, CancellationToken ct) =>
         {
             using var reader = new StreamReader(request.Body);

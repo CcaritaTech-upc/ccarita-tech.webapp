@@ -1,4 +1,5 @@
 using System.Net;
+using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
@@ -84,10 +85,12 @@ public sealed class SubscriptionPersistenceMySqlTests
             Assert.True(await admin.Plans.AnyAsync(p => p.Id == 1), "Seed plan 1 missing in test database.");
         }
 
-        using var checkout = await client.PostAsync("/api/v1/subscriptions/payments/sessions",
-            new StringContent(
-                $"{{\"builderId\":{builderId},\"planId\":1,\"successUrl\":\"https://success.example\",\"cancelUrl\":\"https://cancel.example\"}}",
-                Encoding.UTF8, "application/json"));
+        using var request = new HttpRequestMessage(HttpMethod.Post, "/api/v1/subscriptions/payments/sessions");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", Token(builderId));
+        request.Content = new StringContent(
+            $"{{\"builderId\":{builderId},\"planId\":1,\"successUrl\":\"https://success.example\",\"cancelUrl\":\"https://cancel.example\"}}",
+            Encoding.UTF8, "application/json");
+        using var checkout = await client.SendAsync(request);
         Assert.Equal(HttpStatusCode.Created, checkout.StatusCode);
         var sessionId = (await checkout.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("sessionId").GetString()!;
 
@@ -118,12 +121,17 @@ public sealed class SubscriptionPersistenceMySqlTests
         }
     }
 
+    private static string Token(int id) => new IoBuild.Api.IAM.Infrastructure.Tokens.JwtTokenIssuer("iobuild-development-secret-must-be-replaced-before-production")
+        .Issue(new IoBuild.Api.IAM.Domain.Model.Aggregates.IamUser { Id = id, Email = $"probe{id}@example.test", Role = "Builder" });
+
     private static async Task ConfirmPlanAsync(HttpClient client, int builderId, int planId)
     {
-        using var checkout = await client.PostAsync("/api/v1/subscriptions/payments/sessions",
-            new StringContent(
-                $"{{\"builderId\":{builderId},\"planId\":{planId},\"successUrl\":\"https://success.example\",\"cancelUrl\":\"https://cancel.example\"}}",
-                Encoding.UTF8, "application/json"));
+        using var request = new HttpRequestMessage(HttpMethod.Post, "/api/v1/subscriptions/payments/sessions");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", Token(builderId));
+        request.Content = new StringContent(
+            $"{{\"builderId\":{builderId},\"planId\":{planId},\"successUrl\":\"https://success.example\",\"cancelUrl\":\"https://cancel.example\"}}",
+            Encoding.UTF8, "application/json");
+        using var checkout = await client.SendAsync(request);
         Assert.Equal(HttpStatusCode.Created, checkout.StatusCode);
         var sessionId = (await checkout.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("sessionId").GetString()!;
         using var confirm = await client.PatchAsync($"/api/v1/subscriptions/payments/sessions/{sessionId}", null);

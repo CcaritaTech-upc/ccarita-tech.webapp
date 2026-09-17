@@ -1,4 +1,5 @@
 using System.Net;
+using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Security.Cryptography;
 using System.Text;
@@ -34,8 +35,9 @@ public sealed class SubscriptionPurchaseFlowTests
         Assert.NotNull(planList);
         Assert.NotEmpty(planList);
 
-        var checkout = await client.PostAsync("/api/v1/subscriptions/payments/sessions",
-            Json("{\"builderId\":1,\"planId\":3,\"successUrl\":\"https://success.example\",\"cancelUrl\":\"https://cancel.example\"}"));
+        var buyer = Token(1, "buyer1@example.test", "Builder");
+        var checkout = await SendAsync(client, HttpMethod.Post, "/api/v1/subscriptions/payments/sessions", buyer,
+            "{\"builderId\":1,\"planId\":3,\"successUrl\":\"https://success.example\",\"cancelUrl\":\"https://cancel.example\"}");
         Assert.Equal(HttpStatusCode.Created, checkout.StatusCode);
         var session = await checkout.Content.ReadFromJsonAsync<JsonElement>();
         var sessionId = session.GetProperty("sessionId").GetString()!;
@@ -45,7 +47,7 @@ public sealed class SubscriptionPurchaseFlowTests
         Assert.Equal(HttpStatusCode.OK, confirm.StatusCode);
         Assert.Equal("paid", (await confirm.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("status").GetString());
 
-        var invoices = await client.GetAsync("/api/v1/subscriptions/payments/invoices?builderId=1");
+        var invoices = await SendAsync(client, HttpMethod.Get, "/api/v1/subscriptions/payments/invoices?builderId=1", buyer);
         Assert.Equal(HttpStatusCode.OK, invoices.StatusCode);
         Assert.Contains("in_sim_1", await invoices.Content.ReadAsStringAsync());
     }
@@ -59,10 +61,11 @@ public sealed class SubscriptionPurchaseFlowTests
         await using var factory = new PurchaseApiFactory();
         using var client = factory.CreateClient();
 
-        await ConfirmPlanAsync(client, builderId: 2, planId: 1);
-        await ConfirmPlanAsync(client, builderId: 2, planId: 2);
+        var buyer2 = Token(2, "buyer2@example.test", "Builder");
+        await ConfirmPlanAsync(client, buyer2, builderId: 2, planId: 1);
+        await ConfirmPlanAsync(client, buyer2, builderId: 2, planId: 2);
 
-        var all = await client.GetAsync("/api/v1/subscriptions");
+        var all = await SendAsync(client, HttpMethod.Get, "/api/v1/subscriptions", buyer2);
         var body = await all.Content.ReadFromJsonAsync<List<JsonElement>>();
         var mine = body!.Where(s => s.GetProperty("builderId").GetInt32() == 2).ToList();
         Assert.Equal(2, mine.Count);
@@ -125,8 +128,9 @@ public sealed class SubscriptionPurchaseFlowTests
     {
         await using var factory = new PurchaseApiFactory();
         using var client = factory.CreateClient();
-        var response = await client.PostAsync("/api/v1/subscriptions/payments/sessions",
-            Json("{\"builderId\":1,\"planId\":999999,\"successUrl\":\"https://success.example\",\"cancelUrl\":\"https://cancel.example\"}"));
+        var buyer = Token(1, "buyer1@example.test", "Builder");
+        var response = await SendAsync(client, HttpMethod.Post, "/api/v1/subscriptions/payments/sessions", buyer,
+            "{\"builderId\":1,\"planId\":999999,\"successUrl\":\"https://success.example\",\"cancelUrl\":\"https://cancel.example\"}");
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
 
@@ -138,8 +142,9 @@ public sealed class SubscriptionPurchaseFlowTests
     {
         await using var factory = new NoKeyApiFactory();
         using var client = factory.CreateClient();
-        var response = await client.PostAsync("/api/v1/subscriptions/payments/sessions",
-            Json("{\"builderId\":1,\"planId\":1,\"successUrl\":\"https://success.example\",\"cancelUrl\":\"https://cancel.example\"}"));
+        var buyer = Token(1, "buyer1@example.test", "Builder");
+        var response = await SendAsync(client, HttpMethod.Post, "/api/v1/subscriptions/payments/sessions", buyer,
+            "{\"builderId\":1,\"planId\":1,\"successUrl\":\"https://success.example\",\"cancelUrl\":\"https://cancel.example\"}");
         Assert.Equal(HttpStatusCode.ServiceUnavailable, response.StatusCode);
     }
 
@@ -164,18 +169,74 @@ public sealed class SubscriptionPurchaseFlowTests
     {
         await using var factory = new PurchaseApiFactory();
         using var client = factory.CreateClient();
-        Assert.Equal(HttpStatusCode.NotFound, (await client.PostAsync("/api/v1/subscriptions/999999/cancel", null)).StatusCode);
+        var buyer5 = Token(5, "buyer5@example.test", "Builder");
+        Assert.Equal(HttpStatusCode.NotFound, (await SendAsync(client, HttpMethod.Post, "/api/v1/subscriptions/999999/cancel", buyer5)).StatusCode);
 
-        await ConfirmPlanAsync(client, builderId: 5, planId: 1);
-        var mine = await client.GetAsync("/api/v1/subscriptions");
+        await ConfirmPlanAsync(client, buyer5, builderId: 5, planId: 1);
+        var mine = await SendAsync(client, HttpMethod.Get, "/api/v1/subscriptions", buyer5);
         var sub = (await mine.Content.ReadFromJsonAsync<List<JsonElement>>())!
             .First(s => s.GetProperty("builderId").GetInt32() == 5);
         var id = sub.GetProperty("id").GetInt32();
 
-        Assert.Equal(HttpStatusCode.NoContent, (await client.PostAsync($"/api/v1/subscriptions/{id}/cancel", null)).StatusCode);
-        Assert.Equal(HttpStatusCode.NoContent, (await client.PostAsync($"/api/v1/subscriptions/{id}/cancel", null)).StatusCode);
-        var after = await (await client.GetAsync($"/api/v1/subscriptions/{id}")).Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(HttpStatusCode.NoContent, (await SendAsync(client, HttpMethod.Post, $"/api/v1/subscriptions/{id}/cancel", buyer5)).StatusCode);
+        Assert.Equal(HttpStatusCode.NoContent, (await SendAsync(client, HttpMethod.Post, $"/api/v1/subscriptions/{id}/cancel", buyer5)).StatusCode);
+        var after = await (await SendAsync(client, HttpMethod.Get, $"/api/v1/subscriptions/{id}", buyer5)).Content.ReadFromJsonAsync<JsonElement>();
         Assert.Equal("cancelled", after.GetProperty("status").GetString());
+    }
+
+    [Fact]
+    [Trait("Flow", "SUBSCRIPTIONS.PURCHASE")]
+    [Trait("Layer", "Api")]
+    [Trait("Risk", "A")]
+    public async Task CROSS_BUILDER_checkout_invoices_and_cancel_are_rejected()
+    {
+        await using var factory = new PurchaseApiFactory();
+        using var client = factory.CreateClient();
+        var buyer6 = Token(6, "buyer6@example.test", "Builder");
+        var intruder = Token(1, "intruder@example.test", "Builder");
+
+        Assert.Equal(HttpStatusCode.Forbidden, (await SendAsync(client, HttpMethod.Post, "/api/v1/subscriptions/payments/sessions", intruder,
+            "{\"builderId\":6,\"planId\":1,\"successUrl\":\"https://s.example\",\"cancelUrl\":\"https://c.example\"}")).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await SendAsync(client, HttpMethod.Get, "/api/v1/subscriptions/payments/invoices?builderId=6", intruder)).StatusCode);
+
+        await ConfirmPlanAsync(client, buyer6, builderId: 6, planId: 1);
+        var mine = await SendAsync(client, HttpMethod.Get, "/api/v1/subscriptions", buyer6);
+        var id = (await mine.Content.ReadFromJsonAsync<List<JsonElement>>())!.First().GetProperty("id").GetInt32();
+
+        Assert.Equal(HttpStatusCode.NotFound, (await SendAsync(client, HttpMethod.Get, $"/api/v1/subscriptions/{id}", intruder)).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await SendAsync(client, HttpMethod.Post, $"/api/v1/subscriptions/{id}/cancel", intruder)).StatusCode);
+    }
+
+    [Fact]
+    [Trait("Flow", "SUBSCRIPTIONS.PURCHASE")]
+    [Trait("Layer", "Api")]
+    [Trait("Risk", "A")]
+    public async Task LIST_SCOPED_returns_only_own_subscriptions()
+    {
+        await using var factory = new PurchaseApiFactory();
+        using var client = factory.CreateClient();
+        var buyer8 = Token(8, "buyer8@example.test", "Builder");
+        var buyer9 = Token(9, "buyer9@example.test", "Builder");
+        await ConfirmPlanAsync(client, buyer8, builderId: 8, planId: 1);
+        await ConfirmPlanAsync(client, buyer9, builderId: 9, planId: 1);
+
+        var list = await (await SendAsync(client, HttpMethod.Get, "/api/v1/subscriptions", buyer8)).Content.ReadFromJsonAsync<List<JsonElement>>();
+        Assert.NotEmpty(list!);
+        Assert.All(list!, s => Assert.Equal(8, s.GetProperty("builderId").GetInt32()));
+    }
+
+    [Fact]
+    [Trait("Flow", "SUBSCRIPTIONS.PURCHASE")]
+    [Trait("Layer", "Api")]
+    [Trait("Risk", "A")]
+    public async Task MISSING_TOKEN_is_unauthorized_on_purchase_routes()
+    {
+        await using var factory = new PurchaseApiFactory();
+        using var client = factory.CreateClient();
+        Assert.Equal(HttpStatusCode.Unauthorized, (await client.PostAsync("/api/v1/subscriptions/payments/sessions",
+            Json("{\"builderId\":1,\"planId\":1,\"successUrl\":\"https://s.example\",\"cancelUrl\":\"https://c.example\"}"))).StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await client.GetAsync("/api/v1/subscriptions/payments/invoices?builderId=1")).StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await client.GetAsync("/api/v1/subscriptions")).StatusCode);
     }
 
     [Fact]
@@ -186,12 +247,13 @@ public sealed class SubscriptionPurchaseFlowTests
     {
         await using var factory = new PurchaseApiFactory();
         using var client = factory.CreateClient();
+        var buyer = Token(1, "buyer1@example.test", "Builder");
         var cases = new List<HttpResponseMessage>
         {
-            await client.PostAsync("/api/v1/subscriptions/payments/sessions",
-                Json("{\"builderId\":1,\"planId\":999999,\"successUrl\":\"https://s.example\",\"cancelUrl\":\"https://c.example\"}")),
+            await SendAsync(client, HttpMethod.Post, "/api/v1/subscriptions/payments/sessions", buyer,
+                "{\"builderId\":1,\"planId\":999999,\"successUrl\":\"https://s.example\",\"cancelUrl\":\"https://c.example\"}"),
             await client.PatchAsync("/api/v1/subscriptions/payments/sessions/does-not-exist", null),
-            await client.GetAsync("/api/v1/subscriptions/999999"),
+            await SendAsync(client, HttpMethod.Get, "/api/v1/subscriptions/999999", buyer),
         };
         using (var malformed = new StringContent("{not-json", Encoding.UTF8, "application/json"))
         {
@@ -220,28 +282,39 @@ public sealed class SubscriptionPurchaseFlowTests
     {
         await using var factory = new PurchaseApiFactory();
         using var client = factory.CreateClient();
+        var buyer = Token(1, "buyer1@example.test", "Builder");
         var payloads = new[]
         {
-            "{\"builderId\":0,\"planId\":1,\"successUrl\":\"https://s.example\",\"cancelUrl\":\"https://c.example\"}",
-            "{\"builderId\":-5,\"planId\":-5,\"successUrl\":\"https://s.example\",\"cancelUrl\":\"https://c.example\"}",
             "{\"builderId\":1,\"planId\":1,\"successUrl\":\"\",\"cancelUrl\":\"\"}",
             $"{{\"builderId\":1,\"planId\":1,\"successUrl\":\"https://s.example/{new string('x', 2000)}\",\"cancelUrl\":\"https://c.example\"}}",
             "{\"builderId\":1}",
             "{}",
+            "{\"builderId\":2,\"planId\":1,\"successUrl\":\"https://s.example\",\"cancelUrl\":\"https://c.example\"}",
         };
         foreach (var payload in payloads)
         {
-            using var response = await client.PostAsync("/api/v1/subscriptions/payments/sessions", Json(payload));
+            using var response = await SendAsync(client, HttpMethod.Post, "/api/v1/subscriptions/payments/sessions", buyer, payload);
             Assert.True(
-                response.StatusCode is HttpStatusCode.Created or HttpStatusCode.BadRequest or HttpStatusCode.NotFound or HttpStatusCode.ServiceUnavailable,
+                response.StatusCode is HttpStatusCode.Created or HttpStatusCode.BadRequest or HttpStatusCode.NotFound or HttpStatusCode.ServiceUnavailable or HttpStatusCode.Forbidden,
                 $"Fuzz partition returned {response.StatusCode}");
         }
     }
 
-    private static async Task ConfirmPlanAsync(HttpClient client, int builderId, int planId)
+    private static string Token(int id, string email, string role) => new IoBuild.Api.IAM.Infrastructure.Tokens.JwtTokenIssuer("iobuild-development-secret-must-be-replaced-before-production")
+        .Issue(new IoBuild.Api.IAM.Domain.Model.Aggregates.IamUser { Id = id, Email = email, Role = role });
+
+    private static Task<HttpResponseMessage> SendAsync(HttpClient client, HttpMethod method, string path, string token, string? json = null)
     {
-        var checkout = await client.PostAsync("/api/v1/subscriptions/payments/sessions",
-            Json($"{{\"builderId\":{builderId},\"planId\":{planId},\"successUrl\":\"https://success.example\",\"cancelUrl\":\"https://cancel.example\"}}"));
+        var request = new HttpRequestMessage(method, path);
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        if (json is not null) request.Content = new StringContent(json, Encoding.UTF8, "application/json");
+        return client.SendAsync(request);
+    }
+
+    private static async Task ConfirmPlanAsync(HttpClient client, string token, int builderId, int planId)
+    {
+        var checkout = await SendAsync(client, HttpMethod.Post, "/api/v1/subscriptions/payments/sessions", token,
+            $"{{\"builderId\":{builderId},\"planId\":{planId},\"successUrl\":\"https://success.example\",\"cancelUrl\":\"https://cancel.example\"}}");
         Assert.Equal(HttpStatusCode.Created, checkout.StatusCode);
         var sessionId = (await checkout.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("sessionId").GetString()!;
         using var confirm = await client.PatchAsync($"/api/v1/subscriptions/payments/sessions/{sessionId}", null);

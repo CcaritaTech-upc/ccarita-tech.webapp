@@ -287,11 +287,11 @@ public sealed class CoreBusinessWorkflowTests
     {
         await using var factory = new CoreBusinessApiFactory();
         using var client = factory.CreateClient();
-        using var request = new StringContent("{\"builderId\":7,\"planId\":3,\"successUrl\":\"https://success\",\"cancelUrl\":\"https://cancel\"}", Encoding.UTF8, "application/json");
 
-        var checkout = await client.PostAsync("/api/v1/subscriptions/payments/sessions", request);
+        var buyer = Token(7, "builder@example.test", "Builder");
+        var checkout = await SendAuthorizedAsync(client, HttpMethod.Post, "/api/v1/subscriptions/payments/sessions", buyer, "{\"builderId\":7,\"planId\":3,\"successUrl\":\"https://success\",\"cancelUrl\":\"https://cancel\"}");
         var confirmation = await client.PatchAsync("/api/v1/subscriptions/payments/sessions/cs_fake", null);
-        var invoices = await client.GetAsync("/api/v1/subscriptions/payments/invoices?builderId=7");
+        var invoices = await SendAuthorizedAsync(client, HttpMethod.Get, "/api/v1/subscriptions/payments/invoices?builderId=7", buyer);
 
         Assert.Equal(HttpStatusCode.Created, checkout.StatusCode);
         Assert.Contains("\"usesDynamicPaymentMethods\":true", await checkout.Content.ReadAsStringAsync(), StringComparison.Ordinal);
