@@ -27,14 +27,45 @@ test('SUBSCRIPTIONS Builder happy path: browse plans, pay, active subscription',
   await page.goto('/subscriptions/my-subscription');
   await expect(page.locator('.plans-grid')).toContainText('Starter', { timeout: 20_000 });
 
-  // Pay Starter: simulated checkout redirects back with a session id.
+  // Pay Starter. Simulated backends redirect back with a same-origin session
+  // id; a real Stripe backend lands on checkout.stripe.com, where the test
+  // pays with the standard test card and returns to the same success URL.
   await page.getByRole('button', { name: /elegir starter/i }).click();
+  await payOnStripeIfRedirected(page, email);
 
-  // Simulated checkout redirects back with a session id; the view confirms and
-  // cleans the URL when done. Assert on those durable outcomes, never on the
-  // 2.5s toast that may come and go before the first poll.
-  await expect(page).toHaveURL(/session_id=cs_sim_/, { timeout: 20_000 });
-  await expect(page).not.toHaveURL(/session_id=/, { timeout: 20_000 });
+  // The view confirms and cleans the URL when done. Assert on those durable
+  // outcomes, never on the 2.5s toast that may come and go before polling.
+  await expect(page).not.toHaveURL(/session_id=/, { timeout: 30_000 });
   await expect(page.locator('.hero-plan-title')).toHaveText('Starter', { timeout: 20_000 });
   await expect(page.locator('.status-active').first()).toBeVisible();
 });
+
+// If checkout redirected to real Stripe, pay with the test card and come back.
+// Simulated mode never leaves our origin, so this is a no-op there.
+// Field names were read off the live checkout DOM (single elements iframe):
+// cardNumber, cardExpiry, cardCvc, plus the required email.
+async function payOnStripeIfRedirected(page, email) {
+  await page.waitForURL(/session_id=|checkout\.stripe\.com/, { timeout: 20_000 });
+  if (!page.url().includes('checkout.stripe.com')) return;
+
+  const yy = String(new Date().getFullYear() + 2).slice(-2);
+  // The elements iframe loads after navigation: poll until the card field exists.
+  let cardFrame = null;
+  await expect.poll(async () => {
+    for (const frame of page.frames()) {
+      if (await frame.locator('input[name="cardNumber"]').count()) {
+        cardFrame = frame;
+        return true;
+      }
+    }
+    return false;
+  }, { timeout: 20_000 }).toBe(true);
+
+  await cardFrame.locator('input[name="email"]').fill(email);
+  await cardFrame.locator('input[name="cardNumber"]').fill('4242424242424242');
+  await cardFrame.locator('input[name="cardExpiry"]').fill(`12${yy}`);
+  await cardFrame.locator('input[name="cardCvc"]').fill('123');
+  await cardFrame.locator('input[name="billingName"]').fill('E2E Tester');
+  await expect(cardFrame.locator('input[name="cardNumber"]')).toHaveValue(/4242/);
+  await page.getByRole('button', { name: /^pay$/i }).click();
+}
