@@ -117,6 +117,127 @@ public sealed class SubscriptionPurchaseFlowTests
         Assert.Single(await db.SubscriptionWebhooks.Where(w => w.EventId == "evt_single_1").ToListAsync());
     }
 
+    [Fact]
+    [Trait("Flow", "SUBSCRIPTIONS.PURCHASE")]
+    [Trait("Layer", "Api")]
+    [Trait("Risk", "A")]
+    public async Task CHECKOUT_UNKNOWN_PLAN_is_rejected()
+    {
+        await using var factory = new PurchaseApiFactory();
+        using var client = factory.CreateClient();
+        var response = await client.PostAsync("/api/v1/subscriptions/payments/sessions",
+            Json("{\"builderId\":1,\"planId\":999999,\"successUrl\":\"https://success.example\",\"cancelUrl\":\"https://cancel.example\"}"));
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    [Fact]
+    [Trait("Flow", "SUBSCRIPTIONS.PURCHASE")]
+    [Trait("Layer", "Api")]
+    [Trait("Risk", "A")]
+    public async Task CHECKOUT_WITHOUT_KEY_fails_closed()
+    {
+        await using var factory = new NoKeyApiFactory();
+        using var client = factory.CreateClient();
+        var response = await client.PostAsync("/api/v1/subscriptions/payments/sessions",
+            Json("{\"builderId\":1,\"planId\":1,\"successUrl\":\"https://success.example\",\"cancelUrl\":\"https://cancel.example\"}"));
+        Assert.Equal(HttpStatusCode.ServiceUnavailable, response.StatusCode);
+    }
+
+    [Fact]
+    [Trait("Flow", "SUBSCRIPTIONS.PURCHASE")]
+    [Trait("Layer", "Api")]
+    [Trait("Risk", "A")]
+    public async Task WEBHOOK_MALFORMED_JSON_is_rejected_without_server_error()
+    {
+        await using var factory = new PurchaseApiFactory();
+        using var client = factory.CreateClient();
+        using var content = new StringContent("{not-json", Encoding.UTF8, "application/json");
+        var response = await client.PostAsync("/api/v1/webhooks/stripe", content);
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    [Trait("Flow", "SUBSCRIPTIONS.PURCHASE")]
+    [Trait("Layer", "Api")]
+    [Trait("Risk", "A")]
+    public async Task CANCEL_MISSING_is_not_found_and_repeat_is_stable()
+    {
+        await using var factory = new PurchaseApiFactory();
+        using var client = factory.CreateClient();
+        Assert.Equal(HttpStatusCode.NotFound, (await client.PostAsync("/api/v1/subscriptions/999999/cancel", null)).StatusCode);
+
+        await ConfirmPlanAsync(client, builderId: 5, planId: 1);
+        var mine = await client.GetAsync("/api/v1/subscriptions");
+        var sub = (await mine.Content.ReadFromJsonAsync<List<JsonElement>>())!
+            .First(s => s.GetProperty("builderId").GetInt32() == 5);
+        var id = sub.GetProperty("id").GetInt32();
+
+        Assert.Equal(HttpStatusCode.NoContent, (await client.PostAsync($"/api/v1/subscriptions/{id}/cancel", null)).StatusCode);
+        Assert.Equal(HttpStatusCode.NoContent, (await client.PostAsync($"/api/v1/subscriptions/{id}/cancel", null)).StatusCode);
+        var after = await (await client.GetAsync($"/api/v1/subscriptions/{id}")).Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal("cancelled", after.GetProperty("status").GetString());
+    }
+
+    [Fact]
+    [Trait("Flow", "SUBSCRIPTIONS.PURCHASE")]
+    [Trait("Layer", "Api")]
+    [Trait("Risk", "B")]
+    public async Task ERROR_CONTRACT_failure_paths_never_leak_internals()
+    {
+        await using var factory = new PurchaseApiFactory();
+        using var client = factory.CreateClient();
+        var cases = new List<HttpResponseMessage>
+        {
+            await client.PostAsync("/api/v1/subscriptions/payments/sessions",
+                Json("{\"builderId\":1,\"planId\":999999,\"successUrl\":\"https://s.example\",\"cancelUrl\":\"https://c.example\"}")),
+            await client.PatchAsync("/api/v1/subscriptions/payments/sessions/does-not-exist", null),
+            await client.GetAsync("/api/v1/subscriptions/999999"),
+        };
+        using (var malformed = new StringContent("{not-json", Encoding.UTF8, "application/json"))
+        {
+            cases.Add(await client.PostAsync("/api/v1/webhooks/stripe", malformed));
+        }
+        foreach (var response in cases)
+        {
+            using (response)
+            {
+                Assert.True(
+                    response.StatusCode is HttpStatusCode.NotFound or HttpStatusCode.BadRequest or HttpStatusCode.ServiceUnavailable,
+                    $"Failure path returned {response.StatusCode}");
+                var body = await response.Content.ReadAsStringAsync();
+                Assert.DoesNotContain("Exception", body, StringComparison.OrdinalIgnoreCase);
+                Assert.DoesNotContain("at IoBuild", body, StringComparison.Ordinal);
+                Assert.DoesNotContain("StackTrace", body, StringComparison.OrdinalIgnoreCase);
+            }
+        }
+    }
+
+    [Fact]
+    [Trait("Flow", "SUBSCRIPTIONS.PURCHASE")]
+    [Trait("Layer", "Api")]
+    [Trait("Risk", "D")]
+    public async Task CHECKOUT_FUZZ_partitions_never_server_error()
+    {
+        await using var factory = new PurchaseApiFactory();
+        using var client = factory.CreateClient();
+        var payloads = new[]
+        {
+            "{\"builderId\":0,\"planId\":1,\"successUrl\":\"https://s.example\",\"cancelUrl\":\"https://c.example\"}",
+            "{\"builderId\":-5,\"planId\":-5,\"successUrl\":\"https://s.example\",\"cancelUrl\":\"https://c.example\"}",
+            "{\"builderId\":1,\"planId\":1,\"successUrl\":\"\",\"cancelUrl\":\"\"}",
+            $"{{\"builderId\":1,\"planId\":1,\"successUrl\":\"https://s.example/{new string('x', 2000)}\",\"cancelUrl\":\"https://c.example\"}}",
+            "{\"builderId\":1}",
+            "{}",
+        };
+        foreach (var payload in payloads)
+        {
+            using var response = await client.PostAsync("/api/v1/subscriptions/payments/sessions", Json(payload));
+            Assert.True(
+                response.StatusCode is HttpStatusCode.Created or HttpStatusCode.BadRequest or HttpStatusCode.NotFound or HttpStatusCode.ServiceUnavailable,
+                $"Fuzz partition returned {response.StatusCode}");
+        }
+    }
+
     private static async Task ConfirmPlanAsync(HttpClient client, int builderId, int planId)
     {
         var checkout = await client.PostAsync("/api/v1/subscriptions/payments/sessions",
@@ -145,6 +266,25 @@ public sealed class SubscriptionPurchaseFlowTests
 
     private static IoBuildDbContext CreateDb() => new(
         new DbContextOptionsBuilder<IoBuildDbContext>().UseInMemoryDatabase(Guid.NewGuid().ToString()).Options);
+
+    private sealed class NoKeyApiFactory : Microsoft.AspNetCore.Mvc.Testing.WebApplicationFactory<Program>
+    {
+        private readonly string databaseName = Guid.NewGuid().ToString();
+        protected override void ConfigureWebHost(Microsoft.AspNetCore.Hosting.IWebHostBuilder builder) => builder.ConfigureServices(services =>
+        {
+            services.RemoveAll<DbContextOptions<IoBuildDbContext>>();
+            services.RemoveAll<IDbContextOptionsConfiguration<IoBuildDbContext>>();
+            services.AddDbContext<IoBuildDbContext>(options => options.UseInMemoryDatabase(databaseName));
+            var readiness = new IoBuild.Api.Readiness.MigrationReadiness();
+            readiness.RecordMigrationSuccess();
+            services.AddSingleton(readiness);
+            services.RemoveAll<IHostedService>();
+        }).ConfigureAppConfiguration((_, configuration) => configuration.AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            ["Mqtt:Enabled"] = "false",
+            ["Stripe:UseSimulatedPayments"] = "false"
+        }));
+    }
 
     private sealed class PurchaseApiFactory : Microsoft.AspNetCore.Mvc.Testing.WebApplicationFactory<Program>
     {

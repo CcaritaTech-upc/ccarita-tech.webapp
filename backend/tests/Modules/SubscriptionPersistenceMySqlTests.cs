@@ -65,6 +65,59 @@ public sealed class SubscriptionPersistenceMySqlTests
         }
     }
 
+    [Fact]
+    [Trait("Category", "Subscriptions")]
+    [Trait("Flow", "SUBSCRIPTIONS.PURCHASE")]
+    [Trait("Layer", "Persistence")]
+    [Trait("Risk", "A")]
+    [Trait("Dependency", "MySql")]
+    public async Task Concurrent_confirms_of_one_session_leave_a_single_active()
+    {
+        var connectionString = MySqlFixture.ConnectionString;
+        if (string.IsNullOrWhiteSpace(connectionString)) return;
+
+        const int builderId = 91828;
+        await using var factory = new MySqlPurchaseApiFactory(connectionString);
+        using var client = factory.CreateClient();
+        await using (var admin = MySqlFixture.CreateIsolatedContext(connectionString))
+        {
+            Assert.True(await admin.Plans.AnyAsync(p => p.Id == 1), "Seed plan 1 missing in test database.");
+        }
+
+        using var checkout = await client.PostAsync("/api/v1/subscriptions/payments/sessions",
+            new StringContent(
+                $"{{\"builderId\":{builderId},\"planId\":1,\"successUrl\":\"https://success.example\",\"cancelUrl\":\"https://cancel.example\"}}",
+                Encoding.UTF8, "application/json"));
+        Assert.Equal(HttpStatusCode.Created, checkout.StatusCode);
+        var sessionId = (await checkout.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("sessionId").GetString()!;
+
+        try
+        {
+            // Six racers on one paid session: winners confirm (200), losers hit
+            // the single-active arbiter (409). Never a 500, never two actives.
+            var results = await Task.WhenAll(Enumerable.Range(0, 6).Select(_ =>
+                client.PatchAsync($"/api/v1/subscriptions/payments/sessions/{sessionId}", null)));
+            Assert.All(results, r => Assert.True(
+                r.StatusCode is HttpStatusCode.OK or HttpStatusCode.Conflict,
+                $"Concurrent confirm returned {r.StatusCode}"));
+            foreach (var r in results) r.Dispose();
+
+            await using var reader = MySqlFixture.CreateIsolatedContext(connectionString);
+            var mine = await reader.Subscriptions.Where(s => s.BuilderId == builderId).ToListAsync();
+            Assert.Single(mine.Where(s => s.Status == "active"));
+        }
+        finally
+        {
+            await using var cleaner = MySqlFixture.CreateIsolatedContext(connectionString);
+            var rows = await cleaner.Subscriptions.Where(s => s.BuilderId == builderId).ToListAsync();
+            if (rows.Count > 0)
+            {
+                cleaner.Subscriptions.RemoveRange(rows);
+                await cleaner.SaveChangesAsync();
+            }
+        }
+    }
+
     private static async Task ConfirmPlanAsync(HttpClient client, int builderId, int planId)
     {
         using var checkout = await client.PostAsync("/api/v1/subscriptions/payments/sessions",

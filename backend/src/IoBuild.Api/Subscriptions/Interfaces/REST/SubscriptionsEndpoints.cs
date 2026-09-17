@@ -13,6 +13,18 @@ namespace IoBuild.Api.Subscriptions.Interfaces.REST;
 
 public static class SubscriptionsEndpoints
 {
+    private static System.Text.Json.JsonDocument? ParseWebhookPayload(string payload)
+    {
+        try
+        {
+            return System.Text.Json.JsonDocument.Parse(payload);
+        }
+        catch (System.Text.Json.JsonException)
+        {
+            return null;
+        }
+    }
+
     public static void MapSubscriptionsEndpoints(this WebApplication app)
     {
         // ── Plans Endpoints ──
@@ -107,10 +119,11 @@ public static class SubscriptionsEndpoints
         });
         subs.MapPut("/subscriptions/{id:int}", async (int id, CreateSubscriptionRequest request, IoBuildDbContext db, CancellationToken ct) => { var item = await db.Subscriptions.FindAsync([id], ct); if (item is null) return Results.NotFound(); item.PlanId = request.PlanId; item.EndDate = request.EndDate; await db.SaveChangesAsync(ct); return Results.NoContent(); });
         subs.MapPost("/subscriptions/{id:int}/cancel", async (int id, IoBuildDbContext db, CancellationToken ct) => { var item = await db.Subscriptions.FindAsync([id], ct); if (item is null) return Results.NotFound(); item.Status = "cancelled"; await db.SaveChangesAsync(ct); return Results.NoContent(); });
-        subs.MapPost("/subscriptions/payments/sessions", async (PaymentCheckoutRequest request, IConfiguration configuration, IPaymentProvider provider, CancellationToken ct) =>
+        subs.MapPost("/subscriptions/payments/sessions", async (PaymentCheckoutRequest request, IConfiguration configuration, IPaymentProvider provider, IoBuildDbContext db, CancellationToken ct) =>
         {
             var restrictedKey = StripeRestrictedKeyResolver.Resolve(configuration);
             if (restrictedKey is null) return Results.Problem(statusCode: 503);
+            if (await db.Plans.FindAsync([request.PlanId], ct) is null) return Results.NotFound();
             var options = StripeIntegrationOptions.Create(restrictedKey);
             var session = await provider.CreateCheckoutSessionAsync(request, options, ct);
             return session is null ? Results.Problem(statusCode: 503) : Results.Created($"/api/v1/subscriptions/payments/sessions/{session.Id}", new
@@ -150,7 +163,17 @@ public static class SubscriptionsEndpoints
                     StartDate = DateTime.UtcNow
                 });
             }
-            await db.SaveChangesAsync(ct);
+            try
+            {
+                await db.SaveChangesAsync(ct);
+            }
+            catch (DbUpdateException ex) when (ex.InnerException is MySqlConnector.MySqlException mysql && mysql.Number == 1062)
+            {
+                // Lost a concurrent confirm race on the single-active arbiter.
+                // The winner owns the active row; the loser reports conflict so
+                // the client retries and converges on the winner.
+                return Results.Conflict(new { error = "Subscription already active; refresh to see current state." });
+            }
 
             return Results.Ok(confirmation);
         });
@@ -197,7 +220,8 @@ public static class SubscriptionsEndpoints
         {
             using var reader = new StreamReader(request.Body);
             var payload = await reader.ReadToEndAsync(ct);
-            using var document = System.Text.Json.JsonDocument.Parse(payload);
+            using var document = ParseWebhookPayload(payload);
+            if (document is null) return Results.BadRequest();
             var eventId = document.RootElement.TryGetProperty("id", out var id) ? id.GetString() : null;
             var eventType = document.RootElement.TryGetProperty("type", out var type) ? type.GetString() : null;
             if (string.IsNullOrWhiteSpace(eventId) || string.IsNullOrWhiteSpace(eventType)) return Results.BadRequest();

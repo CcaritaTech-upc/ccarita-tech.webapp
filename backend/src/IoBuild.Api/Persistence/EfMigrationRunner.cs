@@ -94,6 +94,25 @@ public sealed class EfMigrationRunner(IoBuildDbContext dbContext) : IMigrationRu
                     await dbContext.Database.ExecuteSqlRawAsync($"ALTER TABLE clients ADD COLUMN {colName} {colType};", cancellationToken);
                 }
             }
+
+            // Single-active-subscription arbiter (migration 202609170006): existing
+            // databases created before it need the generated column plus index.
+            if (shouldClose) await connection.OpenAsync(cancellationToken);
+            try
+            {
+                using var cmd = connection.CreateCommand();
+                cmd.CommandText = "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'subscriptions' AND COLUMN_NAME = 'ActiveBuilderId';";
+                var hasArbiter = Convert.ToInt32(await cmd.ExecuteScalarAsync(cancellationToken)) > 0;
+                if (!hasArbiter)
+                {
+                    await dbContext.Database.ExecuteSqlRawAsync("ALTER TABLE subscriptions ADD COLUMN ActiveBuilderId INT GENERATED ALWAYS AS (CASE WHEN Status = 'active' THEN BuilderId ELSE NULL END) STORED;", cancellationToken);
+                    await dbContext.Database.ExecuteSqlRawAsync("CREATE UNIQUE INDEX IX_subscriptions_ActiveBuilderId ON subscriptions (ActiveBuilderId);", cancellationToken);
+                }
+            }
+            finally
+            {
+                if (shouldClose) await connection.CloseAsync();
+            }
         }
     }
 }

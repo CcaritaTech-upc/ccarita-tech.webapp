@@ -20,8 +20,10 @@ public static class StripeRestrictedKeyResolver
         var secret = configuration["Stripe:SecretKey"];
         if (IsRestrictedKey(secret)) return secret;
 
-        // Fallback to simulated local key only when neither key is configured
-        if (configuration.GetValue<bool>("Stripe:UseSimulatedPayments") || (string.IsNullOrWhiteSpace(restricted) && string.IsNullOrWhiteSpace(secret)))
+        // Fallback to the simulated local key only when simulation is explicitly
+        // enabled. An empty configuration must fail closed: silently simulating
+        // payments in production would activate subscriptions without charging.
+        if (configuration.GetValue<bool>("Stripe:UseSimulatedPayments"))
         {
             return "rk_test_local";
         }

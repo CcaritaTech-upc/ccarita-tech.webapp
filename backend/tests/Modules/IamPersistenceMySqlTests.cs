@@ -255,7 +255,7 @@ public sealed class IamPersistenceMySqlTests
                 // over existing data. Must be a no-op that preserves every row.
                 await db.Database.MigrateAsync();
                 Assert.Equal(
-                    new[] { "202608280001_FoundationSchema", "202608290002_IamAndDispatch", "202608290003_CoreBusiness", "202608300004_DevicesTelemetry", "202608300005_AnalyticsProjections" },
+                    new[] { "202608280001_FoundationSchema", "202608290002_IamAndDispatch", "202608290003_CoreBusiness", "202608300004_DevicesTelemetry", "202608300005_AnalyticsProjections", "202609170006_SubscriptionActiveArbiter" },
                     db.Database.GetAppliedMigrations());
                 var survivor = await db.IamUsers.SingleAsync(u => u.Email == email);
                 Assert.Equal("Owner", survivor.Role);
