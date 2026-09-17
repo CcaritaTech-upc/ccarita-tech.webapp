@@ -63,6 +63,8 @@ commands:
     result: 2/2 passed — iam-happy-path.spec.js (Owner register/login/logout/revoked-401) and iam-builder.spec.js (Builder register/login), last local run
   - command: npx playwright test (frontend, default vite dev 5173 proxied to stack API)
     result: 2/2 passed, last local run
+  - command: E2E_BASE_URL=http://localhost:8081 npx playwright test (deployed nginx + dist + API + MySQL)
+    result: 4/4 passed — both happy paths plus iam-form-feedback.spec.js (field-specific registration errors; generic login failure with no oracle); e2e/feedback evidence rows cleaned afterwards
   - command: dotnet test backend/tests/Modules/IoBuild.Modules.Tests.csproj --no-restore --verbosity minimal
     result: 66/66 passed, including 3 new MySQL opt-in persistence tests (skip-with-success without IOBUILD_TEST_MYSQL_CONNECTION)
   - command: IOBUILD_TEST_MYSQL_CONNECTION="Server=127.0.0.1;Port=3306;Database=iobuild;User=root;Password=iobuild" dotnet test backend/tests/Modules/IoBuild.Modules.Tests.csproj --filter "FullyQualifiedName~IamPersistenceMySqlTests" (with a temporary 3306:3306 host mapping on mysql-monolith, reverted afterwards)
