@@ -6,7 +6,7 @@ namespace IoBuild.Api.Subscriptions.Infrastructure.Stripe;
 public sealed record PaymentCheckoutRequest(int BuilderId, int PlanId, string SuccessUrl, string CancelUrl);
 public sealed record PaymentCheckoutSession(string Id, string Url, long AmountInCents);
 public sealed record PaymentSessionConfirmation(string SessionId, string Status, int BuilderId, int PlanId);
-public sealed record PaymentInvoice(string Id, string Status, long AmountInCents);
+public sealed record PaymentInvoice(string Id, string Status, long AmountInCents, string? ReceiptUrl = null);
 
 public interface IPaymentProvider
 {
@@ -155,7 +155,9 @@ public sealed class StripeHttpPaymentProvider(HttpClient client, IConfiguration 
             return data.EnumerateArray().Select(invoice => new PaymentInvoice(
                 invoice.GetProperty("id").GetString()!,
                 invoice.GetProperty("status").GetString()!,
-                invoice.TryGetProperty("amount_paid", out var amount) ? amount.GetInt64() : 0)).ToList();
+                invoice.TryGetProperty("amount_paid", out var amount) ? amount.GetInt64() : 0,
+                invoice.TryGetProperty("hosted_invoice_url", out var hosted) && !string.IsNullOrWhiteSpace(hosted.GetString()) ? hosted.GetString()
+                    : invoice.TryGetProperty("receipt_url", out var receipt) ? receipt.GetString() : null)).ToList();
         }
         catch (HttpRequestException) { return null; }
         catch (JsonException) { return null; }

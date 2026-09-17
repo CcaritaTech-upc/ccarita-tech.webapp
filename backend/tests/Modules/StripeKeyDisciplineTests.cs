@@ -76,6 +76,33 @@ public sealed class StripeKeyDisciplineTests
         Assert.Equal("2026-05-27.dahlia", capture.StripeVersion);
     }
 
+    [Fact]
+    [Trait("Flow", "SUBSCRIPTIONS.PURCHASE")]
+    [Trait("Layer", "Application")]
+    [Trait("Risk", "A")]
+    public async Task Invoices_map_hosted_receipt_url_for_the_frontend_button()
+    {
+        var json = "{\"data\":["
+            + "{\"id\":\"in_with_receipt\",\"status\":\"paid\",\"amount_paid\":79900,\"hosted_invoice_url\":\"https://invoice.stripe.com/i/test1\"},"
+            + "{\"id\":\"in_fallback_receipt\",\"status\":\"paid\",\"amount_paid\":29900,\"receipt_url\":\"https://pay.stripe.com/receipts/test2\"},"
+            + "{\"id\":\"in_without_receipt\",\"status\":\"paid\",\"amount_paid\":100}"
+            + "]}";
+        var capture = new CaptureHandler(json);
+        var configuration = Config(
+            ("Stripe:RestrictedApiKey", "rk_test_minimum"),
+            ("Stripe:UseSimulatedPayments", "false"),
+            ("Stripe:ProviderBaseUrl", "http://127.0.0.1:9/"),
+            ("Stripe:BuilderCustomers:1", "cus_test"));
+        var provider = new StripeHttpPaymentProvider(new HttpClient(capture), configuration);
+
+        var invoices = (await provider.GetInvoicesAsync(1))!.ToList();
+
+        Assert.Equal(3, invoices.Count);
+        Assert.Equal("https://invoice.stripe.com/i/test1", invoices[0].ReceiptUrl);
+        Assert.Equal("https://pay.stripe.com/receipts/test2", invoices[1].ReceiptUrl);
+        Assert.Null(invoices[2].ReceiptUrl);
+    }
+
     private sealed class CaptureHandler(string json) : HttpMessageHandler
     {
         public string? Authorization { get; private set; }

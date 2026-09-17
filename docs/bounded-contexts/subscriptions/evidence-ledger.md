@@ -51,6 +51,10 @@ commands:
 artifacts: []
 failures:
   - class: product
+    evidence_for: [invoices modal expects downloadUrl but neither the Stripe mapping nor the fallback ever sent any receipt URL]
+    evidence_against: [frontend mapping receiptUrl-to-downloadUrl already present; microservices version sent ReceiptUrl from expanded charges]
+    verdict: mapped Stripe hosted_invoice_url (fallback receipt_url) into PaymentInvoice.ReceiptUrl; frontend needs no change; local/synthesized invoices keep null and correctly show no button
+  - class: product
     evidence_for: [anonymous purchase endpoints trusted client-provided builderId: cross-builder checkout, invoices, cancel, and full-list reads with no token required]
     evidence_against: [purchase is per-builder money flow; testing course grades IDOR]
     verdict: RequireAuthorization plus token-id self-match on every purchase endpoint (403 on mismatch, 404 on foreign ids, list scoped to caller); confirm still trusts Stripe metadata, webhook still HMAC-only; proof script and versioned tests updated to send tokens, E2E green against the enforced stack
