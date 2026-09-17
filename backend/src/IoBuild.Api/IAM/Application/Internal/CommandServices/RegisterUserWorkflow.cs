@@ -30,13 +30,36 @@ public sealed class RegisterUserWorkflow(
                 throw new InvalidOperationException("Invalid registration data.");
             if (string.IsNullOrWhiteSpace(request.Password))
                 throw new InvalidOperationException("Invalid registration data.");
+            // Fail-closed role whitelist: only served roles are accepted and they are
+            // stored canonicalized, so a client-provided role can never escalate
+            // into a privileged JWT claim (e.g. "Admin").
+            var canonicalRole = request.Role?.Trim() switch
+            {
+                var role when string.Equals(role, "Builder", StringComparison.OrdinalIgnoreCase) => "Builder",
+                var role when string.Equals(role, "Owner", StringComparison.OrdinalIgnoreCase) => "Owner",
+                _ => throw new InvalidOperationException("Invalid registration data.")
+            };
             var email = rawEmail.ToLowerInvariant();
             var existing = await dbContext.IamUsers.SingleOrDefaultAsync(user => user.Email == email, cancellationToken);
             if (existing is not null) return 0;
 
-            var newUser = new IamUser { Email = email, PasswordHash = passwordHasher.Hash(request.Password), Role = request.Role };
+            var newUser = new IamUser { Email = email, PasswordHash = passwordHasher.Hash(request.Password), Role = canonicalRole };
             dbContext.IamUsers.Add(newUser);
-            await dbContext.SaveChangesAsync(cancellationToken);
+            try
+            {
+                await dbContext.SaveChangesAsync(cancellationToken);
+            }
+            catch (DbUpdateException ex) when (ex.InnerException is MySqlConnector.MySqlException mysql && mysql.Number == 1062)
+            {
+                // Lost a concurrent duplicate race on the unique email index.
+                // InnoDB blocks the loser until the winner commits or rolls back,
+                // so error 1062 here proves the email is taken: detach the failed
+                // insert so later saves don't retry it and report idempotency.
+                // (A same-transaction re-check would be unreliable: under
+                // REPEATABLE READ our snapshot predates the winner's commit.)
+                dbContext.Entry(newUser).State = EntityState.Detached;
+                return 0;
+            }
 
             // Auto-link Units, UnitOwnerProjections, UnitProjections, Devices, and DeviceProjections
             // if any units or client records were assigned to this email by the builder
@@ -177,7 +200,7 @@ public sealed class RegisterUserWorkflow(
 
             await dbContext.SaveChangesAsync(cancellationToken);
 
-            await queue.EnqueueAsync(new DispatchRequest("iam", "domain-event", $"iam-user:{email}", 1, $"{{\"email\":\"{email}\",\"role\":\"{request.Role}\"}}", $"iam.user-registered:{email}"), cancellationToken);
+            await queue.EnqueueAsync(new DispatchRequest("iam", "domain-event", $"iam-user:{email}", 1, $"{{\"email\":\"{email}\",\"role\":\"{canonicalRole}\"}}", $"iam.user-registered:{email}"), cancellationToken);
             return newUser.Id;
         }, cancellationToken);
 }

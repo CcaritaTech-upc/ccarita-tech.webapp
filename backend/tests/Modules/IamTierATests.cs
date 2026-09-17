@@ -86,6 +86,41 @@ public sealed class IamTierATests
         Assert.Equal(HttpStatusCode.Unauthorized, (await client.GetAsync("/api/v1/users")).StatusCode);
     }
 
+    [Fact]
+    [Trait("Flow", "IAM.REGISTRATION")]
+    [Trait("Layer", "Api")]
+    [Trait("Risk", "A")]
+    public async Task IAM_REGISTRATION_UNKNOWN_ROLE_is_rejected_without_user()
+    {
+        await using var factory = new TierAApiFactory();
+        using var client = factory.CreateClient();
+        var email = $"escalate-{Guid.NewGuid():N}@example.test";
+        var response = await client.PostAsync("/api/v1/users", Json($"{{\"email\":\"{email}\",\"password\":\"secret123\",\"role\":\"Admin\"}}"));
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+
+        // The rejected registration must not authenticate.
+        var login = await client.PostAsync("/api/v1/sessions", Json($"{{\"email\":\"{email}\",\"password\":\"secret123\"}}"));
+        Assert.Equal(HttpStatusCode.Unauthorized, login.StatusCode);
+    }
+
+    [Fact]
+    [Trait("Flow", "IAM.REGISTRATION")]
+    [Trait("Layer", "Api")]
+    [Trait("Risk", "A")]
+    public async Task IAM_REGISTRATION_ROLE_IS_CANONICAL_for_case_variants()
+    {
+        await using var factory = new TierAApiFactory();
+        using var client = factory.CreateClient();
+        var email = $"canonical-{Guid.NewGuid():N}@example.test";
+        var register = await client.PostAsync("/api/v1/users", Json($"{{\"email\":\"{email}\",\"password\":\"secret123\",\"role\":\"owner\"}}"));
+        Assert.Equal(HttpStatusCode.Created, register.StatusCode);
+
+        var session = await client.PostAsync("/api/v1/sessions", Json($"{{\"email\":\"{email}\",\"password\":\"secret123\"}}"));
+        Assert.Equal(HttpStatusCode.Created, session.StatusCode);
+        var authenticated = await session.Content.ReadFromJsonAsync<IoBuild.Api.IAM.Domain.Model.Commands.AuthenticatedUser>();
+        Assert.Equal("Owner", authenticated!.Role);
+    }
+
     private static StringContent Json(string body) => new(body, System.Text.Encoding.UTF8, "application/json");
 
     private sealed class TierAApiFactory : Microsoft.AspNetCore.Mvc.Testing.WebApplicationFactory<Program>
