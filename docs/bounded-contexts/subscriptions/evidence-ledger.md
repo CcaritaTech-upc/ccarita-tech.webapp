@@ -7,13 +7,11 @@ journey: SUBSCRIPTIONS.PURCHASE (Builder-only)
 feature: subscriptions-convergence
 gates:
   G0: passed
-  G1: partial
+  G1: passed
   G2: skipped
   G3: skipped
   G4: skipped
 skip_reasons:
-  - gate: G1
-    reason: checkout→confirm→invoices proven by local-only shell proof script (MySQL + fake Stripe), not by versioned tests; no persistence guarantees on the production engine yet
   - gate: G2
     reason: no Builder purchase E2E yet
   - gate: G3
@@ -25,6 +23,10 @@ commands:
     result: 4/4 passed (restricted-key resolution, fail-closed secrets, outgoing Authorization header)
   - command: npm run test:unit (frontend)
     result: 21/21 passed (validators 7/7 + iam-contract 7/7 + subscriptions-contract 7/7, last local run)
+  - command: dotnet test backend/tests/Modules --filter purchase/subscription/key-discipline suites
+    result: 10/10 passed (5 purchase flow incl. webhook idempotency, 1 MySQL activation+supersede, 4 key discipline)
+  - command: IOBUILD_TEST_MYSQL_CONNECTION=... dotnet test --filter SubscriptionPersistenceMySqlTests (temporary 3306:3306 mapping, reverted afterwards)
+    result: 1/1 passed against live MySQL 8.0 (activation plus supersede expiry with EndDate); probe rows cleaned, table left without test residue
 artifacts: []
 failures:
   - class: product
