@@ -59,7 +59,7 @@ public sealed class PublishingPersistenceMySqlTests
         }
         finally
         {
-            await CleanupProjectAsync(connectionString);
+            await CleanupProjectAsync(connectionString, BuilderId);
         }
     }
 
@@ -95,14 +95,62 @@ public sealed class PublishingPersistenceMySqlTests
         }
         finally
         {
-            await CleanupProjectAsync(connectionString);
+            await CleanupProjectAsync(connectionString, BuilderId);
         }
     }
 
-    private static async Task CleanupProjectAsync(string connectionString)
+    [Fact]
+    [Trait("Category", "Publishing")]
+    [Trait("Flow", "PUBLISHING.MANAGE")]
+    [Trait("Layer", "Persistence")]
+    [Trait("Risk", "A")]
+    [Trait("Dependency", "MySql")]
+    public async Task Duplicate_unit_conflicts_and_parallel_define_stays_single()
+    {
+        var connectionString = MySqlFixture.ConnectionString;
+        if (string.IsNullOrWhiteSpace(connectionString)) return;
+
+        const int builderId = 91853;
+        await using var factory = new MySqlPublishingApiFactory(connectionString);
+        using var client = factory.CreateClient();
+        var me = Token(builderId);
+        try
+        {
+            using var project = await SendAsync(client, HttpMethod.Post, "/api/v1/projects", me,
+                $"{{\"name\":\"Dupe Towers\",\"description\":\"D\",\"location\":\"L\",\"totalUnits\":2,\"builderId\":{builderId},\"imageUrl\":null}}");
+            var projectId = (await project.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetInt32();
+
+            using var unit = await SendAsync(client, HttpMethod.Post, "/api/v1/units", me,
+                $"{{\"projectId\":{projectId},\"unitNumber\":\"D1\",\"ownerId\":null,\"floor\":1,\"roomNumber\":\"D1\"}}");
+            Assert.Equal(HttpStatusCode.Created, unit.StatusCode);
+
+            using var dupe = await SendAsync(client, HttpMethod.Post, "/api/v1/units", me,
+                $"{{\"projectId\":{projectId},\"unitNumber\":\"D1\",\"ownerId\":null,\"floor\":1,\"roomNumber\":\"D1\"}}");
+            Assert.Equal(HttpStatusCode.Conflict, dupe.StatusCode);
+
+            var defines = await Task.WhenAll(Enumerable.Range(0, 4).Select(_ =>
+                SendAsync(client, HttpMethod.Post, $"/api/v1/projects/{projectId}/structure", me,
+                    "{\"floors\":1,\"unitsPerFloor\":1,\"floorNumbers\":null}")));
+            Assert.All(defines, r => Assert.True(
+                r.StatusCode is HttpStatusCode.Created or HttpStatusCode.Conflict,
+                $"Parallel define returned {r.StatusCode}"));
+            Assert.Single(defines.Where(r => r.StatusCode == HttpStatusCode.Created));
+            foreach (var r in defines) r.Dispose();
+
+            await using var reader = MySqlFixture.CreateIsolatedContext(connectionString);
+            var units = await reader.Units.Where(u => u.ProjectId == projectId).ToListAsync();
+            Assert.True(units.Count >= 1, "At least the directly created unit survives the race.");
+        }
+        finally
+        {
+            await CleanupProjectAsync(connectionString, builderId);
+        }
+    }
+
+    private static async Task CleanupProjectAsync(string connectionString, int builderId)
     {
         await using var cleaner = MySqlFixture.CreateIsolatedContext(connectionString);
-        var projectIds = await cleaner.Projects.Where(p => p.BuilderId == BuilderId).Select(p => p.Id).ToListAsync();
+        var projectIds = await cleaner.Projects.Where(p => p.BuilderId == builderId).Select(p => p.Id).ToListAsync();
         if (projectIds.Count == 0) return;
         var deviceIds = await cleaner.Devices.Where(d => projectIds.Contains(d.ProjectId)).Select(d => d.Id).ToListAsync();
         var unitIds = await cleaner.Units.Where(u => projectIds.Contains(u.ProjectId)).Select(u => u.Id).ToListAsync();
@@ -120,8 +168,8 @@ public sealed class PublishingPersistenceMySqlTests
             cleaner.Units.RemoveRange(await cleaner.Units.Where(u => unitIds.Contains(u.Id)).ToListAsync());
         }
         cleaner.UnitProjections.RemoveRange(await cleaner.UnitProjections.Where(p => projectIds.Contains(p.ProjectId)).ToListAsync());
-        cleaner.Clients.RemoveRange(await cleaner.Clients.Where(c => c.BuilderId == BuilderId).ToListAsync());
-        cleaner.Projects.RemoveRange(await cleaner.Projects.Where(p => p.BuilderId == BuilderId).ToListAsync());
+        cleaner.Clients.RemoveRange(await cleaner.Clients.Where(c => c.BuilderId == builderId).ToListAsync());
+        cleaner.Projects.RemoveRange(await cleaner.Projects.Where(p => p.BuilderId == builderId).ToListAsync());
         await cleaner.SaveChangesAsync();
     }
 
