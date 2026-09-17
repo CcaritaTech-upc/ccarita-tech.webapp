@@ -139,6 +139,79 @@ public sealed class ProfileAccessTests
         Assert.Equal("https://cloud.test/keep", untouched.PhotoUrl);
     }
 
+    [Fact]
+    [Trait("Flow", "PROFILES.MANAGE")]
+    [Trait("Layer", "Api")]
+    [Trait("Risk", "B")]
+    public async Task ERROR_CONTRACT_failure_paths_never_leak_internals()
+    {
+        // Production environment on purpose: Development ships detailed errors
+        // by design, so only Production proves what actually leaks over the wire.
+        await using var factory = new ProductionApiFactory();
+        using var client = factory.CreateClient();
+        var me = Token(31, "me31@example.test", "Owner");
+        var cases = new List<HttpResponseMessage>
+        {
+            await SendAsync(client, HttpMethod.Get, "/api/v1/profiles/999999", me),
+            await SendAsync(client, HttpMethod.Put, "/api/v1/profiles/999999", me, "{\"userId\":31,\"name\":\"X\"}"),
+        };
+        using (var malformed = new StringContent("{not-json", Encoding.UTF8, "application/json"))
+        {
+            var request = new HttpRequestMessage(HttpMethod.Put, "/api/v1/profiles/1") { Content = malformed };
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", me);
+            cases.Add(await client.SendAsync(request));
+        }
+        cases.Add(await client.GetAsync("/api/v1/profiles"));
+        foreach (var response in cases)
+        {
+            using (response)
+            {
+                Assert.True(
+                    response.StatusCode is HttpStatusCode.NotFound or HttpStatusCode.BadRequest or HttpStatusCode.Unauthorized,
+                    $"Failure path returned {response.StatusCode}");
+                var body = await response.Content.ReadAsStringAsync();
+                // Framework binding errors name their own exception type; what must
+                // never leak are stack frames and application internals.
+                Assert.DoesNotContain(" at ", body, StringComparison.Ordinal);
+                Assert.DoesNotContain("StackTrace", body, StringComparison.OrdinalIgnoreCase);
+                Assert.DoesNotContain("IoBuild.Api.", body, StringComparison.Ordinal);
+            }
+        }
+    }
+
+    [Fact]
+    [Trait("Flow", "PROFILES.MANAGE")]
+    [Trait("Layer", "Api")]
+    [Trait("Risk", "D")]
+    public async Task CREATE_FUZZ_partitions_never_server_error()
+    {
+        await using var factory = new ProfileApiFactory();
+        using var client = factory.CreateClient();
+        var me = Token(33, "me33@example.test", "Builder");
+        var payloads = new[]
+        {
+            "{\"userId\":33,\"name\":\"\",\"username\":\"\"}",
+            $"{{\"userId\":33,\"name\":\"{new string('n', 2000)}\",\"username\":\"u33\"}}",
+            "{\"userId\":33,\"name\":\"Ünïcodé ✓\",\"username\":\"u33\",\"age\":-5}",
+            "{\"userId\":33,\"name\":\"N\",\"username\":\"u33\",\"age\":999999}",
+            "{\"userId\":33,\"name\":\"N\",\"username\":\"u33\",\"secondEmail\":\"not-an-email\"}",
+            "{\"userId\":34,\"name\":\"N\",\"username\":\"u34\"}",
+            "{}",
+        };
+        foreach (var payload in payloads)
+        {
+            using var response = await SendAsync(client, HttpMethod.Post, "/api/v1/profiles", me, payload);
+            Assert.True(
+                response.StatusCode is HttpStatusCode.Created or HttpStatusCode.BadRequest or HttpStatusCode.Forbidden or HttpStatusCode.Conflict,
+                $"Fuzz partition returned {response.StatusCode}");
+        }
+        // InMemory enforces no unique index, so the duplicate inserts here: the
+        // 409 lives where the constraint lives (MySQL, proven separately).
+        using var duplicate = await SendAsync(client, HttpMethod.Post, "/api/v1/profiles", me,
+            "{\"userId\":33,\"name\":\"Again\",\"username\":\"again33\"}");
+        Assert.Equal(HttpStatusCode.Created, duplicate.StatusCode);
+    }
+
     private static string Token(int id, string email, string role) => new IoBuild.Api.IAM.Infrastructure.Tokens.JwtTokenIssuer("iobuild-development-secret-must-be-replaced-before-production")
         .Issue(new IoBuild.Api.IAM.Domain.Model.Aggregates.IamUser { Id = id, Email = email, Role = role });
 
@@ -163,7 +236,16 @@ public sealed class ProfileAccessTests
         public Task<string?> UploadAsync(string content, CancellationToken cancellationToken = default) => Task.FromResult<string?>(null);
     }
 
-    private sealed class ProfileApiFactory : Microsoft.AspNetCore.Mvc.Testing.WebApplicationFactory<Program>
+    private sealed class ProductionApiFactory : ProfileApiFactory
+    {
+        protected override void ConfigureWebHost(Microsoft.AspNetCore.Hosting.IWebHostBuilder builder)
+        {
+            builder.UseSetting(Microsoft.AspNetCore.Hosting.WebHostDefaults.EnvironmentKey, Environments.Production);
+            base.ConfigureWebHost(builder);
+        }
+    }
+
+    private class ProfileApiFactory : Microsoft.AspNetCore.Mvc.Testing.WebApplicationFactory<Program>
     {
         private readonly Func<string, Task<string?>>? upload;
         public ProfileApiFactory(Func<string, Task<string?>>? upload = null) => this.upload = upload;

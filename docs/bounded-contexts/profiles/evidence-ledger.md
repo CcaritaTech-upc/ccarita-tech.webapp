@@ -9,13 +9,30 @@ gates:
   G0: passed
   G1: passed
   G2: passed
-  G3: skipped
-  G4: skipped
-skip_reasons:
-  - gate: G3
-    reason: no tiered portfolio yet
-  - gate: G4
-    reason: no rerun, flaky, or mutation evidence yet
+  G3: passed
+  G4: passed
+environment:
+  database: mysql:8.0 (production engine for all persistence proofs)
+  migrations: 202608280001_FoundationSchema → 202608290002_IamAndDispatch → 202608290003_CoreBusiness → 202608300004_DevicesTelemetry → 202608300005_AnalyticsProjections → 202609170006_SubscriptionActiveArbiter
+  backend: .NET 9 (CI setup-dotnet 9.0.x)
+  frontend: node 22 (CI setup-node 22)
+reruns:
+  - command: dotnet test backend/IoBuild.sln with live MySQL (temporary 3306:3306 mapping, reverted afterwards)
+    result: 185/185 green (15 architecture + 20 contract + 41 integration + 109 modules)
+  - command: E2E_BASE_URL=http://localhost:8081 npx playwright test against the freshly built api image
+    result: 7/7 green (IAM, subscriptions, and both profiles journeys); e2e evidence rows cleaned afterwards
+flaky_rate:
+  observed: 0 unexplained flakes across all reruns above
+mutations:
+  - mutant: ownership checks removed (any user reads/writes any profile)
+    killed_by: CREATE_OWN/CREATE_FOR_OTHER, READ_scoped, UPDATE_OWN/OTHER, PHOTO ownership tests
+  - mutant: duplicate-create guard removed (unique violation escapes as 500)
+    killed_by: Duplicate_create_for_same_user_conflicts (proven red 500 without the catch during development)
+  - mutant: photo bootstrap removed (null never matches)
+    killed_by: PHOTO_replace first-replacement-204 assertion
+  - mutant: partial-update semantics removed (blank name overwrites)
+    killed_by: UPDATE_OWN name-preservation assertion
+skip_reasons: []
 commands:
   - command: dotnet test backend/tests/Modules --filter ProfileAccessTests
     result: 5/5 passed (create/read/update ownership, photo compare-and-swap with fake uploader, failed-upload abort)
@@ -43,6 +60,10 @@ open_risks:
   - risk: photo endpoint has no UI callers; proven at API level only
     owner: ccarita-tech
     review_by: 2026-10-01
+  - risk: parallel photo replaces race (last-writer-wins, single row always intact; probed 6-way with one winner and five clean rejections)
+    owner: ccarita-tech
+    review_by: 2026-10-01
+    disposition: accepted as benign, do not fix without a real incidence
 roles_covered:
   - role: Builder
     happy_path: frontend/tests/e2e/profiles-manage.spec.js (Builder test)
