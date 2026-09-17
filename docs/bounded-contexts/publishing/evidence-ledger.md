@@ -7,13 +7,11 @@ journey: PUBLISHING.MANAGE (Builder creates projects, defines structure once, ma
 feature: publishing-convergence
 gates:
   G0: passed
-  G1: partial
+  G1: passed
   G2: skipped
   G3: skipped
   G4: skipped
 skip_reasons:
-  - gate: G1
-    reason: ownership proven at the API boundary on doubles; no persistence guarantees on the production engine yet
   - gate: G2
     reason: no Builder management E2E yet
   - gate: G3
@@ -25,6 +23,8 @@ commands:
     result: 3/3 passed (project create/read/update/delete ownership, structure plus unit ownership, client ownership)
   - command: npm run test:unit (frontend)
     result: 36/36 passed (validators 7/7 + iam-contract 7/7 + subscriptions-contract 7/7 + profiles-contract 6/6 + devices-contract 5/5 + publishing-contract 4/4, last local run)
+  - command: IOBUILD_TEST_MYSQL_CONNECTION=... dotnet test --filter PublishingPersistenceMySqlTests (temporary 3306:3306 mapping, reverted afterwards)
+    result: 2/2 passed against live MySQL 8.0 (deterministic structure: 6 units, 6 floor plus 12 unit devices, redefine 409; ownership boundaries hold); probe rows cleaned
 artifacts: []
 failures:
   - class: product
