@@ -8,12 +8,10 @@ feature: subscriptions-convergence
 gates:
   G0: passed
   G1: passed
-  G2: skipped
+  G2: passed
   G3: skipped
   G4: skipped
 skip_reasons:
-  - gate: G2
-    reason: no Builder purchase E2E yet
   - gate: G3
     reason: no tiered portfolio yet
   - gate: G4
@@ -27,6 +25,8 @@ commands:
     result: 10/10 passed (5 purchase flow incl. webhook idempotency, 1 MySQL activation+supersede, 4 key discipline)
   - command: IOBUILD_TEST_MYSQL_CONNECTION=... dotnet test --filter SubscriptionPersistenceMySqlTests (temporary 3306:3306 mapping, reverted afterwards)
     result: 1/1 passed against live MySQL 8.0 (activation plus supersede expiry with EndDate); probe rows cleaned, table left without test residue
+  - command: E2E_BASE_URL=http://localhost:8081 npx playwright test (deployed nginx + dist + API + MySQL)
+    result: 5/5 passed — IAM journeys plus SUBSCRIPTIONS purchase (browse plans, simulated pay, active Starter); e2e evidence rows cleaned afterwards
 artifacts: []
 failures:
   - class: product
@@ -40,10 +40,10 @@ open_risks:
   - risk: webhook path scheduled, not evidenced (needs real Stripe keys plus public URL)
     owner: ccarita-tech
     review_by: 2026-10-01
-  - risk: no Builder purchase E2E yet
+  - risk: purchase E2E added but not yet observed green on a real CI run
     owner: ccarita-tech
     review_by: 2026-10-01
 roles_covered:
   - role: Builder
-    happy_path: missing (open risk)
+    happy_path: frontend/tests/e2e/subscriptions-purchase.spec.js
 ```
