@@ -114,6 +114,8 @@ public sealed class DeviceControlMySqlTests
     private static async Task CleanupAsync(string connectionString)
     {
         await using var cleaner = MySqlFixture.CreateIsolatedContext(connectionString);
+        var recoveries = await cleaner.TelemetryRecoveries.Where(r => r.EventId == "evt-probe-1").ToListAsync();
+        if (recoveries.Count > 0) cleaner.TelemetryRecoveries.RemoveRange(recoveries);
         var commands = await cleaner.DeviceCommands.Where(c => c.DeviceId == OwnerId).ToListAsync();
         if (commands.Count > 0) cleaner.DeviceCommands.RemoveRange(commands);
         var telemetry = await cleaner.DeviceTelemetry.Where(t => t.DeviceId == OwnerId).ToListAsync();
