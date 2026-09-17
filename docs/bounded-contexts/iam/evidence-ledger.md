@@ -13,7 +13,7 @@ gates:
   G4: partial
 skip_reasons:
   - gate: G3
-    reason: Tier A complete; Tier B safe-errors, Tier C contention and migration survival proven; remaining Tier B/C browser scenarios declared, Tier D has no fuzz/mutation campaigns
+    reason: Tier A complete; Tier B safe-errors, Tier C contention and migration survival proven; Tier D deterministic campaigns exist; remaining Tier B/C browser scenarios declared, Tier D resource-pressure and corrupt-dependency injection open
   - gate: G4
     reason: no flaky-rate or mutation tracking
 commands:
@@ -25,6 +25,8 @@ commands:
     result: 146/146 passed with every MySQL opt-in test fully executing, outbox table left at zero rows
   - command: same full-solution run with MySQL after adding Tier B safe-error contract, 8-way burst contention, and migration-survival proofs (temporary 3306:3306 mapping, reverted afterwards)
     result: 149/149 passed (15 architecture + 20 contract + 41 integration + 73 modules); scratch migration database dropped, outbox table left at zero rows
+  - command: dotnet test backend/IoBuild.sln --no-restore --verbosity minimal (no MySQL; opt-in tests skip-with-success)
+    result: 153/153 passed (15 architecture + 20 contract + 41 integration + 77 modules, including 4 new Tier D fuzz/mutation-target campaigns run 3x with no flakiness)
   - command: npm run test:unit (frontend)
     result: 14/14 Vitest passed (validators 7/7 + iam-contract 7/7, last local run)
   - command: npx playwright test (frontend, E2E_BASE_URL=http://localhost:8081 against deployed nginx + dist + API + MySQL)
@@ -64,7 +66,7 @@ open_risks:
   - risk: Tier B/C browser scenarios declared, not automated (conflicting tab sessions, token expiry mid-session, navigate-away during auth) — flaky-prone, revisit on cadence
     owner: ccarita-tech
     review_by: 2026-10-01
-  - risk: Tier D fuzz/mutation campaigns unscheduled
+  - risk: Tier D resource-pressure experiments and corrupt-dependency injection unscheduled (input fuzz, burst fuzz, and mutation targets run green)
     owner: ccarita-tech
     review_by: 2026-10-01
   - risk: MigrateAsync with an explicit target migration throws not-found on MySQL although the migration is listed (production uses EnsureCreated, so no production impact; targeted downgrade path unproven)

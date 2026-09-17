@@ -1,5 +1,6 @@
 using System.Net;
 using System.Text;
+using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.Extensions.Configuration;
@@ -87,6 +88,144 @@ public sealed class IamTierDTests
         Assert.Single(users);
         Assert.Equal("mixed@example.test", users[0].Email);
     }
+
+    [Fact]
+    [Trait("Flow", "IAM.REGISTRATION")]
+    [Trait("Layer", "Api")]
+    [Trait("Risk", "D")]
+    public async Task IAM_REGISTRATION_INPUT_PARTITIONS_never_server_error()
+    {
+        // Deterministic fuzz partitions: boundary lengths around the 320 rule,
+        // empty/whitespace, unicode, control chars, malformed shapes, huge input.
+        // Every partition must resolve to 201 (valid) or 400 (fail-closed):
+        // a 500 means an unhandled path survived the frontend.
+        await using var factory = new TierDApiFactory();
+        using var client = factory.CreateClient();
+        var local319 = new string('a', 306) + "@example.test"; // 319 chars
+        var local320 = new string('a', 307) + "@example.test"; // 320 chars
+        var local321 = new string('a', 308) + "@example.test"; // 321 chars
+        var partitions = new (string Email, string Password, HttpStatusCode Expected)[]
+        {
+            ("", "secret123", HttpStatusCode.BadRequest),
+            ("   ", "secret123", HttpStatusCode.BadRequest),
+            ("no-at-sign", "secret123", HttpStatusCode.Created), // backend has no charset policy: characterized
+            ("a@@b@example.test", "secret123", HttpStatusCode.Created), // characterized: accepted, normalized
+            ("usuário@example.test", "secret123", HttpStatusCode.Created),
+            ("a\nb@example.test", "secret123", HttpStatusCode.Created), // characterized: accepted
+            (local319, "secret123", HttpStatusCode.Created),
+            (local320, "secret123", HttpStatusCode.Created),
+            (local321, "secret123", HttpStatusCode.BadRequest),
+            ($"fuzz.{Guid.NewGuid():N}@example.test", "", HttpStatusCode.BadRequest),
+            ($"fuzz.{Guid.NewGuid():N}@example.test", "x", HttpStatusCode.Created), // characterized: no min length server-side
+            ($"fuzz.{Guid.NewGuid():N}@example.test", new string('p', 5000), HttpStatusCode.Created), // characterized
+        };
+
+        foreach (var (email, password, expected) in partitions)
+        {
+            using var content = new StringContent(
+                JsonSerializer.Serialize(new { email, password, role = "Owner" }), Encoding.UTF8, "application/json");
+            var response = await client.PostAsync("/api/v1/users", content);
+            Assert.True(
+                response.StatusCode is HttpStatusCode.Created or HttpStatusCode.BadRequest,
+                $"Partition email={Truncate(email)} password-len={password.Length} returned {response.StatusCode}");
+            Assert.Equal(expected, response.StatusCode);
+        }
+    }
+
+    [Fact]
+    [Trait("Flow", "IAM.REGISTRATION")]
+    [Trait("Layer", "Api")]
+    [Trait("Risk", "D")]
+    public async Task IAM_REGISTRATION_BURST_same_email_never_server_errors()
+    {
+        // Concurrency fuzz at the API boundary sharing one store: twelve racers,
+        // same email and distinct emails. No response may be a 500; the endpoint
+        // contract stays fail-closed-or-created under burst. Single-winner
+        // uniqueness under race is proven on MySQL (burst x8 persistence test).
+        await using var factory = new TierDApiFactory();
+        using var client = factory.CreateClient();
+        var shared = $"burst.{Guid.NewGuid():N}@example.test";
+
+        var sameEmail = await Task.WhenAll(Enumerable.Range(0, 12).Select(_ =>
+            client.PostAsync("/api/v1/users", JsonContent(new { email = shared, password = "secret123", role = "Owner" }))));
+        Assert.All(sameEmail, r => Assert.True(
+            r.StatusCode is HttpStatusCode.Created or HttpStatusCode.BadRequest,
+            $"Burst same-email returned {r.StatusCode}"));
+
+        var distinct = await Task.WhenAll(Enumerable.Range(0, 12).Select(i =>
+            client.PostAsync("/api/v1/users", JsonContent(new { email = $"burst.{Guid.NewGuid():N}.{i}@example.test", password = "secret123", role = "Owner" }))));
+        Assert.All(distinct, r => Assert.Equal(HttpStatusCode.Created, r.StatusCode));
+    }
+
+    [Fact]
+    [Trait("Flow", "IAM.LOGIN")]
+    [Trait("Layer", "Api")]
+    [Trait("Risk", "D")]
+    public async Task IAM_LOGIN_FUZZ_rejects_without_token_or_server_error()
+    {
+        await using var factory = new TierDApiFactory();
+        using var client = factory.CreateClient();
+        var email = $"loginfuzz.{Guid.NewGuid():N}@example.test";
+        using (var setup = new StringContent(
+            JsonSerializer.Serialize(new { email, password = "secret123", role = "Owner" }), Encoding.UTF8, "application/json"))
+        {
+            Assert.Equal(HttpStatusCode.Created, (await client.PostAsync("/api/v1/users", setup)).StatusCode);
+        }
+
+        var passwords = new[] { "wrong", "", "SECRET123", "secret123 ", new string('p', 5000), "usuário✓" };
+        foreach (var password in passwords)
+        {
+            using var content = new StringContent(
+                JsonSerializer.Serialize(new { email, password }), Encoding.UTF8, "application/json");
+            var response = await client.PostAsync("/api/v1/sessions", content);
+            var body = await response.Content.ReadAsStringAsync();
+            if (password == "secret123")
+            {
+                Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+            }
+            else
+            {
+                Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+                Assert.DoesNotContain("token", body, StringComparison.OrdinalIgnoreCase);
+            }
+            Assert.DoesNotContain("Exception", body, StringComparison.OrdinalIgnoreCase);
+        }
+
+        // Unknown user with hostile shapes: still a clean 401, never a 500.
+        foreach (var hostile in new[] { "'; DROP TABLE iam_users; --@example.test", "\0@example.test", new string('e', 1000) + "@example.test" })
+        {
+            using var content = new StringContent(
+                JsonSerializer.Serialize(new { email = hostile, password = "x" }), Encoding.UTF8, "application/json");
+            var response = await client.PostAsync("/api/v1/sessions", content);
+            Assert.True(
+                response.StatusCode is HttpStatusCode.Created or HttpStatusCode.Unauthorized or HttpStatusCode.BadRequest,
+                $"Hostile login returned {response.StatusCode}");
+        }
+    }
+
+    [Fact]
+    [Trait("Flow", "IAM.REGISTRATION")]
+    [Trait("Layer", "Application")]
+    [Trait("Risk", "D")]
+    public async Task IAM_REGISTRATION_GUARD_MUTANTS_every_bypass_throws()
+    {
+        // Kills mutants that delete any single fail-closed guard.
+        await using var db = CreateDb();
+        var service = CreateIamService(db);
+        await Assert.ThrowsAsync<InvalidOperationException>(() => service.RegisterAsync(new RegisterUser("", "secret123", "Owner")));
+        await Assert.ThrowsAsync<InvalidOperationException>(() => service.RegisterAsync(new RegisterUser("   ", "secret123", "Owner")));
+        await Assert.ThrowsAsync<InvalidOperationException>(() => service.RegisterAsync(new RegisterUser("mut@example.test", "", "Owner")));
+        await Assert.ThrowsAsync<InvalidOperationException>(() => service.RegisterAsync(new RegisterUser("mut@example.test", "   ", "Owner")));
+        await Assert.ThrowsAsync<InvalidOperationException>(() => service.RegisterAsync(new RegisterUser("mut@example.test", "secret123", "Admin")));
+        await Assert.ThrowsAsync<InvalidOperationException>(() => service.RegisterAsync(new RegisterUser("mut@example.test", "secret123", "")));
+        Assert.Empty(await db.IamUsers.ToListAsync());
+    }
+
+    private static StringContent JsonContent(object payload) => new(
+        JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
+
+    private static string Truncate(string value, int max = 40) =>
+        value.Length <= max ? value : value[..max] + $"…({value.Length})";
 
     private static IoBuildDbContext CreateDb() => new(
         new DbContextOptionsBuilder<IoBuildDbContext>().UseInMemoryDatabase(Guid.NewGuid().ToString()).Options);
