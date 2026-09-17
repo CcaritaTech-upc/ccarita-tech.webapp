@@ -8,12 +8,10 @@ feature: publishing-convergence
 gates:
   G0: passed
   G1: passed
-  G2: skipped
+  G2: passed
   G3: skipped
   G4: skipped
 skip_reasons:
-  - gate: G2
-    reason: no Builder management E2E yet
   - gate: G3
     reason: no tiered portfolio yet
   - gate: G4
@@ -24,7 +22,9 @@ commands:
   - command: npm run test:unit (frontend)
     result: 36/36 passed (validators 7/7 + iam-contract 7/7 + subscriptions-contract 7/7 + profiles-contract 6/6 + devices-contract 5/5 + publishing-contract 4/4, last local run)
   - command: IOBUILD_TEST_MYSQL_CONNECTION=... dotnet test --filter PublishingPersistenceMySqlTests (temporary 3306:3306 mapping, reverted afterwards)
-    result: 2/2 passed against live MySQL 8.0 (deterministic structure: 6 units, 6 floor plus 12 unit devices, redefine 409; ownership boundaries hold); probe rows cleaned
+    result: "2/2 passed against live MySQL 8.0 (deterministic structure: 6 units, 6 floor plus 12 unit devices, redefine 409; ownership boundaries hold); probe rows cleaned"
+  - command: E2E_BASE_URL=http://localhost:8081 npx playwright test (deployed nginx + dist + API + MySQL)
+    result: publishing-manage.spec.js 1/1 green (UI project create, structure via API, units visible, grid lists it); full suite 9/9; seeded projects/units/clients/devices/users cleaned with orphan sweep
 artifacts: []
 failures:
   - class: product
@@ -35,8 +35,7 @@ open_risks:
   - risk: unit and client lists have no per-role visibility scoping (frontend depends on unfiltered reads)
     owner: ccarita-tech
     review_by: 2026-10-01
-  - risk: no Builder management E2E yet
-    owner: ccarita-tech
-    review_by: 2026-10-01
-roles_covered: []
+roles_covered:
+  - role: Builder
+    happy_path: frontend/tests/e2e/publishing-manage.spec.js
 ```

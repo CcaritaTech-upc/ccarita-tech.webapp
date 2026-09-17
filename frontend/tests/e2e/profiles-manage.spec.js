@@ -32,7 +32,10 @@ async function proveProfileManage(page, name, newAddress) {
   await page.locator('.edit-button').first().click();
   const addressInput = page.locator('.account-card .info-group input').nth(3);
   await addressInput.fill(newAddress);
+  const saved = page.waitForResponse(
+    (r) => r.url().includes('/api/v1/profiles/') && r.request().method() === 'PUT');
   await page.locator('.edit-actions .edit-button').click();
+  await saved;
 
   // Full reload: the change survived in durable storage, not memory.
   await page.reload();
