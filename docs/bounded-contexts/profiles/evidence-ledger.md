@@ -7,13 +7,11 @@ journey: PROFILES.MANAGE (Builder and Owner variants)
 feature: profiles-convergence
 gates:
   G0: passed
-  G1: partial
+  G1: passed
   G2: skipped
   G3: skipped
   G4: skipped
 skip_reasons:
-  - gate: G1
-    reason: contract proven at both ends but no persistence guarantees on the production engine yet
   - gate: G2
     reason: no per-actor profile E2E yet
   - gate: G3
@@ -25,8 +23,14 @@ commands:
     result: 5/5 passed (create/read/update ownership, photo compare-and-swap with fake uploader, failed-upload abort)
   - command: npm run test:unit (frontend)
     result: 27/27 passed (validators 7/7 + iam-contract 7/7 + subscriptions-contract 7/7 + profiles-contract 6/6, last local run)
+  - command: IOBUILD_TEST_MYSQL_CONNECTION=... dotnet test --filter ProfilePersistenceMySqlTests (temporary 3306:3306 mapping, reverted afterwards)
+    result: 3/3 passed against live MySQL 8.0 (create/read/update roundtrip, duplicate create 409 with single row, photo swap durability); probe rows cleaned
 artifacts: []
 failures:
+  - class: product
+    evidence_for: [duplicate profile create for the same user threw an unhandled unique violation to a 500]
+    evidence_against: [unique UserId index exists; one profile per user]
+    verdict: catch 1062 in the create endpoint and answer 409; covered by the MySQL duplicate test keeping a single row
   - class: product
     evidence_for: [all 5 profile endpoints required login but enforced zero ownership: any user could read or edit anyone's PII, create foreign profiles, and replace foreign photos]
     evidence_against: [profiles hold address, phone, age, and second email]

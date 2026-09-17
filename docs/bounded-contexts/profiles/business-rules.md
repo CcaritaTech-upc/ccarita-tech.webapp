@@ -17,6 +17,8 @@ Journey: PROFILES.MANAGE (Builder and Owner variants).
 - Updates are partial: name/username change only on non-blank values; contact
   fields apply as sent. Only the owner writes.
 - Creation binds to the caller: a profile cannot be created for another user.
+- One profile per user (unique `UserId` index): a duplicate create conflicts
+  (409) instead of duplicating or exploding with a 500.
 - Photo replacement is compare-and-swap on `PhotoReference`: a stale expected
   reference conflicts (409) instead of silently overwriting; a failed upload
   aborts without touching the stored photo.
