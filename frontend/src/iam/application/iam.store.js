@@ -104,15 +104,26 @@ export const useIamStore = defineStore('iam', () => {
     }
 
     /**
-     * Sign out current user
+     * Sign out current user.
+     * Revokes the bearer token server-side first (business rule: logout
+     * revokes the token); local session is always cleared, even if the
+     * revoke call fails (e.g. offline), so the user is never stuck.
      */
-    function signOut() {
-        currentUser.value = null;
-        token.value = '';
-        isAuthenticated.value = false;
-        localStorage.removeItem(TOKEN_KEY);
-        localStorage.removeItem(CURRENT_USER_KEY);
-        clearAllUserStores();
+    async function signOut() {
+        try {
+            if (token.value) {
+                await iamApi.signOut();
+            }
+        } catch (error) {
+            errors.value.push(error.response?.data?.message || 'Error during sign out');
+        } finally {
+            currentUser.value = null;
+            token.value = '';
+            isAuthenticated.value = false;
+            localStorage.removeItem(TOKEN_KEY);
+            localStorage.removeItem(CURRENT_USER_KEY);
+            clearAllUserStores();
+        }
     }
 
     /**

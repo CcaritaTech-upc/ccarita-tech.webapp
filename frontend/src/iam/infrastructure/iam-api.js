@@ -32,6 +32,15 @@ export class IamApi extends BaseApi {
     }
 
     /**
+     * Sign out by revoking the current bearer token server-side.
+     * Backend contract: DELETE /api/v1/sessions/current -> 204.
+     * @returns {Promise} Response with no content
+     */
+    signOut() {
+        return this.http.delete(`${sessionsEndpoint}/current`);
+    }
+
+    /**
      * Get all users
      * @returns {Promise} Response with all users
      */

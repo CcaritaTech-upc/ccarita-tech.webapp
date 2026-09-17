@@ -77,8 +77,8 @@ const userPhoto = computed(() => {
 });
 
 
-const handleLogout = () => {
-  iamStore.signOut();
+const handleLogout = async () => {
+  await iamStore.signOut();
   router.push(ROUTES.LOGIN);
 };
 
