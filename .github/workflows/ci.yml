@@ -96,6 +96,12 @@ jobs:
 
   frontend-e2e:
     runs-on: ubuntu-latest
+    env:
+      # Dummy publishable key for the dist build (baked in at compose build
+      # time): simulated Stripe never loads Stripe.js (checkout returns a
+      # same-origin URL), but the view refuses to start checkout without the
+      # key present.
+      VITE_STRIPE_PUBLISHABLE_KEY: pk_test_e2e_ci_dummy
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -114,10 +120,6 @@ jobs:
         working-directory: frontend
         env:
           CI: true
-          # Dummy publishable key for the dist build: simulated Stripe never
-          # loads Stripe.js (checkout returns a same-origin URL), but the view
-          # refuses to start checkout without the key present.
-          VITE_STRIPE_PUBLISHABLE_KEY: pk_test_e2e_ci_dummy
       - name: Compose down
         if: always()
         run: docker compose -f docker-compose.yml down -v
