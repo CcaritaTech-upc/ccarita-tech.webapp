@@ -7,13 +7,11 @@ journey: DEVICES.CONTROL (Owner sends commands to own unit devices)
 feature: devices-convergence
 gates:
   G0: passed
-  G1: partial
+  G1: passed
   G2: skipped
   G3: skipped
   G4: skipped
 skip_reasons:
-  - gate: G1
-    reason: command authorization proven at service level (pre-existing IoT suite); no versioned API flow or MySQL guarantees for control yet
   - gate: G2
     reason: no Owner control E2E yet
   - gate: G3
@@ -25,6 +23,10 @@ commands:
     result: 3/3 passed (owner/builder manage own devices, foreign 404, anonymous 401)
   - command: npm run test:unit (frontend)
     result: 32/32 passed (validators 7/7 + iam-contract 7/7 + subscriptions-contract 7/7 + profiles-contract 6/6 + devices-contract 5/5, last local run)
+  - command: dotnet test backend/tests/Modules --filter DeviceControlFlowTests
+    result: 2/2 passed (command→telemetry→status convergence; wrong role/unit/attribute/range/missing/anonymous rejections)
+  - command: IOBUILD_TEST_MYSQL_CONNECTION=... dotnet test --filter DeviceControlMySqlTests (temporary 3306:3306 mapping, reverted afterwards)
+    result: 2/2 passed against live MySQL 8.0 (command plus shadow durability, telemetry durability visible on status); probe rows cleaned
 artifacts: []
 failures:
   - class: product
