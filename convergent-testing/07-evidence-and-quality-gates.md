@@ -15,6 +15,18 @@ Convergent Testing treats test output as evidence tied to a journey and scenario
 
 Evidence must be sanitized, reproducible, retained for an agreed duration, and connected through stable journey/scenario identifiers.
 
+## Environment fidelity
+
+Prove behavior in the environment that ships it, not the one that debugs it:
+
+- failure-body leakage (stacks, internals) is asserted against **production**
+  behavior — development hosts print diagnostics by design, so testing leakage
+  there fails for framework reasons, never product ones;
+- infrastructure guarantees (constraints, transactions, collation, durability)
+  run against the **production engine**, never fakes or in-memory doubles;
+- when the two environments disagree, the test targets production and records
+  why, so the next reader does not "fix" the test back to development.
+
 ## Evidence ledger discipline
 
 Every behavior change emits an evidence ledger. The ledger is operational proof, not a retrospective summary:

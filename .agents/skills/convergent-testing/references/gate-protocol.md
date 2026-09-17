@@ -44,6 +44,7 @@ Prioritize by likelihood × impact × difficulty of detection. Rare security, pr
 - **G2:** coded E2E, clean state, trace/screenshot/network evidence on failure.
 - **G3:** required tiers and explicit exclusions.
 - **G4:** clean rerun without MCP, no unexplained retry, evidence ledger.
+- **Environment fidelity:** assert failure-body leakage against production behavior (development hosts print diagnostics by design); prove infrastructure guarantees against the production engine.
 
 Retries expose instability; they do not convert flaky behavior into proof.
 
