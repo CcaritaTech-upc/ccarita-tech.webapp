@@ -10,12 +10,42 @@ gates:
   G1: passed
   G2: passed
   G3: partial
-  G4: partial
+  G4: passed
+environment:
+  database: mysql:8.0 (production engine for all persistence proofs)
+  migrations: 202608280001_FoundationSchema → 202608290002_IamAndDispatch → 202608290003_CoreBusiness → 202608300004_DevicesTelemetry → 202608300005_AnalyticsProjections
+  backend: .NET 9 (CI setup-dotnet 9.0.x)
+  frontend: node 22 (CI setup-node 22, engines ^20.19.0 || >=22.12.0)
+reruns:
+  - command: dotnet test backend/IoBuild.sln with live MySQL (temporary 3306:3306 mapping, reverted afterwards)
+    result: 153/153 green on 3 consecutive runs (15 architecture + 20 contract + 41 integration + 77 modules)
+  - command: npm run test:unit
+    result: 14/14 green on consecutive runs
+  - command: E2E_BASE_URL=http://localhost:8081 npx playwright test (deployed nginx + dist + API + MySQL)
+    result: 2/2 green on consecutive runs; e2e.* evidence rows cleaned afterwards, outbox left at zero
+flaky_rate:
+  observed: 0 unexplained flakes across all reruns above
+  history:
+    - case: concurrent duplicate test passed once by timing luck, then failed 6/6 under stress
+      verdict: genuine race (1062), fixed deterministically in product; never quarantined or retried-green
+mutations:
+  - mutant: PasswordHasher.Verify returns true unconditionally
+    killed_by: IAM_LOGIN_HASH_MUTANT
+  - mutant: registration email guard removed
+    killed_by: IAM_REGISTRATION_GUARD_MUTANTS
+  - mutant: registration password guard removed
+    killed_by: IAM_REGISTRATION_GUARD_MUTANTS
+  - mutant: role whitelist removed (any role accepted)
+    killed_by: IAM_REGISTRATION_UNKNOWN_ROLE + IAM_REGISTRATION_GUARD_MUTANTS
+  - mutant: role canonicalization removed
+    killed_by: IAM_REGISTRATION_ROLE_IS_CANONICAL
+  - mutant: duplicate-1062 catch removed (race throws 500)
+    killed_by: Concurrent_duplicate_registration (proven red 6/6 without the catch during development)
+  - mutant: revocation write removed (logout never persists)
+    killed_by: Revocation_on_mysql_is_durable_across_contexts + Owner E2E revoked-401 assertion
 skip_reasons:
   - gate: G3
     reason: Tier A complete; Tier B safe-errors, Tier C contention and migration survival proven; Tier D deterministic campaigns exist; remaining Tier B/C browser scenarios declared, Tier D resource-pressure and corrupt-dependency injection open
-  - gate: G4
-    reason: no flaky-rate or mutation tracking
 commands:
   - command: dotnet test backend/IoBuild.sln --no-restore --verbosity minimal
     result: 139/139 passed without MySQL (opt-in tests skip-with-success; last full local run)
