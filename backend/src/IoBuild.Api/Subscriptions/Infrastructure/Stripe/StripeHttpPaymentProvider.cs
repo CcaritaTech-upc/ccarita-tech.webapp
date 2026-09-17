@@ -142,9 +142,69 @@ public sealed class StripeHttpPaymentProvider(HttpClient client, IConfiguration 
             return [new PaymentInvoice($"in_sim_{builderId}", "paid", 1200)];
         }
 
+        // Primary source: paid checkout sessions for this builder, with the
+        // charge expanded so every one-off payment carries its receipt URL.
+        // Needs no customer mapping: sessions are filtered by metadata.
+        var receipts = await GetSessionReceiptsAsync(builderId, key, cancellationToken);
+
+        // Secondary source: invoices (subscription mode renewals), which need
+        // a mapped customer. Either source alone is a complete answer.
         var customer = configuration[$"Stripe:BuilderCustomers:{builderId}"];
-        var endpoint = string.IsNullOrWhiteSpace(customer) ? null : Endpoint($"/v1/invoices?customer={Uri.EscapeDataString(customer)}&limit=100");
-        if (endpoint is null || key is null) return null;
+        List<PaymentInvoice>? invoices = null;
+        if (!string.IsNullOrWhiteSpace(customer))
+        {
+            invoices = await GetCustomerInvoicesAsync(customer, key, cancellationToken);
+        }
+
+        // Null means Stripe could not be reached at all (local fallback applies);
+        // an empty list means Stripe answered with no history (honest empty).
+        if (receipts is null && invoices is null) return null;
+        return (receipts ?? Enumerable.Empty<PaymentInvoice>()).Concat(invoices ?? Enumerable.Empty<PaymentInvoice>()).ToList();
+    }
+
+    private async Task<List<PaymentInvoice>?> GetSessionReceiptsAsync(int builderId, string key, CancellationToken cancellationToken)
+    {
+        var endpoint = Endpoint("/v1/checkout/sessions?limit=100&expand[]=data.payment_intent.latest_charge");
+        if (endpoint is null) return null;
+        using var message = AuthorizedRequest(HttpMethod.Get, endpoint, key);
+        try
+        {
+            using var response = await client.SendAsync(message, cancellationToken);
+            if (!response.IsSuccessStatusCode) return [];
+            using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync(cancellationToken));
+            if (!document.RootElement.TryGetProperty("data", out var data) || data.ValueKind != JsonValueKind.Array) return [];
+            var wanted = builderId.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            return data.EnumerateArray()
+                .Where(session => string.Equals(session.TryGetProperty("payment_status", out var status) ? status.GetString() : null, "paid", StringComparison.OrdinalIgnoreCase)
+                    && session.TryGetProperty("metadata", out var metadata)
+                    && metadata.TryGetProperty("builder_id", out var owner)
+                    && owner.GetString() == wanted)
+                .Select(session =>
+                {
+                    string? receipt = null;
+                    decimal amount = 0;
+                    if (session.TryGetProperty("payment_intent", out var intent) && intent.ValueKind == JsonValueKind.Object)
+                    {
+                        if (intent.TryGetProperty("amount_received", out var received)) amount = received.GetInt64() / 100m;
+                        if (intent.TryGetProperty("latest_charge", out var charge) && charge.ValueKind == JsonValueKind.Object
+                            && charge.TryGetProperty("receipt_url", out var url)) receipt = url.GetString();
+                    }
+                    if (amount == 0 && session.TryGetProperty("amount_total", out var total)) amount = total.GetInt64() / 100m;
+                    return new PaymentInvoice(
+                        session.GetProperty("id").GetString()!,
+                        "paid",
+                        (long)(amount * 100),
+                        receipt);
+                }).ToList();
+        }
+        catch (HttpRequestException) { return null; }
+        catch (JsonException) { return null; }
+    }
+
+    private async Task<List<PaymentInvoice>?> GetCustomerInvoicesAsync(string customer, string key, CancellationToken cancellationToken)
+    {
+        var endpoint = Endpoint($"/v1/invoices?customer={Uri.EscapeDataString(customer)}&limit=100");
+        if (endpoint is null) return null;
         using var message = AuthorizedRequest(HttpMethod.Get, endpoint, key);
         try
         {

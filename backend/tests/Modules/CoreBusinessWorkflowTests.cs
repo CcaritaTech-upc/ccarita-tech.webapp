@@ -170,6 +170,7 @@ public sealed class CoreBusinessWorkflowTests
     {
         var handler = new SequenceHandler(
             "{\"id\":\"cs_123\",\"payment_status\":\"paid\",\"status\":\"complete\",\"metadata\":{\"builder_id\":\"7\",\"plan_id\":\"3\"}}",
+            "{\"object\":\"list\",\"data\":[]}",
             "{\"object\":\"list\",\"data\":[{\"id\":\"in_123\",\"status\":\"paid\",\"amount_paid\":1200}]}");
         var provider = new StripeHttpPaymentProvider(new HttpClient(handler), Configuration("Stripe:ProviderBaseUrl", "https://payments.example", "Stripe:RestrictedApiKey", "rk_test_minimum", "Stripe:BuilderCustomers:7", "cus_builder_7"));
 
@@ -180,7 +181,8 @@ public sealed class CoreBusinessWorkflowTests
         Assert.Single(invoices!);
         Assert.Equal("in_123", invoices![0].Id);
         Assert.Equal((HttpMethod.Get, "/v1/checkout/sessions/cs_123"), handler.Calls[0]);
-        Assert.Equal((HttpMethod.Get, "/v1/invoices?customer=cus_builder_7&limit=100"), handler.Calls[1]);
+        Assert.Equal((HttpMethod.Get, "/v1/checkout/sessions?limit=100&expand[]=data.payment_intent.latest_charge"), handler.Calls[1]);
+        Assert.Equal((HttpMethod.Get, "/v1/invoices?customer=cus_builder_7&limit=100"), handler.Calls[2]);
         Assert.All(handler.StripeVersions, version => Assert.Equal("2026-05-27.dahlia", version));
     }
 

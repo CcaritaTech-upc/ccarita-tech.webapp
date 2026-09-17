@@ -51,6 +51,10 @@ commands:
 artifacts: []
 failures:
   - class: product
+    evidence_for: [receipts visible only with mapped customers; one-off payments leave no invoice, so their receipts stayed unreachable]
+    evidence_against: [microservices version listed paid sessions with expanded charges]
+    verdict: invoices read from paid checkout sessions (charge expanded, metadata-filtered, no customer mapping needed) ahead of the customer invoices list; unreachable Stripe answers null so the local fallback still applies; existing sequence-based provider test updated to the 3-call contract
+  - class: product
     evidence_for: [invoices modal expects downloadUrl but neither the Stripe mapping nor the fallback ever sent any receipt URL]
     evidence_against: [frontend mapping receiptUrl-to-downloadUrl already present; microservices version sent ReceiptUrl from expanded charges]
     verdict: mapped Stripe hosted_invoice_url (fallback receipt_url) into PaymentInvoice.ReceiptUrl; frontend needs no change; local/synthesized invoices keep null and correctly show no button

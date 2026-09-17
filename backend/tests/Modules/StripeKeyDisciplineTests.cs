@@ -103,6 +103,39 @@ public sealed class StripeKeyDisciplineTests
         Assert.Null(invoices[2].ReceiptUrl);
     }
 
+    [Fact]
+    [Trait("Flow", "SUBSCRIPTIONS.PURCHASE")]
+    [Trait("Layer", "Application")]
+    [Trait("Risk", "A")]
+    public async Task Receipts_come_from_paid_sessions_without_customer_mapping()
+    {
+        var json = "{\"data\":["
+            + "{\"id\":\"cs_paid_1\",\"payment_status\":\"paid\",\"amount_total\":79900,"
+            + "\"metadata\":{\"builder_id\":\"1\",\"plan_id\":\"2\"},"
+            + "\"payment_intent\":{\"amount_received\":79900,\"latest_charge\":{\"receipt_url\":\"https://pay.stripe.com/receipts/cs1\"}}},"
+            + "{\"id\":\"cs_unpaid_1\",\"payment_status\":\"unpaid\",\"amount_total\":79900,"
+            + "\"metadata\":{\"builder_id\":\"1\",\"plan_id\":\"2\"},"
+            + "\"payment_intent\":{\"amount_received\":0}},"
+            + "{\"id\":\"cs_other_builder\",\"payment_status\":\"paid\",\"amount_total\":79900,"
+            + "\"metadata\":{\"builder_id\":\"2\",\"plan_id\":\"2\"},"
+            + "\"payment_intent\":{\"amount_received\":79900,\"latest_charge\":{\"receipt_url\":\"https://pay.stripe.com/receipts/other\"}}}"
+            + "]}";
+        var capture = new CaptureHandler(json);
+        var configuration = Config(
+            ("Stripe:RestrictedApiKey", "rk_test_minimum"),
+            ("Stripe:UseSimulatedPayments", "false"),
+            ("Stripe:ProviderBaseUrl", "http://127.0.0.1:9/"));
+        var provider = new StripeHttpPaymentProvider(new HttpClient(capture), configuration);
+
+        var invoices = (await provider.GetInvoicesAsync(1))!.ToList();
+
+        var mine = Assert.Single(invoices);
+        Assert.Equal("cs_paid_1", mine.Id);
+        Assert.Equal("paid", mine.Status);
+        Assert.Equal(79900, mine.AmountInCents);
+        Assert.Equal("https://pay.stripe.com/receipts/cs1", mine.ReceiptUrl);
+    }
+
     private sealed class CaptureHandler(string json) : HttpMessageHandler
     {
         public string? Authorization { get; private set; }
