@@ -18,7 +18,7 @@ environment:
   frontend: node 22 (CI setup-node 22)
 reruns:
   - command: dotnet test backend/IoBuild.sln with live MySQL (temporary 3306:3306 mapping, reverted afterwards)
-    result: 196/196 green (15 architecture + 20 contract + 41 integration + 120 modules)
+    result: 197/197 green (15 architecture + 20 contract + 41 integration + 121 modules)
   - command: E2E_BASE_URL=http://localhost:8081 npx playwright test (deployed nginx + dist + API + MySQL)
     result: 8/8 green across journeys; e2e and seeded rows cleaned afterwards
 flaky_rate:
@@ -41,7 +41,7 @@ commands:
   - command: dotnet test backend/tests/Modules --filter DeviceControlFlowTests
     result: 2/2 passed (command→telemetry→status convergence; wrong role/unit/attribute/range/missing/anonymous rejections)
   - command: IOBUILD_TEST_MYSQL_CONNECTION=... dotnet test --filter DeviceControlMySqlTests (temporary 3306:3306 mapping, reverted afterwards)
-    result: 2/2 passed against live MySQL 8.0 (command plus shadow durability, telemetry durability visible on status); probe rows cleaned
+    result: 3/3 passed against live MySQL 8.0 (command plus shadow durability, telemetry durability visible on status, per-unit-type duplicate 409 with MAC intentionally ignored on the owner-custom path); probe rows cleaned
   - command: E2E_BASE_URL=http://localhost:8081 npx playwright test (deployed nginx + dist + API + MySQL)
     result: devices-control.spec.js 1/1 green (builder provisions, owner registers with auto-link, brightness from UI, desired state on status endpoint); full suite 8/8; seeded projects/units/clients/devices/users cleaned afterwards
 artifacts: []

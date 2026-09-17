@@ -111,6 +111,65 @@ public sealed class DeviceControlMySqlTests
         }
     }
 
+    [Fact]
+    [Trait("Category", "Devices")]
+    [Trait("Flow", "DEVICES.MANAGE")]
+    [Trait("Layer", "Persistence")]
+    [Trait("Risk", "A")]
+    [Trait("Dependency", "MySql")]
+    public async Task Duplicate_device_conflicts_on_mac_and_per_unit_type()
+    {
+        var connectionString = MySqlFixture.ConnectionString;
+        if (string.IsNullOrWhiteSpace(connectionString)) return;
+
+        const int ownerId = 91842;
+        await using (var admin = MySqlFixture.CreateIsolatedContext(connectionString))
+        {
+            admin.Projects.Add(new Project { Id = ownerId, BuilderId = ownerId, Name = "Dupe Plaza" });
+            var unit = new Unit(ownerId, "91842", null, 9, "91842") { Id = ownerId };
+            admin.Units.Add(unit);
+            admin.UnitOwnerProjections.Add(new UnitOwnerProjection { UnitId = ownerId, OwnerUserId = ownerId, UpdatedAt = DateTimeOffset.UtcNow });
+            await admin.SaveChangesAsync();
+        }
+
+        try
+        {
+            await using var factory = new MySqlDeviceApiFactory(connectionString);
+            using var client = factory.CreateClient();
+            var owner = Token(ownerId);
+
+            using var first = await SendAsync(client, HttpMethod.Post, "/api/v1/devices", owner,
+                $"{{\"name\":\"Dupe Light\",\"type\":\"SmartLight\",\"location\":\"Hall\",\"macAddress\":\"AA:BB:CC:DD:EE:42\",\"projectId\":{ownerId},\"unitId\":{ownerId},\"status\":\"online\"}}");
+            Assert.Equal(HttpStatusCode.Created, first.StatusCode);
+
+            using var sameType = await SendAsync(client, HttpMethod.Post, "/api/v1/devices", owner,
+                $"{{\"name\":\"Dupe Light 2\",\"type\":\"SmartLight\",\"location\":\"Hall\",\"macAddress\":\"AA:BB:CC:DD:EE:43\",\"projectId\":{ownerId},\"unitId\":{ownerId},\"status\":\"online\"}}");
+            Assert.Equal(HttpStatusCode.Conflict, sameType.StatusCode);
+
+            // Owner-custom devices intentionally discard the MAC (identity is
+            // project+unit+type), so another type in the same unit is a new slot.
+            using var otherType = await SendAsync(client, HttpMethod.Post, "/api/v1/devices", owner,
+                $"{{\"name\":\"Dupe AC\",\"type\":\"AirConditioner\",\"location\":\"Hall\",\"macAddress\":\"AA:BB:CC:DD:EE:42\",\"projectId\":{ownerId},\"unitId\":{ownerId},\"status\":\"online\"}}");
+            Assert.Equal(HttpStatusCode.Created, otherType.StatusCode);
+
+            await using var reader = MySqlFixture.CreateIsolatedContext(connectionString);
+            Assert.Equal(2, await reader.Devices.Where(d => d.ProjectId == ownerId).CountAsync());
+        }
+        finally
+        {
+            await using var cleaner = MySqlFixture.CreateIsolatedContext(connectionString);
+            var devices = await cleaner.Devices.Where(d => d.ProjectId == ownerId).ToListAsync();
+            if (devices.Count > 0) cleaner.Devices.RemoveRange(devices);
+            var projections = await cleaner.UnitOwnerProjections.Where(p => p.UnitId == ownerId).ToListAsync();
+            if (projections.Count > 0) cleaner.UnitOwnerProjections.RemoveRange(projections);
+            var units = await cleaner.Units.Where(u => u.Id == ownerId).ToListAsync();
+            if (units.Count > 0) cleaner.Units.RemoveRange(units);
+            var projects = await cleaner.Projects.Where(p => p.Id == ownerId).ToListAsync();
+            if (projects.Count > 0) cleaner.Projects.RemoveRange(projects);
+            await cleaner.SaveChangesAsync();
+        }
+    }
+
     private static async Task CleanupAsync(string connectionString)
     {
         await using var cleaner = MySqlFixture.CreateIsolatedContext(connectionString);
