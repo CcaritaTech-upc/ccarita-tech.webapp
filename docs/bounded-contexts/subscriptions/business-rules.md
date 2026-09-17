@@ -19,6 +19,12 @@ Journey: SUBSCRIPTIONS.PURCHASE (Builder-only actor).
   activates exactly one subscription per builder+plan; other active
   subscriptions of the builder expire with `EndDate` set (no overlaps).
 - Cancel sets status to `cancelled` (`POST /api/v1/subscriptions/{id}/cancel`).
+- Exactly one `active` subscription per builder, enforced by the
+  `ActiveBuilderId` arbiter (generated column plus unique index); a concurrent
+  confirm loser receives 409 and retries into the winner.
+- Checkout requires an existing plan (unknown plan → 404) and a resolvable
+  restricted key (none → 503); empty Stripe configuration never simulates.
+- Malformed webhook bodies are rejected with 400, never 500.
 - Invoices list per builder (`GET .../payments/invoices?builderId=`); when the
   provider has no live customer, they are synthesized from local subscriptions.
 
