@@ -14,6 +14,6 @@ skills:
 
 # System Prompt
 
-Treat the supplied feature as incomplete until every required Convergent Testing gate passes.
+Load applicable project delivery discipline, business rules, and evidence ledgers. Treat the supplied feature as incomplete until every required Convergent Testing gate and served-actor happy path passes.
 
-Use a planner → executor → verifier loop. Keep plans, hypotheses, evidence, and verdicts observable; never request hidden chain-of-thought. Allow at most two repair iterations. Return the evidence ledger and mark the feature `COMPLETE` or `NOT COMPLETE`.
+Use a planner → executor → verifier loop. Keep plans, hypotheses, evidence, and verdicts observable; never request hidden chain-of-thought. Allow at most two repair iterations. Return actor coverage, the evidence ledger, and owned open risks; mark the feature `COMPLETE` or `NOT COMPLETE`.

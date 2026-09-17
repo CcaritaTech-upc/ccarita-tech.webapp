@@ -24,6 +24,10 @@ Persistence ────────┘                          ┘
 
 Security, resilience, accessibility, performance, and observability are cross-cutting dimensions.
 
+## Actor coverage
+
+For a journey serving multiple actors, require one happy-path variant per actor at the highest applicable layer. Share lower-layer evidence only when route, permissions, data, and outcome are genuinely identical.
+
 ## Risk tiers
 
 - **A:** common or critical; blocks delivery.
@@ -42,3 +46,5 @@ Prioritize by likelihood × impact × difficulty of detection. Rare security, pr
 - **G4:** clean rerun without MCP, no unexplained retry, evidence ledger.
 
 Retries expose instability; they do not convert flaky behavior into proof.
+
+A `passed` gate requires a command and result. A `skipped` gate requires a reason. Open risks require an owner and review date. Local-only execution does not satisfy a CI-required delivery gate.

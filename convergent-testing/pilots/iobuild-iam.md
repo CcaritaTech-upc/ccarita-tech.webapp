@@ -180,6 +180,13 @@ When the coded E2E fails:
 
 ## Pilot exit criteria
 
+Canonical product rules and current evidence now live in:
+
+- `docs/bounded-contexts/iam/business-rules.md`
+- `docs/bounded-contexts/iam/evidence-ledger.md`
+
+The ledger records actor coverage explicitly; a journey proven for only one served role remains partial.
+
 - [ ] Existing IAM evidence is classified by stable journey identifiers.
 - [ ] Every assertion has a clear primary layer.
 - [ ] Frontend/API and backend/database boundaries have executable evidence.

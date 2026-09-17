@@ -4,7 +4,7 @@ A System Journey describes an outcome, not a page sequence. It remains valid whe
 
 ## Journey boundary
 
-A useful journey has:
+A useful journey variant has:
 
 - one primary actor;
 - one meaningful goal;
@@ -12,6 +12,17 @@ A useful journey has:
 - observable success and failure outcomes;
 - explicit preconditions and postconditions;
 - a bounded number of external dependencies.
+
+## Actor coverage for transversal journeys
+
+A capability may serve several actors while each journey variant retains one primary actor. Enumerate the served actors first, then define one happy-path variant per actor whose permissions, route, data, or outcome can differ.
+
+| Actor | Trigger | Expected outcome | Highest-layer evidence |
+|---|---|---|---|
+| `<actor A>` | `<trigger>` | `<outcome>` | `<system/E2E evidence>` |
+| `<actor B>` | `<trigger>` | `<outcome>` | `<system/E2E evidence>` |
+
+Shared lower-layer assertions are acceptable only when the implementation path is genuinely identical. A passing variant for one actor does not prove another actor.
 
 Good examples:
 
@@ -25,14 +36,15 @@ Avoid implementation-shaped journeys such as “submit POST `/sessions`” or �
 
 ## Discovery sequence
 
-1. State the actor and desired outcome.
-2. Write the happy path without technical implementation details.
-3. Define observable acceptance criteria.
-4. Identify business rules and state transitions.
-5. Mark trust boundaries and external dependencies.
-6. Add what-if scenarios from risk analysis.
-7. Assign each assertion to a verification layer.
-8. Define convergence points and required evidence.
+1. Enumerate every actor served by the capability.
+2. State the primary actor and desired outcome for each variant.
+3. Write each happy path without technical implementation details.
+4. Define observable acceptance criteria.
+5. Identify business rules and state transitions.
+6. Mark trust boundaries and external dependencies.
+7. Add what-if scenarios from risk analysis.
+8. Assign each assertion to a verification layer.
+9. Define convergence points and required evidence.
 
 ## Happy path first
 

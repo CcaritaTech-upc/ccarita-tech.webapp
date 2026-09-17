@@ -2,7 +2,7 @@
 
 Convergent Testing is a flow-first, risk-layered, agent-assisted testing methodology. It verifies software at the cheapest trustworthy layer, then progressively validates the boundaries between layers until the complete user journey is proven end to end.
 
-> **Status:** Experimental. IoBuild is the first pilot and will be used to challenge and refine the methodology before it becomes an agent skill or executable tool.
+> **Status:** Experimental but operational. IoBuild is the first pilot, the methodology is encoded as project-local agent skills, and an installable CLI remains intentionally deferred.
 
 ## Core idea
 
@@ -28,6 +28,18 @@ Convergence is progressive. A system test is not the first place where incompati
 6. Capture diagnostic evidence when a test fails.
 7. Use an agent and browser automation for investigation, but require a deterministic coded test as final proof.
 
+## Runtime and product records
+
+The framework stays portable by separating three concerns:
+
+| Concern | Location |
+|---|---|
+| Framework theory and reusable templates | `convergent-testing/` |
+| Agent runtime protocol (product-agnostic) | `.agents/skills/` |
+| Project discipline, business rules, and evidence ledgers | `docs/delivery-discipline.md` and `docs/bounded-contexts/<context>/` |
+
+For transversal journeys, identify every served actor and require a happy-path variant for each. Evidence for one actor never proves another actor's outcome.
+
 ## Documentation map
 
 | Document | Purpose |
@@ -42,6 +54,8 @@ Convergence is progressive. A system test is not the first place where incompati
 | [Evidence and gates](07-evidence-and-quality-gates.md) | Required artifacts, quality gates, and completion criteria |
 | [IoBuild IAM pilot](pilots/iobuild-iam.md) | First real application of the framework |
 | [Journey template](templates/journey-template.md) | Reusable starting point for new journeys |
+| [Evidence ledger template](templates/evidence-ledger-template.md) | Gate results, commands, actor coverage, owned risks, and deferrals |
+| [Project delivery discipline](../docs/delivery-discipline.md) | Operational rules applied by this repository |
 
 ## Planned evolution
 
@@ -52,11 +66,11 @@ IoBuild pilot
         ↓
 Refinement from real failures
         ↓
-Project-local agent skill
+Project-local agent skill ✓
         ↓
-Validated agent workflow
+Validated multi-agent workflow ✓
         ↓
-Project-local CLI / OpenCode integration
+Installable CLI (deferred pending pilot feedback)
 ```
 
 Automation follows validation. The methodology must survive real delivery work before its decisions are encoded into tools.

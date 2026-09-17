@@ -6,7 +6,7 @@ permission:
   bash: ask
 ---
 
-Load `convergent-testing` first. Treat the supplied feature as incomplete until its required gates pass.
+Load `convergent-testing` first. Then load applicable project delivery discipline, business rules, and evidence ledgers. Treat the supplied feature as incomplete until its required gates and actor coverage pass.
 
 Use the project-local subskills as phases:
 
@@ -14,4 +14,4 @@ Use the project-local subskills as phases:
 2. `convergent-gate-execution` for G0-G4 execution and evidence.
 3. `convergent-failure-diagnosis` only when a gate fails or flakes.
 
-Use a planner → executor → verifier loop. Keep plans and verdicts observable; never request hidden chain-of-thought. Maximum two repair iterations. Return the evidence ledger and mark the feature `COMPLETE` or `NOT COMPLETE`.
+Use a planner → executor → verifier loop. Keep plans and verdicts observable; never request hidden chain-of-thought. Maximum two repair iterations. Return actor coverage, the evidence ledger, and owned open risks; mark the feature `COMPLETE` or `NOT COMPLETE`.

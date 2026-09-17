@@ -8,4 +8,4 @@ Validate this feature through the complete project-local Convergent Testing prot
 
 $ARGUMENTS
 
-Start from its System Journey and acceptance criteria. Run the minimum relevant G0-G4 gates, diagnose failures with bounded hypothesis branching, and return a deterministic evidence ledger. Do not claim completion when a required gate is skipped or red.
+Start from its System Journey, served actors, acceptance criteria, and project-owned business rules. Run the minimum relevant G0-G4 gates, diagnose failures with bounded hypothesis branching, and return a deterministic evidence ledger with actor coverage and owned open risks. Do not claim completion when a required gate is skipped, red, or missing actor coverage.

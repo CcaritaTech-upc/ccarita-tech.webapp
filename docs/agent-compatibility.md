@@ -28,6 +28,17 @@ The canonical runtime package lives in `.agents/skills/`. Cursor, Codex, and Ant
 - Antigravity gets a workspace rule and a custom subagent. No workflow is added because Antigravity workflows are deprecated in favor of Agent Skills by November 1, 2026.
 - Human documentation under `convergent-testing/` is explanatory only. Runtime skills do not depend on it.
 
+## Runtime context boundaries
+
+The skills remain product-agnostic. At runtime they discover project-owned context rather than embedding it:
+
+1. project delivery discipline (for example `docs/delivery-discipline.md`);
+2. bounded-context business rules and evidence ledgers;
+3. the actor matrix for transversal journeys;
+4. commands, results, skip reasons, and owned open risks.
+
+Tool-specific wrappers must never copy product rules. They load the canonical skill, which then reads the active project's records.
+
 ## Verification
 
 The repository check validates canonical skills, Claude wrappers, persistent rules, references, and OpenCode entry points. CI runs the same command in the `agent-compatibility` job:

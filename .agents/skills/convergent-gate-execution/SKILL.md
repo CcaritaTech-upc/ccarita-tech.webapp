@@ -4,7 +4,7 @@ description: "Trigger: run validation gate, verify feature, feature complete. Ex
 license: Apache-2.0
 metadata:
   author: "ccarita-tech"
-  version: "0.3"
+  version: "0.4"
 ---
 
 ## Activation Contract

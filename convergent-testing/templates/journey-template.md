@@ -4,6 +4,8 @@
 
 **Actor:** `<primary actor>`
 
+**Served actors:** `<all roles or actors supported by this capability>`
+
 **Trigger:** `<event that starts the journey>`
 
 **Outcome:** `<observable user or system result>`
@@ -27,6 +29,12 @@
 1. `<actor action or system transition>`
 2. `<next step>`
 3. `<observable outcome>`
+
+## Actor variants
+
+| Actor | Distinct route, permission, data, or outcome | Happy-path evidence |
+|---|---|---|
+| `<actor>` | `<difference or "shared path">` | `<test/scenario>` |
 
 ## Postconditions
 
@@ -74,3 +82,7 @@
 - [ ] Happy-path system convergence passes.
 - [ ] Required risk tiers pass.
 - [ ] Diagnostic artifacts are available on failure.
+- [ ] Every served actor has happy-path evidence.
+- [ ] Passed gates record commands and results.
+- [ ] Skipped gates record reasons.
+- [ ] Open risks have owners and review dates.

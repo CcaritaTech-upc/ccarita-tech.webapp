@@ -15,6 +15,19 @@ Convergent Testing treats test output as evidence tied to a journey and scenario
 
 Evidence must be sanitized, reproducible, retained for an agreed duration, and connected through stable journey/scenario identifiers.
 
+## Evidence ledger discipline
+
+Every behavior change emits an evidence ledger. The ledger is operational proof, not a retrospective summary:
+
+- every `passed` gate records the exact command and verifiable result;
+- every `skipped` gate records why it is irrelevant or blocked;
+- evidence that runs only locally remains `skipped` for delivery until CI executes it;
+- every open risk has an owner and review date;
+- every deferral states what, why, who resumes it, and when;
+- every transversal journey lists all served actors and the happy-path evidence for each.
+
+Projects may store product-specific ledgers wherever their architecture requires. The framework supplies only the agnostic schema and template.
+
 ## Quality gates
 
 ### Gate 0 — Local correctness
@@ -84,3 +97,7 @@ The primary metric is confidence in user outcomes, not the number of test files.
 - [ ] The global E2E proves the outcome without duplicating exhaustive lower-level cases.
 - [ ] Failure evidence supports agent and human diagnosis.
 - [ ] Final acceptance runs without MCP or hidden interactive state.
+- [ ] Every served actor has its own happy-path evidence.
+- [ ] Passed gates include commands and results; skipped gates include reasons.
+- [ ] Open risks have owners and review dates.
+- [ ] Delivery evidence required by policy runs in CI.

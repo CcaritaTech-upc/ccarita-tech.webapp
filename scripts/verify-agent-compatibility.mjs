@@ -51,13 +51,19 @@ for (const name of skillNames) {
 await requireFile(".agents/skills/convergent-testing/references/gate-protocol.md");
 await requireFile(".agents/skills/convergent-testing/references/scenario-schema.md");
 await requireText("AGENTS.md", "Mandatory Convergent Testing Gate");
+await requireText("AGENTS.md", "docs/delivery-discipline.md");
 await requireText("CLAUDE.md", "@AGENTS.md");
 await requireText("opencode.json", '".agents/skills"');
-await requireFile(".agents/rules/convergent-testing.md");
+await requireText(".agents/rules/convergent-testing.md", "served actors");
 await requireText(".agents/agents/convergent-qa.md", "name: convergent-qa");
 await requireFile(".opencode/agents/convergent-qa.md");
 await requireFile(".opencode/commands/convergent-gate.md");
 await requireText("docs/agent-compatibility.md", ".agents/skills/");
+await requireText(".agents/skills/convergent-testing/SKILL.md", "actor_coverage");
+await requireText(".agents/skills/convergent-gate-execution/SKILL.md", "Every open risk needs an owner");
+await requireText(".agents/skills/convergent-testing/references/scenario-schema.md", "roles_covered");
+await requireText("convergent-testing/README.md", "Runtime and product records");
+await requireText("docs/delivery-discipline.md", "Transversal coverage across roles");
 
 if (failures.length > 0) {
   console.error("Agent compatibility verification failed:");
