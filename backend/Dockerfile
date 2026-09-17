@@ -13,6 +13,7 @@ COPY tests/Architecture/IoBuild.Architecture.Tests.csproj tests/Architecture/
 COPY tests/Contract/IoBuild.Contract.Tests.csproj tests/Contract/
 COPY tests/Modules/IoBuild.Modules.Tests.csproj tests/Modules/
 COPY tests/Integration/IoBuild.Integration.Tests.csproj tests/Integration/
+COPY tests/TestKit/IoBuild.TestKit.csproj tests/TestKit/
 COPY tools/IoBuild.Cutover/IoBuild.Cutover.csproj tools/IoBuild.Cutover/
 COPY tools/IoBuild.LegacyImporter/IoBuild.LegacyImporter.csproj tools/IoBuild.LegacyImporter/
 
