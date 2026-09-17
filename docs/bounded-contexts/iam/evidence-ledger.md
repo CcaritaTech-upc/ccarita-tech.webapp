@@ -13,7 +13,7 @@ gates:
   G4: partial
 skip_reasons:
   - gate: G3
-    reason: Tier A complete; Tier B/C portfolios partial, Tier D has no fuzz/mutation campaigns
+    reason: Tier A complete; Tier B safe-errors, Tier C contention and migration survival proven; remaining Tier B/C browser scenarios declared, Tier D has no fuzz/mutation campaigns
   - gate: G4
     reason: no flaky-rate or mutation tracking
 commands:
@@ -23,6 +23,8 @@ commands:
     result: 146/146 passed against live MySQL 8.0 (15 architecture + 20 contract + 41 integration + 70 modules, including Tier A escalation/canonical, concurrent duplicate x6 stress, and post-write rollback)
   - command: same full-solution run after removing stale pre-existing outbox rows (arroz/wasa/dbproof, owner-approved) with a quiet table
     result: 146/146 passed with every MySQL opt-in test fully executing, outbox table left at zero rows
+  - command: same full-solution run with MySQL after adding Tier B safe-error contract, 8-way burst contention, and migration-survival proofs (temporary 3306:3306 mapping, reverted afterwards)
+    result: 149/149 passed (15 architecture + 20 contract + 41 integration + 73 modules); scratch migration database dropped, outbox table left at zero rows
   - command: npm run test:unit (frontend)
     result: 14/14 Vitest passed (validators 7/7 + iam-contract 7/7, last local run)
   - command: npx playwright test (frontend, E2E_BASE_URL=http://localhost:8081 against deployed nginx + dist + API + MySQL)
@@ -59,7 +61,13 @@ failures:
     evidence_against: [InMemory lease mechanics green]
     verdict: test assumed a quiet table; fixed with scoped cleanup plus a quiet-table guard; stale pre-existing rows removed with owner approval and the full proof re-ran green, leaving the table at zero rows
 open_risks:
-  - risk: Tier B/C gaps per pilot portfolio (timeout safe-errors, conflicting tab sessions, migration survival, lock contention) and Tier D fuzz/mutation campaigns unscheduled
+  - risk: Tier B/C browser scenarios declared, not automated (conflicting tab sessions, token expiry mid-session, navigate-away during auth) — flaky-prone, revisit on cadence
+    owner: ccarita-tech
+    review_by: 2026-10-01
+  - risk: Tier D fuzz/mutation campaigns unscheduled
+    owner: ccarita-tech
+    review_by: 2026-10-01
+  - risk: MigrateAsync with an explicit target migration throws not-found on MySQL although the migration is listed (production uses EnsureCreated, so no production impact; targeted downgrade path unproven)
     owner: ccarita-tech
     review_by: 2026-10-01
 roles_covered:

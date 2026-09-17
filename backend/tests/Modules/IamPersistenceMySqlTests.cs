@@ -1,4 +1,5 @@
 using IoBuild.Api.IAM.Application.Internal.CommandServices;
+using IoBuild.Api.IAM.Domain.Model.Aggregates;
 using IoBuild.Api.IAM.Domain.Model.Commands;
 using IoBuild.Api.IAM.Infrastructure.Hashing;
 using IoBuild.Api.IAM.Infrastructure.Tokens;
@@ -181,6 +182,90 @@ public sealed class IamPersistenceMySqlTests
         Assert.Empty(await reader.IntegrationDispatches
             .Where(d => d.IdempotencyKey == $"iam.user-registered:{email}")
             .ToListAsync());
+    }
+
+    [Fact]
+    [Trait("Category", "IAM")]
+    [Trait("Flow", "IAM.REGISTRATION")]
+    [Trait("Layer", "Persistence")]
+    [Trait("Risk", "C")]
+    [Trait("Dependency", "MySql")]
+    public async Task Burst_duplicate_registration_on_mysql_stays_single_without_deadlock()
+    {
+        var connectionString = MySqlFixture.ConnectionString;
+        if (string.IsNullOrWhiteSpace(connectionString)) return;
+
+        var email = $"g1-burst-{Guid.NewGuid():N}@example.test";
+        var contexts = Enumerable.Range(0, 8)
+            .Select(_ => MySqlFixture.CreateIsolatedContext(connectionString))
+            .ToList();
+        try
+        {
+            // Eight racers on eight contexts: every call must return (none may
+            // throw or deadlock on the unique index) and exactly one account wins.
+            await Task.WhenAll(contexts.Select(db =>
+                Task.Run(() => CreateIamService(db).RegisterAsync(new RegisterUser(email, "secret123", "Owner")))));
+
+            await using var reader = MySqlFixture.CreateIsolatedContext(connectionString);
+            Assert.Single(await reader.IamUsers.Where(u => u.Email == email).ToListAsync());
+            Assert.Single(await reader.IntegrationDispatches
+                .Where(d => d.IdempotencyKey == $"iam.user-registered:{email}")
+                .ToListAsync());
+        }
+        finally
+        {
+            foreach (var db in contexts) await db.DisposeAsync();
+            await using var cleaner = MySqlFixture.CreateIsolatedContext(connectionString);
+            await CleanupAsync(cleaner, email);
+        }
+    }
+
+    [Fact]
+    [Trait("Category", "IAM")]
+    [Trait("Flow", "IAM.REGISTRATION")]
+    [Trait("Layer", "Persistence")]
+    [Trait("Risk", "C")]
+    [Trait("Dependency", "MySql")]
+    public async Task Iam_data_survives_migration_to_latest_on_mysql()
+    {
+        var connectionString = MySqlFixture.ConnectionString;
+        if (string.IsNullOrWhiteSpace(connectionString)) return;
+
+        var scratch = $"g1_mig_{Guid.NewGuid():N}";
+        await using (var admin = MySqlFixture.CreateIsolatedContext(connectionString))
+        {
+            await admin.Database.ExecuteSqlRawAsync("CREATE DATABASE `" + scratch + "`");
+        }
+        try
+        {
+            var scratchConnection = new MySqlConnector.MySqlConnectionStringBuilder(connectionString) { Database = scratch }.ConnectionString;
+            static IoBuildDbContext OpenScratch(string cs) => new(new DbContextOptionsBuilder<IoBuildDbContext>()
+                .UseMySql(cs, ServerVersion.AutoDetect(cs)).Options);
+
+            var email = $"mig-{Guid.NewGuid():N}@example.test";
+            await using (var db = OpenScratch(scratchConnection))
+            {
+                await db.Database.MigrateAsync();
+                db.IamUsers.Add(new IamUser { Email = email, PasswordHash = "hash", Role = "Owner" });
+                await db.SaveChangesAsync();
+            }
+            await using (var db = OpenScratch(scratchConnection))
+            {
+                // Production startup path (Migrations__ApplyOnStartup): migrate
+                // over existing data. Must be a no-op that preserves every row.
+                await db.Database.MigrateAsync();
+                Assert.Equal(
+                    new[] { "202608280001_FoundationSchema", "202608290002_IamAndDispatch", "202608290003_CoreBusiness", "202608300004_DevicesTelemetry", "202608300005_AnalyticsProjections" },
+                    db.Database.GetAppliedMigrations());
+                var survivor = await db.IamUsers.SingleAsync(u => u.Email == email);
+                Assert.Equal("Owner", survivor.Role);
+            }
+        }
+        finally
+        {
+            await using var admin = MySqlFixture.CreateIsolatedContext(connectionString);
+            await admin.Database.ExecuteSqlRawAsync("DROP DATABASE `" + scratch + "`");
+        }
     }
 
     private sealed class ExplodingQueue : IIntegrationDispatchQueue

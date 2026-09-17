@@ -121,6 +121,30 @@ public sealed class IamTierATests
         Assert.Equal("Owner", authenticated!.Role);
     }
 
+    [Fact]
+    [Trait("Flow", "IAM.REGISTRATION")]
+    [Trait("Layer", "Api")]
+    [Trait("Risk", "B")]
+    public async Task IAM_ERROR_CONTRACT_never_leaks_internals()
+    {
+        await using var factory = new TierAApiFactory();
+        using var client = factory.CreateClient();
+        var badRegister = await client.PostAsync("/api/v1/users", Json("{\"email\":\"\",\"password\":\"\"}"));
+        Assert.Equal(HttpStatusCode.BadRequest, badRegister.StatusCode);
+        var badLogin = await client.PostAsync("/api/v1/sessions", Json("{\"email\":\"nobody@example.test\",\"password\":\"x\"}"));
+        Assert.Equal(HttpStatusCode.Unauthorized, badLogin.StatusCode);
+        var noToken = await client.GetAsync("/api/v1/users");
+        Assert.Equal(HttpStatusCode.Unauthorized, noToken.StatusCode);
+
+        foreach (var response in new[] { badRegister, badLogin, noToken })
+        {
+            var body = await response.Content.ReadAsStringAsync();
+            Assert.DoesNotContain("Exception", body, StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain("at IoBuild", body, StringComparison.Ordinal);
+            Assert.DoesNotContain("StackTrace", body, StringComparison.OrdinalIgnoreCase);
+        }
+    }
+
     private static StringContent Json(string body) => new(body, System.Text.Encoding.UTF8, "application/json");
 
     private sealed class TierAApiFactory : Microsoft.AspNetCore.Mvc.Testing.WebApplicationFactory<Program>
