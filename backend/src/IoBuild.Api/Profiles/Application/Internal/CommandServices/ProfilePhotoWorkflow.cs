@@ -20,7 +20,9 @@ public sealed class ProfilePhotoWorkflow(IoBuildDbContext dbContext, ICloudinary
         if (string.IsNullOrWhiteSpace(uploadedReference)) return false;
 
         var profile = await dbContext.Profiles.SingleOrDefaultAsync(item => item.UserId == userId, cancellationToken);
-        if (profile is null || !string.Equals(profile.PhotoReference, expectedReference, StringComparison.Ordinal)) return false;
+        // A fresh profile has no reference yet: null bootstraps as empty so the
+        // first replacement is reachable; afterwards the swap is strict.
+        if (profile is null || !string.Equals(profile.PhotoReference ?? string.Empty, expectedReference, StringComparison.Ordinal)) return false;
         profile.PhotoReference = $"sha256:{Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(imageContent))).ToLowerInvariant()}";
         profile.CloudinaryReference = uploadedReference;
         profile.PhotoUrl = uploadedReference;
