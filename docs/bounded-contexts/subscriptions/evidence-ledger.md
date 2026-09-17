@@ -51,6 +51,10 @@ commands:
 artifacts: []
 failures:
   - class: product
+    evidence_for: [anonymous purchase endpoints trusted client-provided builderId: cross-builder checkout, invoices, cancel, and full-list reads with no token required]
+    evidence_against: [purchase is per-builder money flow; testing course grades IDOR]
+    verdict: RequireAuthorization plus token-id self-match on every purchase endpoint (403 on mismatch, 404 on foreign ids, list scoped to caller); confirm still trusts Stripe metadata, webhook still HMAC-only; proof script and versioned tests updated to send tokens, E2E green against the enforced stack
+  - class: product
     evidence_for: [AuthorizedRequest replaced the restricted key with any configured sk_ secret on outgoing Stripe calls]
     evidence_against: [resolver gates rk_ correctly; business rule requires least privilege]
     verdict: leftover pre-discipline behavior silently defeating the rk_ rule; fixed to send the restricted key only, covered by the outgoing-header test
@@ -72,9 +76,6 @@ failures:
     verdict: check-then-act race; fixed with the single-active arbiter (generated column plus unique index, runner backfill, migration file) and 409 for the loser; stress-proven 4/4
 open_risks:
   - risk: webhook path scheduled, not evidenced against real Stripe (needs live keys plus public URL)
-    owner: ccarita-tech
-    review_by: 2026-10-01
-  - risk: purchase endpoints trust the client-provided builderId (no per-builder authorization); a builder could start checkout for another builder id
     owner: ccarita-tech
     review_by: 2026-10-01
 roles_covered:

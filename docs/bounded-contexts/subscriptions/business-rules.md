@@ -28,6 +28,16 @@ Journey: SUBSCRIPTIONS.PURCHASE (Builder-only actor).
 - Invoices list per builder (`GET .../payments/invoices?builderId=`); when the
   provider has no live customer, they are synthesized from local subscriptions.
 
+## Authorization (no trust in client builderId)
+
+- Every purchase endpoint requires authentication; the JWT user id must equal
+  the acted-upon builder id, or the call fails (403 on body/query mismatch,
+  404 on foreign ids so existence is not oracle-able, 401 without token).
+- The subscription list is scoped to the caller; there is no cross-builder
+  listing. Plans stay anonymous-readable by design.
+- The confirm endpoint trusts Stripe session metadata (server-side), not the
+  client body; webhooks stay anonymous with HMAC verification.
+
 ## Stripe transport (least privilege)
 
 - Only restricted keys (`rk_`) reach Stripe on the wire, in either configured
