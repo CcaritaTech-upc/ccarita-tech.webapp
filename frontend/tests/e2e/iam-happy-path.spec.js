@@ -39,4 +39,19 @@ test('IAM happy path: register, login, authorized access, logout, revoked token'
 
   // Authorized access: login leaves the public login route.
   await expect(page).not.toHaveURL(/\/login$/, { timeout: 20_000 });
+
+  // Logout revokes the token server-side (business rule) and clears the session.
+  const token = await page.evaluate(() => localStorage.getItem('token'));
+  expect(token, 'expected a bearer token after login').toBeTruthy();
+  await page.locator('.logout-button').click();
+
+  // Back on a public route with no local session left.
+  await expect(page).toHaveURL(/login/, { timeout: 20_000 });
+  expect(await page.evaluate(() => localStorage.getItem('token'))).toBeNull();
+
+  // The revoked token is rejected afterwards.
+  const revoked = await page.request.get('/api/v1/users', {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  expect(revoked.status()).toBe(401);
 });
