@@ -37,6 +37,8 @@ commands:
     result: 1/1 passed against real stack, Owner only (last local run)
   - command: node scripts/verify-agent-compatibility.mjs
     result: Agent compatibility verified for 4 skills.
+  - command: CI run 35170607595 on main (build-and-test, frontend-unit, frontend-e2e, agent-compatibility)
+    result: success on all jobs — first green E2E run in CI against the compose stack
 artifacts:
   - Playwright trace/screenshot/video on failure (configured: trace on-first-retry, screenshot only-on-failure, video retain-on-failure)
 failures:
@@ -57,9 +59,6 @@ failures:
     evidence_against: [InMemory lease mechanics green]
     verdict: test assumed a quiet table; fixed with scoped cleanup plus a quiet-table guard; stale pre-existing rows removed with owner approval and the full proof re-ran green, leaving the table at zero rows
 open_risks:
-  - risk: frontend-e2e CI job added but not yet observed green on a real CI run
-    owner: ccarita-tech
-    review_by: 2026-10-01
   - risk: Tier B/C gaps per pilot portfolio (timeout safe-errors, conflicting tab sessions, migration survival, lock contention) and Tier D fuzz/mutation campaigns unscheduled
     owner: ccarita-tech
     review_by: 2026-10-01
