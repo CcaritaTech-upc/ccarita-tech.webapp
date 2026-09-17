@@ -169,13 +169,11 @@ public sealed class StripeHttpPaymentProvider(HttpClient client, IConfiguration 
 
     private HttpRequestMessage AuthorizedRequest(HttpMethod method, Uri endpoint, string key)
     {
-        var secretKey = configuration["Stripe:SecretKey"];
-        var effectiveKey = !string.IsNullOrWhiteSpace(secretKey) && secretKey.StartsWith("sk_", StringComparison.Ordinal)
-            ? secretKey
-            : key;
-
+        // Restricted keys only: the resolver guarantees `key` starts with rk_.
+        // A configured secret key must never silently replace it on the wire,
+        // or the least-privilege discipline is defeated without a trace.
         var request = new HttpRequestMessage(method, endpoint);
-        request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", effectiveKey);
+        request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", key);
         request.Headers.Add("Stripe-Version", "2026-05-27.dahlia");
         return request;
     }
