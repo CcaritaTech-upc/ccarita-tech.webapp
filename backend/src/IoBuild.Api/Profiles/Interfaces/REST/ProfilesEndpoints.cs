@@ -59,17 +59,26 @@ public static class ProfilesEndpoints
         group.MapPost("", async (CreateProfileRequest request, System.Security.Claims.ClaimsPrincipal user, CoreBusinessService service, CancellationToken ct) =>
         {
             if (!OwnsUser(user, request.UserId)) return Results.Forbid();
-            var profile = await service.CreateProfileAsync(
-                request.UserId,
-                request.Name,
-                request.Username,
-                request.PhoneNumber,
-                request.Address,
-                request.SecondEmail,
-                request.Age,
-                request.PhotoUrl,
-                ct);
-            return Results.Created($"/api/v1/profiles/{profile.Id}", profile);
+            try
+            {
+                var profile = await service.CreateProfileAsync(
+                    request.UserId,
+                    request.Name,
+                    request.Username,
+                    request.PhoneNumber,
+                    request.Address,
+                    request.SecondEmail,
+                    request.Age,
+                    request.PhotoUrl,
+                    ct);
+                return Results.Created($"/api/v1/profiles/{profile.Id}", profile);
+            }
+            catch (DbUpdateException ex) when (ex.InnerException is MySqlConnector.MySqlException mysql && mysql.Number == 1062)
+            {
+                // A profile already exists for this user (unique UserId index):
+                // update it instead of duplicating.
+                return Results.Conflict(new { error = "Profile already exists for this user." });
+            }
         }).RequireAuthorization();
     }
 }
