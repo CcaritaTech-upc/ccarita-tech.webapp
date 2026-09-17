@@ -8,12 +8,10 @@ feature: devices-convergence
 gates:
   G0: passed
   G1: passed
-  G2: skipped
+  G2: passed
   G3: skipped
   G4: skipped
 skip_reasons:
-  - gate: G2
-    reason: no Owner control E2E yet
   - gate: G3
     reason: no tiered portfolio yet
   - gate: G4
@@ -27,6 +25,8 @@ commands:
     result: 2/2 passed (command→telemetry→status convergence; wrong role/unit/attribute/range/missing/anonymous rejections)
   - command: IOBUILD_TEST_MYSQL_CONNECTION=... dotnet test --filter DeviceControlMySqlTests (temporary 3306:3306 mapping, reverted afterwards)
     result: 2/2 passed against live MySQL 8.0 (command plus shadow durability, telemetry durability visible on status); probe rows cleaned
+  - command: E2E_BASE_URL=http://localhost:8081 npx playwright test (deployed nginx + dist + API + MySQL)
+    result: devices-control.spec.js 1/1 green (builder provisions, owner registers with auto-link, brightness from UI, desired state on status endpoint); full suite 8/8; seeded projects/units/clients/devices/users cleaned afterwards
 artifacts: []
 failures:
   - class: product
@@ -37,8 +37,7 @@ open_risks:
   - risk: device list has no per-role visibility scoping (frontend fetches all and filters client-side)
     owner: ccarita-tech
     review_by: 2026-10-01
-  - risk: no Owner control E2E yet
-    owner: ccarita-tech
-    review_by: 2026-10-01
-roles_covered: []
+roles_covered:
+  - role: Owner
+    happy_path: frontend/tests/e2e/devices-control.spec.js
 ```
