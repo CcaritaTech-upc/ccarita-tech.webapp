@@ -124,6 +124,53 @@ jobs:
         if: always()
         run: docker compose -f docker-compose.yml down -v
 
+  secret-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@v2
+
+  dependency-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "9.0.x"
+      - name: Audit frontend (gate on critical)
+        run: npm audit --audit-level=critical
+        working-directory: frontend
+      - name: Audit backend (fail on any vulnerable package)
+        run: |
+          out=$(dotnet list backend/IoBuild.sln package --vulnerable --include-transitive)
+          echo "$out"
+          if echo "$out" | grep -qi "has the following vulnerable packages"; then exit 1; fi
+
+  codeql:
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+      actions: read
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "9.0.x"
+      - uses: github/codeql-action/init@v3
+        with:
+          languages: csharp, javascript
+      - name: Restore and build for analysis
+        run: |
+          dotnet restore backend/IoBuild.sln
+          dotnet build backend/IoBuild.sln --no-restore
+      - uses: github/codeql-action/analyze@v3
+
   simulator-smoke:
     runs-on: ubuntu-latest
     if: false # placeholder — simulator harness is profile-gated; run locally with --profile telemetry
