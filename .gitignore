@@ -31,6 +31,8 @@ frontend/test-results/
 frontend/playwright-report/
 test-results/
 playwright-report/
+# Generated evidence dashboard (run node scripts/evidence-dashboard.mjs)
+docs/evidence-dashboard.html
 
 # Operating system files
 .DS_Store
