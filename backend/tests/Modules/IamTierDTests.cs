@@ -221,6 +221,114 @@ public sealed class IamTierDTests
         Assert.Empty(await db.IamUsers.ToListAsync());
     }
 
+    [Fact]
+    [Trait("Flow", "IAM.REGISTRATION")]
+    [Trait("Layer", "Api")]
+    [Trait("Risk", "D")]
+    public async Task IAM_BURST_50_distinct_registrations_all_succeed_without_server_error()
+    {
+        await using var factory = new TierDApiFactory();
+        using var client = factory.CreateClient();
+        var stamp = Guid.NewGuid().ToString("N");
+        var results = await Task.WhenAll(Enumerable.Range(0, 50).Select(i =>
+            client.PostAsync("/api/v1/users", JsonContent(new { email = $"burst{stamp}{i}@example.test", password = "secret123", role = "Owner" }))));
+        Assert.All(results, r => Assert.Equal(HttpStatusCode.Created, r.StatusCode));
+        foreach (var r in results) r.Dispose();
+
+        using var probe = await client.PostAsync("/api/v1/sessions",
+            JsonContent(new { email = $"burst{stamp}7@example.test", password = "secret123" }));
+        Assert.Equal(HttpStatusCode.Created, probe.StatusCode);
+    }
+
+    [Fact]
+    [Trait("Flow", "IAM.AUTHORIZED_ACCESS")]
+    [Trait("Layer", "Api")]
+    [Trait("Risk", "D")]
+    public async Task IAM_MALFORMED_AUTHORIZATION_never_server_errors()
+    {
+        await using var factory = new TierDApiFactory();
+        using var client = factory.CreateClient();
+        var headers = new[]
+        {
+            null as string,
+            "Bearer",
+            "Bearer ",
+            "Bearer !!!not-a-jwt!!!",
+            "Basic dXNlcjpwYXNz",
+            "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIn0.invalid-signature",
+            new string('B', 5000),
+        };
+        foreach (var header in headers)
+        {
+            using var request = new HttpRequestMessage(HttpMethod.Get, "/api/v1/users");
+            if (header is not null) request.Headers.TryAddWithoutValidation("Authorization", header);
+            using var response = await client.SendAsync(request);
+            Assert.True(
+                response.StatusCode is HttpStatusCode.Unauthorized or HttpStatusCode.BadRequest,
+                $"Authorization variant returned {response.StatusCode}");
+        }
+    }
+
+    [Fact]
+    [Trait("Flow", "IAM.REGISTRATION")]
+    [Trait("Layer", "Api")]
+    [Trait("Risk", "D")]
+    public async Task IAM_MEGABYTE_PAYLOAD_fails_closed_without_server_error()
+    {
+        await using var factory = new TierDApiFactory();
+        using var client = factory.CreateClient();
+        var bigLocal = new string('z', 1_000_000);
+        using var response = await client.PostAsync("/api/v1/users",
+            JsonContent(new { email = bigLocal + "@example.test", password = "secret123", role = "Owner" }));
+        Assert.True(
+            response.StatusCode is HttpStatusCode.BadRequest or HttpStatusCode.RequestEntityTooLarge,
+            $"Megabyte payload returned {response.StatusCode}");
+    }
+
+    [Fact]
+    [Trait("Flow", "IAM.LOGIN")]
+    [Trait("Layer", "Api")]
+    [Trait("Risk", "D")]
+    public async Task IAM_UNREACHABLE_DATABASE_fails_fast_at_startup_without_hanging()
+    {
+        // The app seeds on startup, so a dead database fails the boot itself
+        // (fail-fast for the orchestrator to restart) instead of serving half.
+        await using var factory = new DeadDbApiFactory();
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(25));
+        try
+        {
+            using var client = factory.CreateClient();
+            using var response = await client.PostAsync("/api/v1/users",
+                JsonContent(new { email = "dead@example.test", password = "secret123", role = "Owner" }), cts.Token);
+            Assert.True(
+                response.StatusCode is HttpStatusCode.InternalServerError or HttpStatusCode.ServiceUnavailable,
+                $"Dead database returned {response.StatusCode}");
+        }
+        catch (InvalidOperationException ex) when (ex.Message.Contains("transient", StringComparison.OrdinalIgnoreCase))
+        {
+            // Startup seeding threw first: equally fail-fast, equally not a hang.
+        }
+    }
+
+    private sealed class DeadDbApiFactory : Microsoft.AspNetCore.Mvc.Testing.WebApplicationFactory<Program>
+    {
+        protected override void ConfigureWebHost(Microsoft.AspNetCore.Hosting.IWebHostBuilder builder) => builder.ConfigureServices(services =>
+        {
+            services.RemoveAll<DbContextOptions<IoBuildDbContext>>();
+            services.RemoveAll<IDbContextOptionsConfiguration<IoBuildDbContext>>();
+            services.AddDbContext<IoBuildDbContext>(options => options.UseMySql(
+                "Server=127.0.0.1;Port=1;Database=iobuild_dead;User=root;Password=iobuild;Connection Timeout=2",
+                ServerVersion.Parse("8.0.46-mysql")));
+            var readiness = new IoBuild.Api.Readiness.MigrationReadiness();
+            readiness.RecordMigrationSuccess();
+            services.AddSingleton(readiness);
+            services.RemoveAll<IHostedService>();
+        }).ConfigureAppConfiguration((_, configuration) => configuration.AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            ["Mqtt:Enabled"] = "false"
+        }));
+    }
+
     private static StringContent JsonContent(object payload) => new(
         JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
 
