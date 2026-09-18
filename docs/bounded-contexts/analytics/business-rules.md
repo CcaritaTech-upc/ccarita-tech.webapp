@@ -18,3 +18,5 @@ Journey: ANALYTICS.VIEW (Builder dashboard and Owner dashboard variants).
 - Live energy windows clamp to 1–60 minutes (default 10).
 - Device projections stay synchronized with provisioning events; dashboards
   read projections, never live device rows directly.
+- Projection self-sync serializes per user: concurrent dashboard loads for one
+  tenant converge on single projection rows instead of doubling them.

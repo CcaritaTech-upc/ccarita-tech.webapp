@@ -78,6 +78,7 @@ public sealed class AnalyticsQueryService : IAnalyticsQueryService
 
     public async Task<BuilderMetrics?> Handle(GetBuilderDashboardQuery query, CancellationToken ct = default)
     {
+        using var _ = await Domain.Model.AnalyticsSyncGates.EnterAsync(query.UserId, ct);
         _logger?.LogInformation("Building builder dashboard for user {UserId}", query.UserId);
 
         // 1. Sync on-demand from primary Projects table if not yet projected
@@ -255,6 +256,7 @@ public sealed class AnalyticsQueryService : IAnalyticsQueryService
 
     public async Task<OwnerMetrics?> Handle(GetOwnerDashboardQuery query, CancellationToken ct = default)
     {
+        using var _ = await Domain.Model.AnalyticsSyncGates.EnterAsync(query.UserId, ct);
         _logger?.LogInformation("Building owner dashboard for user {UserId}", query.UserId);
 
         // Self-heal: ensure real units, devices, and project projections for this owner are synchronized
