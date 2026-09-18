@@ -8,12 +8,10 @@ feature: analytics-convergence
 gates:
   G0: passed
   G1: passed
-  G2: skipped
+  G2: passed
   G3: skipped
   G4: skipped
 skip_reasons:
-  - gate: G2
-    reason: no per-actor dashboard E2E yet
   - gate: G3
     reason: no tiered portfolio yet
   - gate: G4
@@ -27,15 +25,18 @@ commands:
     result: 3/3 passed (builder and owner dashboard data, energy window clamp)
   - command: IOBUILD_TEST_MYSQL_CONNECTION=... dotnet test --filter Dashboards_and_projections_are_durable_on_mysql (temporary 3306:3306 mapping, reverted afterwards)
     result: 1/1 passed against live MySQL 8.0 (both dashboards with data plus project/unit/device projection durability); probe rows cleaned
+  - command: E2E_BASE_URL=http://localhost:8081 npx playwright test (deployed nginx + dist + API + MySQL)
+    result: analytics-view.spec.js 2/2 green (Builder dashboard with own project metrics, Owner dashboard view); full suite 11/11; e2e and seeded rows cleaned afterwards
 artifacts: []
 failures:
   - class: product
     evidence_for: [all 5 analytics routes answered anonymously for any user id, including PII-adjacent consumption metrics]
     evidence_against: [every frontend caller passes its own user id]
     verdict: RequireAuthorization plus token-id self-match on metric/energy routes (403 on mismatch); insights scoped to builder-owned or unit-occupied projects (404 otherwise)
-open_risks:
-  - risk: no per-actor dashboard E2E yet (Builder and Owner views)
-    owner: ccarita-tech
-    review_by: 2026-10-01
-roles_covered: []
+open_risks: []
+roles_covered:
+  - role: Builder
+    happy_path: frontend/tests/e2e/analytics-view.spec.js (Builder test)
+  - role: Owner
+    happy_path: frontend/tests/e2e/analytics-view.spec.js (Owner test)
 ```
