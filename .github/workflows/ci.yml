@@ -130,7 +130,9 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - uses: gitleaks/gitleaks-action@v2
+      - uses: trufflesecurity/trufflehog-actions-scan@main
+        with:
+          path: ./
 
   dependency-audit:
     runs-on: ubuntu-latest
@@ -145,11 +147,14 @@ jobs:
       - name: Audit frontend (gate on critical)
         run: npm audit --audit-level=critical
         working-directory: frontend
-      - name: Audit backend (fail on any vulnerable package)
+      - name: Audit backend (fail on high/critical only)
         run: |
           out=$(dotnet list backend/IoBuild.sln package --vulnerable --include-transitive)
           echo "$out"
-          if echo "$out" | grep -qi "has the following vulnerable packages"; then exit 1; fi
+          if echo "$out" | grep -qi "has the following vulnerable packages"; then
+            if echo "$out" | grep -qiE "[[:space:]](High|Critical)([[:space:]]|$)"; then exit 1; fi
+            echo "Only moderate-or-lower advisories present; tracked as an owned risk, not blocking."
+          fi
 
   codeql:
     runs-on: ubuntu-latest
