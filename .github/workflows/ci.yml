@@ -130,10 +130,51 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - uses: trufflesecurity/trufflehog@main
-        with:
-          path: ./
-          extra_args: --only-verified
+      - name: Scan Git history with TruffleHog (fail closed)
+        run: |
+          set -euo pipefail
+          scan_log="$(mktemp)"
+          trap 'rm -f "$scan_log"' EXIT
+
+          set +e
+          docker run --rm \
+            -v "$PWD:/repo" \
+            -w /repo \
+            ghcr.io/trufflesecurity/trufflehog@sha256:1cec88f18ca39e26e04e61fe9d886c9c4e5f2fc0ba4f2ed185cac0722bd8a076 \
+            git file:///repo --branch HEAD --results=verified --fail --no-update \
+            >"$scan_log" 2>&1
+          scan_status=$?
+          set -e
+
+          if [ "$scan_status" -ne 0 ]; then
+            echo "::error::TruffleHog exited with status $scan_status"
+            exit "$scan_status"
+          fi
+
+          if grep -q 'encountered errors during scan' "$scan_log"; then
+            echo "::error::TruffleHog reported a scan error"
+            exit 1
+          fi
+
+          summary="$(grep 'finished scanning' "$scan_log" | tail -n 1 | awk -F '\t' '{print $NF}')"
+          if [ -z "$summary" ]; then
+            echo "::error::TruffleHog did not emit a completion summary"
+            exit 1
+          fi
+
+          chunks="$(printf '%s\n' "$summary" | jq -r '.chunks // 0')"
+          bytes="$(printf '%s\n' "$summary" | jq -r '.bytes // 0')"
+          verified_secrets="$(printf '%s\n' "$summary" | jq -r '.verified_secrets // 0')"
+          if [ "$chunks" -le 0 ] || [ "$bytes" -le 0 ]; then
+            echo "::error::TruffleHog scanned zero content (chunks=$chunks, bytes=$bytes)"
+            exit 1
+          fi
+          if [ "$verified_secrets" -ne 0 ]; then
+            echo "::error::TruffleHog found $verified_secrets verified secret(s)"
+            exit 1
+          fi
+
+          echo "TruffleHog scanned $chunks chunks / $bytes bytes; no verified secrets found."
 
   dependency-audit:
     runs-on: ubuntu-latest
