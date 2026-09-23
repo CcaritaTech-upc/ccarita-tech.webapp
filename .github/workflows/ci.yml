@@ -17,6 +17,18 @@ jobs:
       - name: Verify agent integration
         run: node scripts/verify-agent-compatibility.mjs
 
+  build-config-hygiene:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Check tracked build configurations
+        run: node scripts/verify-build-config-hygiene.mjs
+      - name: Test build-configuration policy
+        run: node --test scripts/verify-build-config-hygiene.test.mjs
+
   build-and-test:
     runs-on: ubuntu-latest
     steps:
