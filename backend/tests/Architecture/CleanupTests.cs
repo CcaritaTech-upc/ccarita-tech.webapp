@@ -123,6 +123,41 @@ public sealed class CleanupTests
     }
 
     [Fact]
+    public void Dokploy_compose_is_standalone_and_exposes_api_and_spa_without_aggregator()
+    {
+        var content = ReadRootFile("docker-compose.dokploy.yml");
+
+        Assert.Contains("services:", content);
+        Assert.Contains("build:\n      context: ./backend", content);
+        Assert.Contains("build:\n      context: ./frontend", content);
+        Assert.Contains("image: mysql:8.0", content);
+        Assert.Contains("mysql_monolith_data:/var/lib/mysql", content);
+        Assert.Contains("image: eclipse-mosquitto:2-openssl", content);
+        Assert.DoesNotMatch(@"(?m)^  nginx:\s*$", content);
+        Assert.DoesNotContain("!reset", content);
+        Assert.Contains("expose:\n      - \"8080\"", content);
+        Assert.Contains("expose:\n      - \"80\"", content);
+        Assert.DoesNotContain("traefik.http", content);
+        Assert.DoesNotContain("dokploy-network", content);
+        Assert.Contains("paths /api, /swagger, /health", content);
+        Assert.Contains("Disable Strip Path", content);
+    }
+
+    [Fact]
+    public void Dokploy_compose_starts_influxdb_by_default()
+    {
+        var content = ReadRootFile("docker-compose.dokploy.yml");
+        var influx = Regex.Match(content, @"(?ms)^  influxdb:\s*\n(?<service>.*?)(?=^  \S|^networks:)");
+        Assert.True(influx.Success, "Dokploy Compose must define an InfluxDB service");
+        Assert.Contains("image: influxdb:2.7-alpine", influx.Groups["service"].Value);
+        Assert.Contains("influxdb_data:/var/lib/influxdb2", influx.Groups["service"].Value);
+        Assert.DoesNotContain("profiles:", influx.Groups["service"].Value);
+        Assert.Contains("${INFLUXDB_ADMIN_PASSWORD:?", influx.Groups["service"].Value);
+        Assert.Contains("${INFLUXDB_ADMIN_TOKEN:?", influx.Groups["service"].Value);
+        Assert.DoesNotContain("admin123", influx.Groups["service"].Value);
+    }
+
+    [Fact]
     public void Compose_optional_influx_mosquitto_simulator_are_profiled_or_absent()
     {
         var content = ReadRootFile("docker-compose.yml");

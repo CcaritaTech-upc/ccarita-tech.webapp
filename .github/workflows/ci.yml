@@ -65,6 +65,12 @@ jobs:
       - name: Compose config validation
         run: docker compose -f docker-compose.yml config
 
+      - name: Dokploy Compose config validation
+        run: docker compose -f docker-compose.dokploy.yml config -q
+        env:
+          INFLUXDB_ADMIN_PASSWORD: ci-only-password
+          INFLUXDB_ADMIN_TOKEN: ci-only-token
+
       - name: Compose up (smoke)
         run: docker compose -f docker-compose.yml up -d --wait
 

@@ -1,60 +1,158 @@
-# IoBuild — Dokploy / Traefik override (no rompe el flujo local).
-#
-# Filosofia: single-domain. Traefik (provisto por Dokploy) -> nginx:80 interno,
-# y nginx mantiene el ruteo actual sin cambios: /api/ -> iobuild-api:8080,
-# /health -> iobuild-api:8080, / -> frontend:80.
-# Asi no se tocan CORS, VITE_API_URL=/api/v1, ni nginx.conf.
-#
-# Uso local (validar sin desplegar):
-#   docker compose -f docker-compose.yml -f docker-compose.dokploy.yml config
-# En Dokploy: usar este archivo como Compose adicional (override) sobre
-# docker-compose.yml, o como archivo principal segun la app. No expone 80/443;
-# Traefik rutea por labels. Solo mosquitto conserva 1883:1883 para dispositivos
-# MQTT externos (HTTP no puede proxear MQTT; alternativa TCP con HostSNI(*) en Next steps).
-#
-# Vars nuevas: DOMAIN (requerida, ej. app.tudominio.com). El resto se reutiliza
-# del .env existente (DB_PASSWORD, JWT_SECRET, CORS_ALLOWED_ORIGINS, Stripe, Cloudinary).
+# Standalone Dokploy stack. Set Compose Path to ./docker-compose.dokploy.yml.
+# Configure Domains in Dokploy (which adds routing labels and network):
+#   frontend:80       host root / (Vue SPA)
+#   iobuild-api:8080  same host, paths /api, /swagger, /health
+# Disable Strip Path for the API; it expects /api/v1/... unchanged.
+# Remove the old nginx Domain entry before redeploying. No aggregator is run;
+# the frontend image still uses its own nginx to serve static files.
+# Keep the same Dokploy project name to reuse the existing MySQL volume.
+# Set INFLUXDB_ADMIN_PASSWORD and INFLUXDB_ADMIN_TOKEN in Dokploy before deploy.
+# InfluxDB is started by default but the API is not configured to use it yet.
 
 services:
-  nginx:
-    # Quita el mapeo 80:80 local; en Dokploy el acceso entra por Traefik.
-    ports: !reset []
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.iobuild.rule=Host(`${DOMAIN:-app.example.com}`)"
-      - "traefik.http.routers.iobuild.entrypoints=websecure"
-      - "traefik.http.routers.iobuild.tls.certresolver=letsencrypt"
-      - "traefik.http.services.iobuild.loadbalancer.server.port=80"
-      - "traefik.docker.network=dokploy-network"
+  iobuild-api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: iobuild-api
+    restart: unless-stopped
+    environment:
+      - ASPNETCORE_URLS=http://+:8080
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ConnectionStrings__IoBuild=${ConnectionStrings__IoBuild:-Server=mysql-monolith;Port=3306;Database=iobuild;User=root;Password=${DB_PASSWORD:-iobuild}}
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
+      - Migrations__ApplyOnStartup=true
+      - Mqtt__Enabled=true
+      - Mqtt__Host=mosquitto
+      - Mqtt__Port=1883
+      - Jwt__Secret=${JWT_SECRET:-iobuild-production-secret-must-be-replaced-in-prod-32chars!}
+      - Cors__AllowedOrigins=${CORS_ALLOWED_ORIGINS:-*}
+      - Stripe__SecretKey=${STRIPE_SECRET_KEY:-}
+      - Stripe__PublishableKey=${VITE_STRIPE_PUBLISHABLE_KEY:-}
+      - Stripe__RestrictedApiKey=${STRIPE_RESTRICTED_API_KEY:-rk_test_local}
+      - Stripe__UseSimulatedPayments=${STRIPE_USE_SIMULATED_PAYMENTS:-true}
+      - Stripe__WebhookSecret=${STRIPE_WEBHOOK_SECRET:-whsec_local_dev}
+      - Cloudinary__CloudName=${CLOUDINARY_CLOUD_NAME:-}
+      - Cloudinary__ApiKey=${CLOUDINARY_API_KEY:-}
+      - Cloudinary__ApiSecret=${CLOUDINARY_API_SECRET:-}
+    depends_on:
+      mysql-monolith:
+        condition: service_healthy
+      mosquitto:
+        condition: service_started
     networks:
       - iobuild-network
-      - dokploy-network
+    expose:
+      - "8080"
 
-  iobuild-api:
-    # Quita 8080:8080 + 5080:8080; la API solo es visible via nginx/Traefik.
-    ports: !reset []
+  mysql-monolith:
+    image: mysql:8.0
+    container_name: iobuild-mysql-monolith
+    restart: unless-stopped
+    environment:
+      - MYSQL_ROOT_PASSWORD=${DB_PASSWORD:-iobuild}
+      - MYSQL_DATABASE=iobuild
+    volumes:
+      - mysql_monolith_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
     networks:
       - iobuild-network
 
   frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        - VITE_CLOUDINARY_CLOUD_NAME=${CLOUDINARY_CLOUD_NAME:-}
+        - VITE_CLOUDINARY_UPLOAD_PRESET=${VITE_CLOUDINARY_UPLOAD_PRESET:-}
+        - VITE_STRIPE_PUBLISHABLE_KEY=${VITE_STRIPE_PUBLISHABLE_KEY:-}
+    container_name: iobuild-frontend
+    restart: unless-stopped
+    depends_on:
+      - iobuild-api
     networks:
       - iobuild-network
+    expose:
+      - "80"
 
-  mysql-monolith:
+  jaeger:
+    image: jaegertracing/all-in-one:1.62
+    container_name: iobuild-jaeger
+    restart: unless-stopped
+    expose:
+      - "16686"
+      - "4317"
+      - "4318"
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
+    networks:
+      - iobuild-network
+    profiles:
+      - observability
+      - full
+
+  influxdb:
+    image: influxdb:2.7-alpine
+    container_name: iobuild-influxdb
+    restart: unless-stopped
+    environment:
+      - DOCKER_INFLUXDB_INIT_MODE=setup
+      - DOCKER_INFLUXDB_INIT_USERNAME=admin
+      - DOCKER_INFLUXDB_INIT_PASSWORD=${INFLUXDB_ADMIN_PASSWORD:?Set INFLUXDB_ADMIN_PASSWORD in Dokploy}
+      - DOCKER_INFLUXDB_INIT_ORG=iobuild
+      - DOCKER_INFLUXDB_INIT_BUCKET=iobuild-telemetry
+      - DOCKER_INFLUXDB_INIT_ADMIN_TOKEN=${INFLUXDB_ADMIN_TOKEN:?Set INFLUXDB_ADMIN_TOKEN in Dokploy}
+    volumes:
+      - influxdb_data:/var/lib/influxdb2
+    healthcheck:
+      test: ["CMD", "influx", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
     networks:
       - iobuild-network
 
   mosquitto:
-    # Se conserva 1883:1883 a proposito para dispositivos externos.
-    # Si todo es interno (solo api+simulator), comentar el ports via Dokploy UI
-    # o agregar aqui `ports: !reset []`.
+    image: eclipse-mosquitto:2-openssl
+    container_name: iobuild-mosquitto
+    restart: unless-stopped
+    # MQTT clients outside Docker connect directly to the VPS; Traefik Domains
+    # only handles HTTP and cannot replace this TCP port mapping.
+    ports:
+      - "1883:1883"
+    volumes:
+      - ./mosquitto/config/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - mosquitto_data:/mosquitto/data
     networks:
       - iobuild-network
 
   simulator:
+    build:
+      context: ./iot-simulator
+      dockerfile: Dockerfile
+    container_name: iobuild-simulator
+    restart: unless-stopped
+    environment:
+      - MQTT_HOST=mosquitto
+      - MQTT_PORT=1883
+    depends_on:
+      - mosquitto
     networks:
       - iobuild-network
 
 networks:
-  dokploy-network:
-    external: true
+  iobuild-network:
+    driver: bridge
+
+volumes:
+  mysql_monolith_data:
+    driver: local
+  influxdb_data:
+    driver: local
+  mosquitto_data:
+    driver: local
