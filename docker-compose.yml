@@ -18,6 +18,10 @@ services:
       - Mqtt__Enabled=true
       - Mqtt__Host=mosquitto
       - Mqtt__Port=1883
+      - Influx__Url=http://influxdb:8086
+      - Influx__Org=iobuild
+      - Influx__Bucket=iobuild-telemetry
+      - Influx__Token=iobuild-telemetry-token
       - Jwt__Secret=${JWT_SECRET:-iobuild-production-secret-must-be-replaced-in-prod-32chars!}
       - Cors__AllowedOrigins=${CORS_ALLOWED_ORIGINS:-*}
       - Stripe__SecretKey=${STRIPE_SECRET_KEY:-}

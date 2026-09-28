@@ -48,7 +48,7 @@ public sealed class MqttDeviceTransport(Microsoft.Extensions.Configuration.IConf
             Exception? failure = null;
             for (var attempt = 0; attempt < 3 && !client.IsConnected; attempt++)
             {
-                try { await client.ConnectAsync(new MQTTnet.MqttClientOptionsBuilder().WithTcpServer(host, port).WithClientId("iobuild-devices").WithCleanSession().Build(), cancellationToken); }
+                try { await client.ConnectAsync(ConnectionOptions(host, port), cancellationToken); }
                 catch (Exception exception) when (attempt < 2) { failure = exception; await Task.Delay(TimeSpan.FromMilliseconds(100 * (attempt + 1)), cancellationToken); }
             }
             if (!client.IsConnected)
@@ -71,6 +71,13 @@ public sealed class MqttDeviceTransport(Microsoft.Extensions.Configuration.IConf
             }
         }
         finally { connectionGate.Release(); }
+    }
+    private MQTTnet.MqttClientOptions ConnectionOptions(string host, int port)
+    {
+        var options = new MQTTnet.MqttClientOptionsBuilder().WithTcpServer(host, port).WithClientId("iobuild-devices").WithCleanSession();
+        var username = configuration["Mqtt:Username"];
+        if (!string.IsNullOrEmpty(username)) options.WithCredentials(username, configuration["Mqtt:Password"]);
+        return options.Build();
     }
     public async Task StopAsync(CancellationToken cancellationToken) { stopping = true; if (client.IsConnected) await client.DisconnectAsync(new MQTTnet.MqttClientDisconnectOptions(), cancellationToken); }
     public async Task PublishAsync(string topic, string payload, bool qos1, bool retain, CancellationToken cancellationToken = default)

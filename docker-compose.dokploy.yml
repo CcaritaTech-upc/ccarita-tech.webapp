@@ -7,7 +7,8 @@
 # the frontend image still uses its own nginx to serve static files.
 # Keep the same Dokploy project name to reuse the existing MySQL volume.
 # Set INFLUXDB_ADMIN_PASSWORD and INFLUXDB_ADMIN_TOKEN in Dokploy before deploy.
-# InfluxDB is started by default but the API is not configured to use it yet.
+# Set MQTT_PASSWORD (and optionally MQTT_USERNAME, default iobuild) in Dokploy: the broker
+# rejects anonymous clients and the API and simulator connect with these credentials.
 
 services:
   iobuild-api:
@@ -25,6 +26,12 @@ services:
       - Mqtt__Enabled=true
       - Mqtt__Host=mosquitto
       - Mqtt__Port=1883
+      - Mqtt__Username=${MQTT_USERNAME:-iobuild}
+      - Mqtt__Password=${MQTT_PASSWORD:?Set MQTT_PASSWORD in Dokploy}
+      - Influx__Url=http://influxdb:8086
+      - Influx__Org=iobuild
+      - Influx__Bucket=iobuild-telemetry
+      - Influx__Token=${INFLUXDB_ADMIN_TOKEN:?Set INFLUXDB_ADMIN_TOKEN in Dokploy}
       - Jwt__Secret=${JWT_SECRET:-iobuild-production-secret-must-be-replaced-in-prod-32chars!}
       - Cors__AllowedOrigins=${CORS_ALLOWED_ORIGINS:-*}
       - Stripe__SecretKey=${STRIPE_SECRET_KEY:-}
@@ -125,8 +132,16 @@ services:
     # only handles HTTP and cannot replace this TCP port mapping.
     ports:
       - "1883:1883"
+    environment:
+      - MQTT_USERNAME=${MQTT_USERNAME:-iobuild}
+      - MQTT_PASSWORD=${MQTT_PASSWORD:?Set MQTT_PASSWORD in Dokploy}
+    # Build the password file from the environment so no secret lives in the repo.
+    command: >
+      sh -c 'mosquitto_passwd -b -c /mosquitto/config/passwd "$$MQTT_USERNAME" "$$MQTT_PASSWORD"
+      && chown mosquitto:mosquitto /mosquitto/config/passwd
+      && exec mosquitto -c /mosquitto/config/mosquitto.conf'
     volumes:
-      - ./mosquitto/config/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - ./mosquitto/config/mosquitto.auth.conf:/mosquitto/config/mosquitto.conf:ro
       - mosquitto_data:/mosquitto/data
     networks:
       - iobuild-network
@@ -140,6 +155,8 @@ services:
     environment:
       - MQTT_HOST=mosquitto
       - MQTT_PORT=1883
+      - MQTT_USERNAME=${MQTT_USERNAME:-iobuild}
+      - MQTT_PASSWORD=${MQTT_PASSWORD:?Set MQTT_PASSWORD in Dokploy}
     depends_on:
       - mosquitto
     networks:

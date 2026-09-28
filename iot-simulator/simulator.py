@@ -16,6 +16,7 @@ Registry contract:
 Environment variables:
   MQTT_HOST  - MQTT broker host (default: localhost)
   MQTT_PORT  - MQTT broker port (default: 1883)
+  MQTT_USERNAME / MQTT_PASSWORD - broker credentials (optional; anonymous when unset)
 """
 
 import os
@@ -29,6 +30,8 @@ import paho.mqtt.client as mqtt
 
 MQTT_HOST = os.getenv("MQTT_HOST", "localhost")
 MQTT_PORT = int(os.getenv("MQTT_PORT", "1883"))
+MQTT_USERNAME = os.getenv("MQTT_USERNAME")
+MQTT_PASSWORD = os.getenv("MQTT_PASSWORD")
 
 LOCATIONS = ["Sector-A", "Sector-B", "Sector-C", "Sector-D", "Sector-E"]
 STATUS_WEIGHTS = ["online"] * 3 + ["idle"]  # 75% online, 25% idle
@@ -194,6 +197,8 @@ def main():
     client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
     client.on_connect = on_connect
     client.on_message = on_message
+    if MQTT_USERNAME:
+        client.username_pw_set(MQTT_USERNAME, MQTT_PASSWORD)
 
     try:
         client.connect(MQTT_HOST, MQTT_PORT, keepalive=60)
