@@ -90,4 +90,21 @@ test('DEVICES Owner happy path: provision, register, command, reflected status',
   })).json();
   expect(status.deviceId).toBe(device.id);
   expect(JSON.stringify(status.desired)).toContain('80');
+
+  // Power OFF locks every other control, including its Send button; power stays usable.
+  const powerRow = page.locator('.control-row', { has: page.locator('.control-label', { hasText: /^power$/ }) });
+  const brightnessRow = page.locator('.control-row', { has: page.locator('.control-label', { hasText: /^brightness$/ }) });
+  await powerRow.locator('.control-select').click();
+  await page.getByRole('option', { name: 'Off' }).click();
+  await powerRow.locator('.send-btn').click();
+  await expect(brightnessRow.locator('input.native-slider')).toBeDisabled({ timeout: 20_000 });
+  await expect(brightnessRow.locator('.send-btn')).toBeDisabled();
+  await expect(powerRow.locator('.send-btn')).toBeEnabled();
+
+  // Power ON unlocks them again.
+  await powerRow.locator('.control-select').click();
+  await page.getByRole('option', { name: 'On' }).click();
+  await powerRow.locator('.send-btn').click();
+  await expect(brightnessRow.locator('input.native-slider')).toBeEnabled({ timeout: 20_000 });
+  await expect(brightnessRow.locator('.send-btn')).toBeEnabled();
 });

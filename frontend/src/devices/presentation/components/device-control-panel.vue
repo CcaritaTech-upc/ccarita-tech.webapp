@@ -4,6 +4,7 @@ import { useCommandStore } from '../../application/command.store.js';
 import { useAnalyticsStore } from '../../../analytics/application/analytics.store.js';
 import { useDeviceStore } from '../../application/device.store.js';
 import { DeviceApi } from '../../infrastructure/device-api.js';
+import { parsePower, isControlLocked } from '../../application/control-state.js';
 import { useToast } from 'primevue/usetoast';
 import { TOAST_SUCCESS_DURATION_MS, TOAST_AUTH_ERROR_DURATION_MS } from '../../../shared/infrastructure/constants.js';
 
@@ -52,6 +53,13 @@ function kind(attr) {
 const localValues = ref({});
 // Desired state fetched from the device shadow (null until loaded)
 const shadowDesired = ref(null);
+// Committed power state (true/false, null = unknown). Follows the shadow and
+// successful power commands, not the unsent dropdown selection.
+const committedPower = ref(null);
+
+function locked(attr) {
+  return isControlLocked(attr.name, committedPower.value);
+}
 
 function initFromAttrs(attrs, desired) {
   const init = {};
@@ -98,6 +106,7 @@ onMounted(async () => {
     const status = await deviceApi.getDeviceStatus(id);
     if (status?.desired && Object.keys(status.desired).length) {
       shadowDesired.value = status.desired;
+      committedPower.value = parsePower(status.desired.power);
       initFromAttrs(props.controllableAttributes, status.desired);
     }
   } catch {
@@ -117,6 +126,7 @@ function enumOptions(attr) {
 }
 
 async function onSend(attr) {
+  if (locked(attr)) return;
   const value = localValues.value[attr.name];
   const result = await commandStore.sendCommand(deviceId.value, attr.name, value);
 
@@ -129,7 +139,8 @@ async function onSend(attr) {
     });
 
     if (attr.name === 'power') {
-      const isPowerOn = value === true || String(value).toLowerCase() === 'true' || String(value).toLowerCase() === 'on';
+      const isPowerOn = parsePower(value) === true;
+      committedPower.value = isPowerOn;
       const newStatus = isPowerOn ? 'online' : 'idle';
 
       // 1. Mutación directa e inmediata del objeto de la fila en la tabla
@@ -173,6 +184,9 @@ async function onSend(attr) {
     setTimeout(async () => {
       try {
         const fresh = await deviceApi.getDeviceStatus(deviceId.value);
+        if (fresh?.desired && 'power' in fresh.desired) {
+          committedPower.value = parsePower(fresh.desired.power);
+        }
         if (fresh?.status) {
           if (props.device) {
             props.device.status = fresh.status;
@@ -210,6 +224,7 @@ async function onSend(attr) {
       v-for="attr in controllableAttributes"
       :key="attr.name"
       class="control-row"
+      :class="{ 'control-row--locked': locked(attr) }"
     >
       <div class="control-meta">
         <span class="control-label">{{ attr.name }}</span>
@@ -225,6 +240,7 @@ async function onSend(attr) {
             :max="attr.max"
             :step="1"
             v-model.number="localValues[attr.name]"
+            :disabled="locked(attr)"
             class="native-slider"
           />
           <span class="slider-value">{{ localValues[attr.name] }}</span>
@@ -238,6 +254,7 @@ async function onSend(attr) {
           :options="enumOptions(attr)"
           option-label="label"
           option-value="value"
+          :disabled="locked(attr)"
           class="control-select"
         />
       </template>
@@ -247,6 +264,7 @@ async function onSend(attr) {
         icon="pi pi-send"
         size="small"
         :loading="commandStore.sending"
+        :disabled="locked(attr)"
         @click="onSend(attr)"
         class="send-btn"
       />
@@ -268,6 +286,14 @@ async function onSend(attr) {
   gap: 1rem;
   flex-wrap: wrap;
   padding: 0.25rem 0;
+}
+
+.control-row--locked {
+  opacity: 0.5;
+}
+
+.control-row--locked .native-slider {
+  cursor: not-allowed;
 }
 
 .control-meta {
