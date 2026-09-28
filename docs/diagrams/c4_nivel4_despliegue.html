@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Nivel 4: Diagrama de Despliegue en Producción - IoBuild Platform</title>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <script>
+        mermaid.initialize({
+            startOnLoad: true,
+            theme: 'default',
+            securityLevel: 'loose',
+            flowchart: {
+                useMaxWidth: false,
+                htmlLabels: true
+            }
+        });
+    </script>
+    <style>
+        body {
+            margin: 0;
+            padding: 30px;
+            background: #ffffff;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        h2 {
+            color: #1c3d5a;
+            margin-bottom: 20px;
+        }
+        .mermaid {
+            width: 100%;
+            display: flex;
+            justify-content: center;
+        }
+    </style>
+</head>
+<body>
+    <h2>Nivel 4: Diagrama de Despliegue en Producción - IoBuild Platform</h2>
+    <div class="mermaid">
+graph TB
+  linkStyle default fill:#ffffff
+
+  subgraph diagram ["Deployment View: IoBuild Platform - Production"]
+    style diagram fill:#ffffff,stroke:#ffffff
+
+    subgraph 63 ["Dispositivos de Usuario Final"]
+      style 63 fill:#ffffff,stroke:#444444,color:#444444
+
+      subgraph 64 ["PC / Laptop de Administrador"]
+        style 64 fill:#ffffff,stroke:#444444,color:#444444
+
+        65["<div style='font-weight: bold'>Web SPA Portal</div><div style='font-size: 70%; margin-top: 0px'>[Container: Vue 3, Vite, PrimeVue]</div><div style='font-size: 80%; margin-top:10px'>Portal web responsivo donde<br />administradores gestionan el<br />catastro y copropietarios<br />pagan cuotas.</div>"]
+        style 65 fill:#2a72c9,stroke:#1d4f8c,color:#ffffff
+      end
+
+      subgraph 66 ["Smartphone de Residente"]
+        style 66 fill:#ffffff,stroke:#444444,color:#444444
+
+        67["<div style='font-weight: bold'>Mobile App</div><div style='font-size: 70%; margin-top: 0px'>[Container: Android, Kotlin]</div><div style='font-size: 80%; margin-top:10px'>App móvil nativa para que<br />residentes consulten consumos<br />en vivo y chateen con el<br />copiloto IA.</div>"]
+        style 67 fill:#2a72c9,stroke:#1d4f8c,color:#ffffff
+      end
+
+    end
+
+    subgraph 68 ["Servidor de Producción VPS"]
+      style 68 fill:#ffffff,stroke:#444444,color:#444444
+
+      subgraph 69 ["Docker Host Environment"]
+        style 69 fill:#ffffff,stroke:#444444,color:#444444
+
+        70["<div style='font-weight: bold'>Nginx (Reverse Proxy)</div><div style='font-size: 70%; margin-top: 0px'>[Container: Nginx / Alpine]</div><div style='font-size: 80%; margin-top:10px'>Expuesto en puerto 8081/80:<br />entrega estáticos de la SPA y<br />redirige peticiones /api al<br />backend.</div>"]
+        style 70 fill:#2a72c9,stroke:#1d4f8c,color:#ffffff
+        74["<div style='font-weight: bold'>Landing Page</div><div style='font-size: 70%; margin-top: 0px'>[Container: HTML / CSS / JS]</div><div style='font-size: 80%; margin-top:10px'>Sitio web público de<br />marketing y captación<br />comercial para empresas<br />administradoras.</div>"]
+        style 74 fill:#2a72c9,stroke:#1d4f8c,color:#ffffff
+        76["<div style='font-weight: bold'>API Monolito (IoBuild.Api)</div><div style='font-size: 70%; margin-top: 0px'>[Container: ASP.NET Core 9, C#]</div><div style='font-size: 80%; margin-top:10px'>Backend monolítico modular<br />que aloja IAM, Cadastre,<br />Subscriptions, Proration,<br />Telemetry y AiAssistant.</div>"]
+        style 76 fill:#2a72c9,stroke:#1d4f8c,color:#ffffff
+        78[("<div style='font-weight: bold'>MySQL Database</div><div style='font-size: 70%; margin-top: 0px'>[Container: MySQL 8.0]</div><div style='font-size: 80%; margin-top:10px'>Instancia centralizada con<br />volumen persistente para<br />todas las tablas relacionales<br />de IoBuild.</div>")]
+        style 78 fill:#1f618d,stroke:#154362,color:#ffffff
+        80["<div style='font-weight: bold'>Mosquitto (MQTT Broker)</div><div style='font-size: 70%; margin-top: 0px'>[Container: Eclipse Mosquitto]</div><div style='font-size: 80%; margin-top:10px'>Broker pub/sub para ingesta<br />asíncrona de telemetría y<br />eventos de consumo.</div>"]
+        style 80 fill:#1f618d,stroke:#154362,color:#ffffff
+      end
+
+    end
+
+    subgraph 82 ["Servicios Cloud Externos"]
+      style 82 fill:#ffffff,stroke:#444444,color:#444444
+
+      83("<div style='font-weight: bold'>Stripe Payments Platform</div><div style='font-size: 70%; margin-top: 0px'>[Software System]</div><div style='font-size: 80%; margin-top:10px'>Pasarela de pagos para planes<br />de suscripción B2B y<br />recaudación B2C con tarjeta.</div>")
+      style 83 fill:#8a9ba8,stroke:#606c75,color:#ffffff
+      86[("<div style='font-weight: bold'>Cloudinary CDN</div><div style='font-size: 70%; margin-top: 0px'>[Software System]</div><div style='font-size: 80%; margin-top:10px'>Custodia y optimización de<br />comprobantes bancarios<br />escaneados y fotos de<br />incidencias.</div>")]
+      style 86 fill:#7f8c8d,stroke:#586262,color:#ffffff
+      88("<div style='font-weight: bold'>Google Gemini / OpenAI API</div><div style='font-size: 70%; margin-top: 0px'>[Software System]</div><div style='font-size: 80%; margin-top:10px'>Modelos fundacionales LLM<br />para análisis RAG, soporte en<br />lenguaje natural y<br />mantenimiento predictivo.</div>")
+      style 88 fill:#8a9ba8,stroke:#606c75,color:#ffffff
+      90("<div style='font-weight: bold'>Servicio de Notificaciones</div><div style='font-size: 70%; margin-top: 0px'>[Software System]</div><div style='font-size: 80%; margin-top:10px'>Firebase FCM y correo<br />transaccional para alertas<br />críticas de cobro y avisos de<br />asambleas.</div>")
+      style 90 fill:#8a9ba8,stroke:#606c75,color:#ffffff
+    end
+
+    70-. "<div>Sirve archivos estáticos SPA</div><div style='font-size: 70%'>[HTTP]</div>" .->65
+    65-. "<div>Peticiones /api</div><div style='font-size: 70%'>[HTTPS]</div>" .->70
+    67-. "<div>Peticiones /api</div><div style='font-size: 70%'>[HTTPS]</div>" .->70
+    74-. "<div>Redirige a portal</div><div style='font-size: 70%'>[HTTPS]</div>" .->65
+    70-. "<div>Proxy inverso a :8080</div><div style='font-size: 70%'>[HTTP]</div>" .->76
+    76-. "<div>Lectura y persistencia<br />relacional</div><div style='font-size: 70%'>[MySQL :3306]</div>" .->78
+    76-. "<div>Suscripción a telemetría y<br />eventos</div><div style='font-size: 70%'>[MQTT :1883]</div>" .->80
+    65-. "<div>Redirige a checkout</div><div style='font-size: 70%'>[HTTPS / Stripe.js]</div>" .->83
+    76-. "<div>Crea sesiones checkout y<br />recibe webhooks</div><div style='font-size: 70%'>[HTTPS / REST]</div>" .->83
+    76-. "<div>Guarda fotos de perfil y<br />comprobantes</div><div style='font-size: 70%'>[HTTPS / REST]</div>" .->86
+    76-. "<div>Inferencia LLM y RAG</div><div style='font-size: 70%'>[HTTPS / REST]</div>" .->88
+    76-. "<div>Despacha notificaciones<br />móviles y correos</div><div style='font-size: 70%'>[HTTPS / REST]</div>" .->90
+
+  end
+    </div>
+</body>
+</html>

@@ -1,0 +1,54 @@
+@startuml
+title <size:24>Deployment View: Production Environment</size>\n<size:18>Nivel 4: Diagrama de Despliegue en Producción</size>
+
+set separator none
+top to bottom direction
+
+<style>
+  root {
+    BackgroundColor: #ffffff
+    FontColor: #444444
+  }
+</style>
+
+!include <C4/C4>
+!include <C4/C4_Deployment>
+
+Deployment_Node(clientNode, "Dispositivos de Usuario Final", "Equipos de usuarios administradores y copropietarios") {
+    Deployment_Node(browserNode, "PC / Laptop de Administrador", "Windows / macOS") {
+        Container(webApp, "Web SPA Portal", "Vue 3, Vite, PrimeVue", "Portal web para configuración catastral y liquidaciones")
+    }
+    Deployment_Node(phoneNode, "Smartphone de Residente", "Android 12+") {
+        Container(mobileApp, "Mobile App", "Android, Kotlin", "App móvil nativa para consulta de consumos y copropietarios")
+    }
+}
+
+Deployment_Node(vpsNode, "Servidor de Producción VPS", "Ubuntu Linux 24.04 LTS (Dokploy / Docker Host)") {
+    Deployment_Node(dockerHost, "Docker Host Environment", "Docker Engine / Red aislada iobuild-network") {
+        Container(nginx, "Nginx (Reverse Proxy)", "Nginx Alpine :8081/:80", "Entrega estáticos SPA y enruta tráfico API")
+        Container(landing, "Landing Page", "HTML/CSS/JS", "Sitio web comercial")
+        Container(api, "API Monolito (IoBuild.Api)", "ASP.NET Core 9 / .NET Runtime :8080", "Backend monolítico modular")
+        ContainerDb(db, "MySQL Database", "MySQL 8.0 :3306", "Base de datos relacional con volumen persistente")
+        ContainerQueue(broker, "Mosquitto (MQTT Broker)", "Eclipse Mosquitto :1883", "Broker pub/sub para ingesta asíncrona")
+    }
+}
+
+Deployment_Node(cloudServices, "Servicios Cloud Externos", "Infraestructura SaaS gestionada") {
+    System_Ext(stripe, "Stripe Payments Platform", "Procesamiento de pagos con tarjeta y webhooks")
+    SystemDb_Ext(cloudinary, "Cloudinary CDN", "Custodia multimedia de comprobantes y fotos")
+    System_Ext(gemini, "Google Gemini / OpenAI API", "Inferencia de modelos de lenguaje LLM")
+}
+
+Rel(webApp, nginx, "Peticiones HTTPS :8081", "HTTPS")
+Rel(mobileApp, nginx, "Peticiones HTTPS :8081", "HTTPS")
+Rel(nginx, webApp, "Sirve bundle SPA estático", "HTTP")
+Rel(nginx, api, "Enruta llamadas /api a :8080", "HTTP")
+Rel(api, db, "Lectura/escritura relacional", "TCP :3306")
+Rel(api, broker, "Suscripción y eventos", "TCP :1883")
+Rel(api, stripe, "Sesiones checkout y webhooks", "HTTPS")
+Rel(api, cloudinary, "Almacenamiento de archivos", "HTTPS")
+Rel(api, gemini, "Consultas RAG", "HTTPS")
+
+SHOW_LEGEND(true)
+hide stereotypes
+@enduml

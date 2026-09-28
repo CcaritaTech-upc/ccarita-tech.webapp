@@ -1,5 +1,5 @@
 @startuml
-title <size:24>System Context View: IoBuild Platform</size>\n<size:24>Nivel 1: Contexto del Sistema</size>
+title <size:24>System Context View: IoBuild Platform</size>\n<size:18>Nivel 1: Contexto del Sistema IoBuild Platform</size>
 
 set separator none
 left to right direction
@@ -14,24 +14,23 @@ left to right direction
 !include <C4/C4>
 !include <C4/C4_Context>
 
-Person(ConstructorInmobiliaria, "Constructor / Inmobiliaria", $descr="Crea proyectos inmobiliarios, define pisos/unidades, gestiona suscripciones de planes y analiza metricas.", $tags="", $link="")
-System(Stripe, "Stripe", $descr="Pasarela de pagos para checkout y suscripciones recurrentes.", $tags="", $link="")
-System(Cloudinary, "Cloudinary", $descr="Servicio cloud para subida, optimizacion y entrega de fotos de proyectos y perfiles.", $tags="", $link="")
-Person(PropietarioResidente, "Propietario / Residente", $descr="Monitorea su unidad habitacional, registra dispositivos IoT y envia ordenes de control remoto.", $tags="", $link="")
-System(DispositivosIoTySensores, "Dispositivos IoT y Sensores", $descr="Sensores de energia/temperatura y actuadores en departamentos (HVAC, luces).", $tags="", $link="")
-System(InfluxDBTimeSeriesDB, "InfluxDB (Time-Series DB)", $descr="Base de datos especializada para telemetria de dispositivos IoT de alta frecuencia.", $tags="", $link="")
-System(JaegerOpenTelemetry, "Jaeger / OpenTelemetry", $descr="Plataforma de observabilidad y trazado distribuido del sistema.", $tags="", $link="")
-System(IoBuildPlatform, "IoBuild Platform", $descr="Plataforma centralizada de gestion de edificaciones inteligentes, automatizacion domotica y control energetico.", $tags="", $link="")
+SHOW_PERSON_OUTLINE()
 
-Rel(ConstructorInmobiliaria, IoBuildPlatform, "Visita para conocer", $techn="HTTPS", $tags="", $link="")
-Rel(PropietarioResidente, IoBuildPlatform, "Usa plataforma", $techn="HTTPS", $tags="", $link="")
-Rel(IoBuildPlatform, Stripe, "Redirige a checkout", $techn="HTTPS / Stripe.js", $tags="", $link="")
-Rel(Stripe, IoBuildPlatform, "Webhooks de cobro", $techn="HTTPS", $tags="", $link="")
-Rel(IoBuildPlatform, Cloudinary, "Sube/descarga fotos", $techn="HTTPS", $tags="", $link="")
-Rel(IoBuildPlatform, InfluxDBTimeSeriesDB, "Ingesta telemetria", $techn="HTTP :8086", $tags="", $link="")
-Rel(IoBuildPlatform, JaegerOpenTelemetry, "Envia trazas OTLP", $techn="gRPC :4317", $tags="", $link="")
-Rel(DispositivosIoTySensores, IoBuildPlatform, "Publica lecturas sensor", $techn="MQTT :1883", $tags="", $link="")
-Rel(IoBuildPlatform, DispositivosIoTySensores, "Recibe comandos actuador", $techn="MQTT :1883", $tags="", $link="")
+Person(AdministradordeCondominios, "Administrador de Condominios", $descr="Segmento Objetivo B2B: Property Manager que configura catastro, valida alícuotas, aprueba liquidaciones y supervisa cobros.")
+Person(PropietarioResidente, "Propietario / Residente", $descr="Segmento Objetivo B2C: Copropietario que visualiza consumos en tiempo real, abona cuotas con tarjeta y consulta al asistente IA.")
+
+System(IoBuildPlatform, "IoBuild Platform", $descr="Plataforma central SaaS/HaaS para gestión de condominios: cálculo de alícuotas, liquidación matemática de gastos comunes, pasarela de cobros y copiloto cognitivo RAG.")
+
+System_Ext(StripePaymentsPlatform, "Stripe Payments Platform", $descr="Pasarela de pagos para planes de suscripción B2B y recaudación B2C con tarjeta.")
+SystemDb_Ext(CloudinaryCDN, "Cloudinary CDN", $descr="Custodia y optimización de comprobantes bancarios escaneados y fotos de incidencias.")
+System_Ext(GoogleGeminiOpenAIAPI, "Google Gemini / OpenAI API", $descr="Modelos fundacionales LLM para análisis RAG, soporte en lenguaje natural y explicabilidad matemática.")
+
+Rel(AdministradordeCondominios, IoBuildPlatform, "Gestiona catastro y liquidaciones", $techn="HTTPS / Web Portal")
+Rel(PropietarioResidente, IoBuildPlatform, "Visualiza consumos y paga cuotas", $techn="HTTPS / Mobile App y Web")
+
+Rel(IoBuildPlatform, StripePaymentsPlatform, "Procesa cargos de suscripción y recibos", $techn="REST / HTTPS")
+Rel(IoBuildPlatform, CloudinaryCDN, "Almacena y optimiza vouchers y fotos", $techn="REST / HTTPS")
+Rel(IoBuildPlatform, GoogleGeminiOpenAIAPI, "Inyecta contexto RAG y recibe inferencias", $techn="REST / HTTPS")
 
 SHOW_LEGEND(true)
 hide stereotypes

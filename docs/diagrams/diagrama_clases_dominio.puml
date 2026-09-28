@@ -1,0 +1,222 @@
+@startuml
+title <size:24>Diagrama de Clases del Modelo de Dominio - IoBuild Platform</size>\n<size:16>Diseño Táctico Domain-Driven Design (DDD) con Bounded Contexts</size>
+
+skinparam class {
+    BackgroundColor #FFFFFF
+    ArrowColor #1c3d5a
+    BorderColor #1c3d5a
+    FontName Arial
+    FontSize 12
+}
+skinparam stereotypeCBackgroundColor #2A72C9
+skinparam stereotypeEBackgroundColor #27ae60
+skinparam packageBackgroundColor #F8FAFC
+skinparam packageBorderColor #94A3B8
+
+package "IAM Bounded Context" {
+    class IamUser <<AggregateRoot>> {
+        + int Id
+        + string Email
+        + string PasswordHash
+        + string Role
+    }
+
+    class RevokedToken <<Entity>> {
+        + string TokenHash
+        + DateTimeOffset RevokedAt
+    }
+
+    IamUser ..> RevokedToken : "valida tokens"
+}
+
+package "Profiles Bounded Context" {
+    class Profile <<AggregateRoot>> {
+        + int Id
+        + int UserId
+        + string Name
+        + string Username
+        + string? PhoneNumber
+        + string? Address
+        + string? SecondEmail
+        + int? Age
+        + string? PhotoReference
+        + string? CloudinaryReference
+        + string? PhotoUrl
+    }
+}
+
+package "Publishing & Cadastre Bounded Context" {
+    class Project <<AggregateRoot>> {
+        + int Id
+        + string Name
+        + string Description
+        + string Location
+        + int TotalUnits
+        + int BuilderId
+        + string? ImageUrl
+        + bool StructureDefined
+        + DateTimeOffset CreatedAt
+    }
+
+    class Unit <<Entity>> {
+        + int Id
+        + int ProjectId
+        + string UnitNumber
+        + int Floor
+        + string RoomNumber
+        + string? OwnerEmail
+        + int? OwnerId
+        + string Status
+        + AssignOwner(email: string, ownerId: int?) : void
+    }
+
+    class Client <<AggregateRoot>> {
+        + int Id
+        + string FullName
+        + string ProjectName
+        + string AccountStatement
+        + int BuilderId
+        + int ProjectId
+        + string Email
+        + string PhoneNumber
+        + string Address
+        + int? UnitId
+        + string? UnitNumber
+        + Update(...) : void
+    }
+
+    enum EAccountStatement <<Enumeration>> {
+        Pending
+        Paid
+        Overdue
+    }
+
+    Project "1" *-- "0..*" Unit : "contiene unidades"
+    Project "1" o-- "0..*" Client : "registra padrón"
+    Unit "0..1" o-- "0..1" Client : "asignado a"
+    Client ..> EAccountStatement : "estado de cuenta"
+}
+
+package "Subscriptions Bounded Context" {
+    class Plan <<AggregateRoot>> {
+        + int Id
+        + string Name
+        + string Description
+        + decimal Price
+        + string Interval
+        + string FeaturesJson
+        + Update(...) : void
+    }
+
+    class Subscription <<AggregateRoot>> {
+        + int Id
+        + int BuilderId
+        + int PlanId
+        + string Status
+        + DateTimeOffset StartDate
+        + DateTimeOffset? EndDate
+    }
+
+    class SubscriptionWebhook <<Entity>> {
+        + string EventId
+        + string EventType
+        + DateTimeOffset ProcessedAt
+    }
+
+    Plan "1" <-- "0..*" Subscription : "asocia plan"
+    Subscription ..> SubscriptionWebhook : "concilia eventos"
+}
+
+package "Devices & Telemetry Bounded Context" {
+    class Device <<AggregateRoot>> {
+        + int Id
+        + string Name
+        + string Type
+        + string Location
+        + string? MacAddress
+        + int ProjectId
+        + int? UnitId
+        + int OwnerId
+        + string? Source
+        + string Status
+    }
+
+    class DeviceShadow <<Entity>> {
+        + int DeviceId
+        + string DesiredJson
+        + string ReportedJson
+        + long Version
+        + DateTimeOffset UpdatedAt
+    }
+
+    class DeviceCommand <<Entity>> {
+        + long Id
+        + string CommandId
+        + int DeviceId
+        + string DesiredJson
+        + DateTimeOffset IssuedAt
+        + DateTimeOffset? AcknowledgedAt
+    }
+
+    class DeviceTelemetry <<Entity>> {
+        + long Id
+        + string EventId
+        + int DeviceId
+        + DateTimeOffset OccurredAt
+        + string Status
+        + string ReportedJson
+    }
+
+    Device "1" *-- "1" DeviceShadow : "mantiene estado"
+    Device "1" *-- "0..*" DeviceCommand : "recibe comandos"
+    Device "1" *-- "0..*" DeviceTelemetry : "emite lecturas"
+}
+
+package "Shared Kernel & Persistence Layer" {
+    class IoBuildDbContext <<UnitOfWork>> {
+        + DbSet<IamUser> IamUsers
+        + DbSet<Profile> Profiles
+        + DbSet<Project> Projects
+        + DbSet<Unit> Units
+        + DbSet<Client> Clients
+        + DbSet<Plan> Plans
+        + DbSet<Subscription> Subscriptions
+        + DbSet<Device> Devices
+        + DbSet<DeviceShadow> DeviceShadows
+        + DbSet<DeviceTelemetry> DeviceTelemetry
+        + SaveChangesAsync(...) : Task<int>
+    }
+
+    class IntegrationDispatch <<AggregateRoot>> {
+        + long Id
+        + string OwnerModule
+        + string Channel
+        + string OrderingKey
+        + long Sequence
+        + string Payload
+        + string IdempotencyKey
+        + DispatchStatus Status
+        + int Attempts
+        + DateTimeOffset NextAttemptAt
+    }
+
+    enum DispatchStatus <<Enumeration>> {
+        Pending
+        InProgress
+        Completed
+        DeadLetter
+    }
+
+    IntegrationDispatch ..> DispatchStatus : "estado outbox"
+    IoBuildDbContext ..> IntegrationDispatch : "orquesta transacciones"
+}
+
+' Relaciones entre Bounded Contexts por Identificador (ID)
+IamUser "1" ..> "0..1" Profile : "UserId (1 a 1)"
+IamUser "1" ..> "0..*" Project : "BuilderId (Administrador)"
+IamUser "1" ..> "0..*" Subscription : "BuilderId (Membresía)"
+Project "1" ..> "0..*" Device : "ProjectId"
+Unit "0..1" ..> "0..*" Device : "UnitId (Submedidor)"
+IamUser "1" ..> "0..*" Unit : "OwnerId (Propietario)"
+
+@enduml
