@@ -32,6 +32,8 @@
       "description-placeholder": "Ingrese una breve descripción del proyecto",
       "location": "Ubicación",
       "location-placeholder": "Ingrese la ubicación del proyecto",
+      "floors": "Pisos",
+      "units-per-floor": "Unidades por piso",
       "total-units": "Unidades Totales",
       "occupied-units": "Units Ocupadas",
       "occupancy-rate": "Tasa de Ocupación",
@@ -66,6 +68,31 @@
       "progress-display": "{progress}% Completado",
       "last-update-display": "Última Actualización: {date}",
       "in-progress-display": "En Progreso ({progress}%)"
+    },
+    "structure": {
+      "configure-each-floor": "Configurar cada piso",
+      "floor": "Piso {number}",
+      "unit-single": "unidad",
+      "unit-plural": "unidades",
+      "floor-iot-devices": "Dispositivos IoT por piso",
+      "default-devices-placeholder": "Dispositivos por defecto (3)",
+      "units": "Unidades",
+      "unit": "Unidad {number}",
+      "unit-devices-placeholder": "Dispositivos unidad (opcional)",
+      "floors-hint": "Mínimo 1, máximo {max} pisos",
+      "units-hint": "Mínimo 1, máximo {max} por piso",
+      "summary-prefix": "Esto creará",
+      "units-label": "departamento(s)",
+      "summary-detail": "{floors} piso(s) × {units} departamento(s) por piso.",
+      "max-units-exceeded": "Supera el límite máximo permitido de {max} departamentos por proyecto.",
+      "dialog-title": "Configurar Estructura del Proyecto"
+    },
+    "deviceCatalog": {
+      "SmartMeter": "Medidor Inteligente",
+      "WaterSensor": "Sensor de Agua",
+      "SmokeDetector": "Detector de Humo",
+      "AirConditioner": "Aire Acondicionado",
+      "SmartLight": "Luz Inteligente"
     }
   },
 

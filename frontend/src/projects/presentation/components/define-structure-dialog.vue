@@ -5,7 +5,6 @@ import { useToast } from 'primevue/usetoast';
 import useProjectStore from '../../application/project.store.js';
 import { useDeviceStore } from '../../../devices/application/device.store.js';
 import { TOAST_INVOICE_ERROR_DURATION_MS, TOAST_AUTH_ERROR_DURATION_MS } from '../../../shared/infrastructure/constants.js';
-import { isValidEmail } from '../../../shared/presentation/validators.js';
 
 const props = defineProps({
     visible: {
@@ -23,11 +22,32 @@ const emit = defineEmits(['update:visible', 'structure-defined']);
 const store = useProjectStore();
 const deviceStore = useDeviceStore();
 const toast = useToast();
-const { t } = useI18n();
+const { t, te } = useI18n();
 
 const localVisible = ref(props.visible);
 const floors = ref(1);
 const unitsPerFloor = ref(1);
+
+const MAX_FLOORS = 50;
+const MAX_UNITS_PER_FLOOR = 20;
+const MAX_TOTAL_UNITS = 500;
+
+const totalUnits = computed(() => (Number(floors.value) || 0) * (Number(unitsPerFloor.value) || 0));
+const isTotalUnitsExceeded = computed(() => totalUnits.value > MAX_TOTAL_UNITS);
+const isInvalidStructure = computed(() => {
+    const f = Number(floors.value);
+    const u = Number(unitsPerFloor.value);
+    return (
+        !f ||
+        f < 1 ||
+        f > MAX_FLOORS ||
+        !u ||
+        u < 1 ||
+        u > MAX_UNITS_PER_FLOOR ||
+        isTotalUnitsExceeded.value
+    );
+});
+
 // UI-only presentation state: which floor accordion panels are open.
 const expandedFloors = ref(new Set([1]));
 const submitting = ref(false);
@@ -44,7 +64,6 @@ watch(() => props.visible, (val) => {
         floors.value = 1;
         unitsPerFloor.value = 1;
         expandedFloors.value = new Set([1]);
-        ownerEmails.value = {};
         deviceTypesByFloor.value = {};
         unitDevicePackages.value = {};
         deviceStore.loadDeviceTypes();
@@ -55,25 +74,109 @@ watch(localVisible, (val) => {
     emit('update:visible', val);
 });
 
-// ownerEmails keyed by "floor-roomNumber" e.g. "1-01"
-const ownerEmails = ref({});
+function getDeviceName(device) {
+    if (!device) return '';
+    const key = `projects.deviceCatalog.${device.code}`;
+    return te(key) ? t(key) : device.displayName;
+}
 
 // Catalog types scoped to floors: scope "floor" or "both" (hides unit-only types).
 const floorDeviceTypes = computed(() =>
-    deviceStore.deviceTypes.filter(t => t.scope === 'floor' || t.scope === 'both')
+    deviceStore.deviceTypes
+        .filter(d => d.scope === 'floor' || d.scope === 'both')
+        .map(d => ({
+            ...d,
+            displayName: getDeviceName(d)
+        }))
 );
 
 // Catalog types scoped to units: scope "unit" or "both" (hides floor-only types).
 const unitDeviceTypes = computed(() =>
-    deviceStore.deviceTypes.filter(t => t.scope === 'unit' || t.scope === 'both')
+    deviceStore.deviceTypes
+        .filter(d => d.scope === 'unit' || d.scope === 'both')
+        .map(d => ({
+            ...d,
+            displayName: getDeviceName(d)
+        }))
 );
+
+// Stepper input helpers — prevent typing non-numeric characters and enforce maxlength/bounds in real-time
+function onNumericBeforeInput(event) {
+    if (event.data && !/^\d+$/.test(event.data)) {
+        event.preventDefault();
+    }
+}
+
+function onFloorsInput(event) {
+    let val = event.target.value.replace(/\D/g, '');
+    if (val.length > 2) {
+        val = val.slice(0, 2);
+    }
+    if (val === '') {
+        floors.value = '';
+        event.target.value = '';
+        return;
+    }
+    let num = parseInt(val, 10);
+    if (num > MAX_FLOORS) {
+        num = MAX_FLOORS;
+    }
+    floors.value = num;
+    event.target.value = String(num);
+}
+
+function onFloorsBlur(event) {
+    if (!floors.value || Number(floors.value) < 1) {
+        floors.value = 1;
+    }
+    event.target.value = String(floors.value);
+}
+
+function onUnitsInput(event) {
+    let val = event.target.value.replace(/\D/g, '');
+    if (val.length > 2) {
+        val = val.slice(0, 2);
+    }
+    if (val === '') {
+        unitsPerFloor.value = '';
+        event.target.value = '';
+        return;
+    }
+    let num = parseInt(val, 10);
+    if (num > MAX_UNITS_PER_FLOOR) {
+        num = MAX_UNITS_PER_FLOOR;
+    }
+    unitsPerFloor.value = num;
+    event.target.value = String(num);
+}
+
+function onUnitsBlur(event) {
+    if (!unitsPerFloor.value || Number(unitsPerFloor.value) < 1) {
+        unitsPerFloor.value = 1;
+    }
+    event.target.value = String(unitsPerFloor.value);
+}
+
+function changeFloors(delta) {
+    const current = Number(floors.value) || 1;
+    const next = Math.min(MAX_FLOORS, Math.max(1, current + delta));
+    floors.value = next;
+}
+
+function changeUnitsPerFloor(delta) {
+    const current = Number(unitsPerFloor.value) || 1;
+    const next = Math.min(MAX_UNITS_PER_FLOOR, Math.max(1, current + delta));
+    unitsPerFloor.value = next;
+}
 
 // Recompute grid whenever floors/unitsPerFloor change; clear stale keys
 const unitGrid = computed(() => {
+    const fCount = Number(floors.value) || 0;
+    const uCount = Number(unitsPerFloor.value) || 0;
     const grid = [];
-    for (let f = 1; f <= floors.value; f++) {
+    for (let f = 1; f <= fCount; f++) {
         const units = [];
-        for (let u = 1; u <= unitsPerFloor.value; u++) {
+        for (let u = 1; u <= uCount; u++) {
             const roomNumber = String(u).padStart(2, '0');
             units.push({ floor: f, roomNumber });
         }
@@ -83,31 +186,28 @@ const unitGrid = computed(() => {
 });
 
 watch([floors, unitsPerFloor], () => {
-    const next = {};
+    const fCount = Number(floors.value) || 0;
+    const uCount = Number(unitsPerFloor.value) || 0;
     const nextDeviceTypes = {};
     const nextUnitPackages = {};
-    for (let f = 1; f <= floors.value; f++) {
+    for (let f = 1; f <= fCount; f++) {
         // Preserve device-type selections for floors still in range
         if (deviceTypesByFloor.value[f] !== undefined) {
             nextDeviceTypes[f] = deviceTypesByFloor.value[f];
         }
-        for (let u = 1; u <= unitsPerFloor.value; u++) {
+        for (let u = 1; u <= uCount; u++) {
             const room = String(u).padStart(2, '0');
             const key = `${f}-${room}`;
-            if (ownerEmails.value[key] !== undefined) {
-                next[key] = ownerEmails.value[key];
-            }
             if (unitDevicePackages.value[key] !== undefined) {
                 nextUnitPackages[key] = unitDevicePackages.value[key];
             }
         }
     }
-    ownerEmails.value = next;
     deviceTypesByFloor.value = nextDeviceTypes;
     unitDevicePackages.value = nextUnitPackages;
 });
 
-function ownerKey(floor, roomNumber) {
+function unitKey(floor, roomNumber) {
     return `${floor}-${roomNumber}`;
 }
 
@@ -128,24 +228,14 @@ function floorDeviceCount(floor) {
 }
 
 function buildPayload() {
-    const ownerAssignments = [];
-    for (const [key, email] of Object.entries(ownerEmails.value)) {
-        if (email && email.trim()) {
-            const [floorStr, roomNumber] = key.split('-');
-            ownerAssignments.push({
-                floor: parseInt(floorStr),
-                roomNumber,
-                email: email.trim()
-            });
-        }
-    }
-
+    const fCount = Number(floors.value) || 1;
+    const uCount = Number(unitsPerFloor.value) || 1;
     // Only include floors where the builder explicitly selected device types.
     // Sending [] was interpreted by the backend as "use legacy defaults", which
     // created default devices on every floor even when the builder made no selection,
     // causing phantom device inflation (N floors × default count).
     const deviceTypesPerFloor = [];
-    for (let f = 1; f <= floors.value; f++) {
+    for (let f = 1; f <= fCount; f++) {
         const types = deviceTypesByFloor.value[f];
         if (types && types.length > 0) {
             deviceTypesPerFloor.push({ floor: f, deviceTypes: types });
@@ -166,39 +256,46 @@ function buildPayload() {
     }
 
     return {
-        floors: floors.value,
-        unitsPerFloor: unitsPerFloor.value,
-        ownerEmails: ownerAssignments,
+        floors: fCount,
+        unitsPerFloor: uCount,
+        ownerEmails: [],
         deviceTypesPerFloor,
         unitDevicePackages: unitPackages
     };
 }
 
 async function handleSubmit() {
-    if (floors.value < 1 || floors.value > 100 || unitsPerFloor.value < 1 || unitsPerFloor.value > 50) {
+    const fCount = Number(floors.value) || 0;
+    const uCount = Number(unitsPerFloor.value) || 0;
+
+    if (fCount < 1 || fCount > MAX_FLOORS) {
         toast.add({
             severity: 'warn',
-            summary: 'Error de validación',
-            detail: 'Los pisos deben estar entre 1 y 100, y las unidades por piso entre 1 y 50.',
+            summary: 'Límite de pisos excedido',
+            detail: `El número de pisos debe estar entre 1 y ${MAX_FLOORS}.`,
             life: TOAST_INVOICE_ERROR_DURATION_MS
         });
         return;
     }
 
-    // Validate owner emails if assigned
-    for (const [key, email] of Object.entries(ownerEmails.value)) {
-        if (email && email.trim()) {
-            if (!isValidEmail(email.trim())) {
-                const [f, r] = key.split('-');
-                toast.add({
-                    severity: 'warn',
-                    summary: 'Correo inválido',
-                    detail: `El correo "${email}" para el Piso ${f} - Unidad ${r} no tiene un formato válido.`,
-                    life: TOAST_AUTH_ERROR_DURATION_MS
-                });
-                return;
-            }
-        }
+    if (uCount < 1 || uCount > MAX_UNITS_PER_FLOOR) {
+        toast.add({
+            severity: 'warn',
+            summary: 'Límite de unidades excedido',
+            detail: `El número de unidades por piso debe estar entre 1 y ${MAX_UNITS_PER_FLOOR}.`,
+            life: TOAST_INVOICE_ERROR_DURATION_MS
+        });
+        return;
+    }
+
+    if (totalUnits.value > MAX_TOTAL_UNITS) {
+        toast.add({
+            severity: 'warn',
+            summary: 'Límite total excedido',
+            detail: `El total de departamentos no puede superar los ${MAX_TOTAL_UNITS} (actualmente: ${totalUnits.value}).`,
+            life: TOAST_INVOICE_ERROR_DURATION_MS
+        });
+        return;
     }
 
     submitting.value = true;
@@ -208,7 +305,7 @@ async function handleSubmit() {
         toast.add({
             severity: 'success',
             summary: 'Structure defined',
-            detail: `${floors.value} floor(s) × ${unitsPerFloor.value} unit(s) created successfully.`,
+            detail: `${fCount} floor(s) × ${uCount} unit(s) created successfully.`,
             life: TOAST_INVOICE_ERROR_DURATION_MS
         });
         localVisible.value = false;
@@ -233,7 +330,7 @@ async function handleSubmit() {
             toast.add({
                 severity: 'error',
                 summary: 'Validation error',
-                detail: 'Invalid structure data. Floors and units per floor must be ≥ 1.',
+                detail: error?.response?.data?.error || `Datos inválidos. Mínimo 1 y máximo ${MAX_FLOORS} pisos, ${MAX_UNITS_PER_FLOOR} unidades por piso (máx. ${MAX_TOTAL_UNITS} en total).`,
                 life: TOAST_AUTH_ERROR_DURATION_MS
             });
         } else {
@@ -258,7 +355,7 @@ function handleCancel() {
     <pv-dialog
         v-model:visible="localVisible"
         modal
-        :header="t('projects.actions.define-structure') || 'Configurar Estructura del Proyecto'"
+        :header="te('projects.structure.dialog-title') ? t('projects.structure.dialog-title') : (te('projects.actions.define-structure') ? t('projects.actions.define-structure') : 'Configurar Estructura del Proyecto')"
         :style="{ width: '880px', maxWidth: '96vw', maxHeight: '90vh' }"
         class="define-structure-dialog"
     >
@@ -268,47 +365,108 @@ function handleCancel() {
                 <div class="ds-field">
                     <label class="ds-label">
                         <i class="pi pi-building"></i>
-                        {{ t('projects.fields.floors') || 'Pisos' }}
+                        {{ te('projects.fields.floors') ? t('projects.fields.floors') : 'Pisos' }}
                     </label>
-                    <pv-input-number
-                        v-model="floors"
-                        :min="1"
-                        class="w-full"
-                        placeholder="1"
-                        showButtons
-                        :allowEmpty="false"
-                    />
+                    <div class="custom-stepper">
+                        <button
+                            type="button"
+                            class="custom-stepper__btn custom-stepper__btn--dec"
+                            :disabled="Number(floors) <= 1"
+                            @click="changeFloors(-1)"
+                            aria-label="Disminuir pisos"
+                        >
+                            <i class="pi pi-minus"></i>
+                        </button>
+                        <input
+                            type="text"
+                            inputmode="numeric"
+                            pattern="[0-9]*"
+                            maxlength="2"
+                            class="custom-stepper__input"
+                            :value="floors"
+                            @beforeinput="onNumericBeforeInput"
+                            @input="onFloorsInput"
+                            @blur="onFloorsBlur"
+                            @keydown.up.prevent="changeFloors(1)"
+                            @keydown.down.prevent="changeFloors(-1)"
+                            placeholder="1"
+                        />
+                        <button
+                            type="button"
+                            class="custom-stepper__btn custom-stepper__btn--inc"
+                            :disabled="Number(floors) >= MAX_FLOORS"
+                            @click="changeFloors(1)"
+                            aria-label="Aumentar pisos"
+                        >
+                            <i class="pi pi-plus"></i>
+                        </button>
+                    </div>
+                    <small class="ds-hint">{{ te('projects.structure.floors-hint') ? t('projects.structure.floors-hint', { max: MAX_FLOORS }) : `Mínimo 1, máximo ${MAX_FLOORS} pisos` }}</small>
                 </div>
                 <div class="ds-field">
                     <label class="ds-label">
                         <i class="pi pi-th-large"></i>
-                        {{ t('projects.fields.units-per-floor') || 'Unidades por piso' }}
+                        {{ te('projects.fields.units-per-floor') ? t('projects.fields.units-per-floor') : 'Unidades por piso' }}
                     </label>
-                    <pv-input-number
-                        v-model="unitsPerFloor"
-                        :min="1"
-                        class="w-full"
-                        placeholder="1"
-                        showButtons
-                        :allowEmpty="false"
-                    />
+                    <div class="custom-stepper">
+                        <button
+                            type="button"
+                            class="custom-stepper__btn custom-stepper__btn--dec"
+                            :disabled="Number(unitsPerFloor) <= 1"
+                            @click="changeUnitsPerFloor(-1)"
+                            aria-label="Disminuir unidades por piso"
+                        >
+                            <i class="pi pi-minus"></i>
+                        </button>
+                        <input
+                            type="text"
+                            inputmode="numeric"
+                            pattern="[0-9]*"
+                            maxlength="2"
+                            class="custom-stepper__input"
+                            :value="unitsPerFloor"
+                            @beforeinput="onNumericBeforeInput"
+                            @input="onUnitsInput"
+                            @blur="onUnitsBlur"
+                            @keydown.up.prevent="changeUnitsPerFloor(1)"
+                            @keydown.down.prevent="changeUnitsPerFloor(-1)"
+                            placeholder="1"
+                        />
+                        <button
+                            type="button"
+                            class="custom-stepper__btn custom-stepper__btn--inc"
+                            :disabled="Number(unitsPerFloor) >= MAX_UNITS_PER_FLOOR"
+                            @click="changeUnitsPerFloor(1)"
+                            aria-label="Aumentar unidades por piso"
+                        >
+                            <i class="pi pi-plus"></i>
+                        </button>
+                    </div>
+                    <small class="ds-hint">{{ te('projects.structure.units-hint') ? t('projects.structure.units-hint', { max: MAX_UNITS_PER_FLOOR }) : `Mínimo 1, máximo ${MAX_UNITS_PER_FLOOR} por piso` }}</small>
                 </div>
             </div>
 
             <!-- Summary -->
-            <div class="ds-summary">
-                <i class="pi pi-info-circle"></i>
-                <span>
-                    Esto creará <strong>{{ (floors || 0) * (unitsPerFloor || 0) }}</strong> unidad(es):
-                    {{ floors || 0 }} piso(s) × {{ unitsPerFloor || 0 }} unidad(es) por piso.
-                </span>
+            <div class="ds-summary" :class="{ 'ds-summary--warning': isTotalUnitsExceeded }">
+                <i :class="isTotalUnitsExceeded ? 'pi pi-exclamation-triangle' : 'pi pi-info-circle'"></i>
+                <div>
+                    <div>
+                        {{ te('projects.structure.summary-prefix') ? t('projects.structure.summary-prefix') : 'Esto creará' }}
+                        <strong>{{ totalUnits }}</strong>
+                        {{ te('projects.structure.units-label') ? t('projects.structure.units-label') : 'departamento(s)' }}:
+                        {{ te('projects.structure.summary-detail') ? t('projects.structure.summary-detail', { floors: floors || 0, units: unitsPerFloor || 0 }) : `${floors || 0} piso(s) × ${unitsPerFloor || 0} departamento(s) por piso.` }}
+                    </div>
+                    <div v-if="isTotalUnitsExceeded" class="ds-error-text">
+                        {{ te('projects.structure.max-units-exceeded') ? t('projects.structure.max-units-exceeded', { max: MAX_TOTAL_UNITS }) : `Supera el límite máximo permitido de ${MAX_TOTAL_UNITS} departamentos por proyecto.` }}
+                    </div>
+                </div>
             </div>
 
             <!-- Per-floor configuration (accordion: one panel per floor) -->
             <div v-if="deviceStore.deviceTypes.length > 0">
                 <p class="ds-section-title">
                     <i class="pi pi-sitemap"></i>
-                    Configurar cada piso
+                    {{ te('projects.structure.configure-each-floor') ? t('projects.structure.configure-each-floor') : 'Configurar cada piso' }}
                 </p>
 
                 <div class="ds-accordion">
@@ -327,9 +485,9 @@ function handleCancel() {
                                 class="pi floor-panel__chevron"
                                 :class="isFloorExpanded(row.floor) ? 'pi-chevron-down' : 'pi-chevron-right'"
                             ></i>
-                            <span class="floor-panel__name">Piso {{ row.floor }}</span>
+                            <span class="floor-panel__name">{{ te('projects.structure.floor') ? t('projects.structure.floor', { number: row.floor }) : `Piso ${row.floor}` }}</span>
                             <span class="floor-panel__meta">
-                                <span>{{ row.units.length }} unidad{{ row.units.length === 1 ? '' : 'es' }}</span>
+                                <span>{{ row.units.length }} {{ row.units.length === 1 ? (te('projects.structure.unit-single') ? t('projects.structure.unit-single') : 'unidad') : (te('projects.structure.unit-plural') ? t('projects.structure.unit-plural') : 'unidades') }}</span>
                                 <span v-if="floorDeviceCount(row.floor) > 0" class="floor-panel__badge">
                                     <i class="pi pi-wifi"></i>
                                     {{ floorDeviceCount(row.floor) }}
@@ -343,43 +501,39 @@ function handleCancel() {
                             <div class="ds-field">
                                 <label class="ds-sublabel">
                                     <i class="pi pi-wifi"></i>
-                                    Dispositivos IoT por piso
+                                    {{ te('projects.structure.floor-iot-devices') ? t('projects.structure.floor-iot-devices') : 'Dispositivos IoT por piso' }}
                                 </label>
                                 <pv-multi-select
                                     v-model="deviceTypesByFloor[row.floor]"
                                     :options="floorDeviceTypes"
                                     option-label="displayName"
                                     option-value="code"
-                                    placeholder="Dispositivos por defecto (3)"
+                                    :placeholder="te('projects.structure.default-devices-placeholder') ? t('projects.structure.default-devices-placeholder') : 'Dispositivos por defecto (3)'"
                                     class="w-full"
                                     display="chip"
+                                    :showToggleAll="false"
                                 />
                             </div>
 
                             <!-- Per-unit configuration -->
                             <div>
-                                <p class="ds-units-title">Unidades</p>
+                                <p class="ds-units-title">{{ te('projects.structure.units') ? t('projects.structure.units') : 'Unidades' }}</p>
                                 <div class="ds-units">
                                     <div
                                         v-for="unit in row.units"
-                                        :key="ownerKey(unit.floor, unit.roomNumber)"
+                                        :key="unitKey(unit.floor, unit.roomNumber)"
                                         class="unit-block"
                                     >
-                                        <span class="unit-block__no">Unidad {{ unit.roomNumber }}</span>
-                                        <pv-input-text
-                                            v-model="ownerEmails[ownerKey(unit.floor, unit.roomNumber)]"
-                                            class="w-full"
-                                            type="email"
-                                            placeholder="Correo propietario (opcional)"
-                                        />
+                                        <span class="unit-block__no">{{ te('projects.structure.unit') ? t('projects.structure.unit', { number: unit.roomNumber }) : `Unidad ${unit.roomNumber}` }}</span>
                                         <pv-multi-select
-                                            v-model="unitDevicePackages[ownerKey(unit.floor, unit.roomNumber)]"
+                                            v-model="unitDevicePackages[unitKey(unit.floor, unit.roomNumber)]"
                                             :options="unitDeviceTypes"
                                             option-label="displayName"
                                             option-value="code"
-                                            placeholder="Dispositivos unidad (opcional)"
+                                            :placeholder="te('projects.structure.unit-devices-placeholder') ? t('projects.structure.unit-devices-placeholder') : 'Dispositivos unidad (opcional)'"
                                             class="w-full"
                                             display="chip"
+                                            :showToggleAll="false"
                                         />
                                     </div>
                                 </div>
@@ -392,17 +546,18 @@ function handleCancel() {
 
         <template #footer>
             <pv-button
-                :label="t('projects.actions.cancel') || 'Cancelar'"
+                :label="te('projects.actions.cancel') ? t('projects.actions.cancel') : 'Cancelar'"
                 icon="pi pi-times"
                 @click="handleCancel"
                 severity="secondary"
                 outlined
             />
             <pv-button
-                :label="t('projects.actions.define-structure') || 'Configurar Estructura'"
+                :label="te('projects.actions.define-structure') ? t('projects.actions.define-structure') : 'Configurar Estructura'"
                 icon="pi pi-check"
                 @click="handleSubmit"
                 :loading="submitting"
+                :disabled="isInvalidStructure || submitting"
                 class="custom-green-button"
                 severity="success"
             />
@@ -473,6 +628,87 @@ function handleCancel() {
 
 .ds-field { display: flex; flex-direction: column; }
 
+/* ── Custom Stepper ─────────────────────────────────────────────────── */
+.custom-stepper {
+    display: flex;
+    align-items: center;
+    border: 1px solid #d1d5db;
+    border-radius: 0.5rem;
+    overflow: hidden;
+    background: #ffffff;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    height: 42px;
+}
+
+.custom-stepper:focus-within {
+    border-color: #10b981;
+    box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
+}
+
+.custom-stepper__btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 42px;
+    height: 100%;
+    border: none;
+    background: #f9fafb;
+    color: #4b5563;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: background-color 0.15s, color 0.15s;
+    user-select: none;
+    flex-shrink: 0;
+}
+
+.custom-stepper__btn:hover:not(:disabled) {
+    background: #e5e7eb;
+    color: #111827;
+}
+
+.custom-stepper__btn:active:not(:disabled) {
+    background: #d1d5db;
+}
+
+.custom-stepper__btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    background: #f3f4f6;
+}
+
+.custom-stepper__btn--dec {
+    border-right: 1px solid #e5e7eb;
+}
+
+.custom-stepper__btn--inc {
+    border-left: 1px solid #e5e7eb;
+}
+
+.custom-stepper__input {
+    flex: 1;
+    min-width: 0;
+    height: 100%;
+    border: none;
+    outline: none;
+    text-align: center;
+    font-size: 1rem;
+    font-weight: 600;
+    color: #1f2937;
+    background: transparent;
+    padding: 0 0.5rem;
+}
+
+.custom-stepper__input::placeholder {
+    color: #9ca3af;
+    font-weight: normal;
+}
+
+.ds-hint {
+    margin-top: 0.35rem;
+    font-size: 0.78rem;
+    color: #6b7280;
+}
+
 .ds-label {
     display: inline-flex;
     align-items: center;
@@ -498,6 +734,22 @@ function handleCancel() {
 }
 
 .ds-summary .pi { margin-top: 0.1rem; color: #059669; }
+
+.ds-summary--warning {
+    background: #fffbeb !important;
+    border-left-color: #f59e0b !important;
+    color: #92400e !important;
+}
+
+.ds-summary--warning .pi {
+    color: #d97706 !important;
+}
+
+.ds-error-text {
+    margin-top: 0.25rem;
+    font-weight: 600;
+    color: #dc2626;
+}
 
 .ds-section-title {
     display: flex;

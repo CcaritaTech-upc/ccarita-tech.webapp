@@ -3,6 +3,7 @@ import { ref, watch, computed, onMounted } from 'vue';
 import { Client } from '../../domain/model/client.entity.js';
 import { ProjectsFacade } from '../../infrastructure/projects.facade.js';
 import { isValidEmail, isValidPhone, isValidName } from '../../../shared/presentation/validators.js';
+import { useIamStore } from '../../../iam/application/iam.store.js';
 
 const props = defineProps({
   visible: {
@@ -13,6 +14,7 @@ const props = defineProps({
 
 const emit = defineEmits(['update:visible', 'save']);
 
+const iamStore = useIamStore();
 const projectsFacade = new ProjectsFacade();
 const localVisible = ref(props.visible);
 const errors = ref({});
@@ -26,6 +28,7 @@ const formData = ref(new Client({
   address: '',
   projectName: '',
   accountStatement: 'Active',
+  builderId: iamStore.currentUser?.id || 0,
   unitId: null,
   unitNumber: ''
 }));
@@ -73,6 +76,7 @@ watch(() => props.visible, (newVal) => {
       projectId: 0,
       projectName: '',
       accountStatement: 'Active',
+      builderId: iamStore.currentUser?.id || 0,
       unitId: null,
       unitNumber: ''
     });
@@ -152,6 +156,7 @@ const handleSave = () => {
   formData.value.email = email;
   formData.value.phoneNumber = phoneNumber;
   formData.value.address = address;
+  formData.value.builderId = formData.value.builderId || iamStore.currentUser?.id || 0;
 
   emit('save', formData.value);
   localVisible.value = false;
@@ -267,7 +272,6 @@ const handleCancel = () => {
         icon="pi pi-check"
         @click="handleSave"
         severity="success"
-        :disabled="!isValid"
       />
     </template>
   </pv-dialog>

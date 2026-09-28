@@ -125,8 +125,10 @@ public static class PublishingEndpoints
             var role = user.FindFirst(ClaimTypes.Role)?.Value ?? user.FindFirst("role")?.Value;
             if (!string.Equals(role, "Builder", StringComparison.OrdinalIgnoreCase))
                 return Results.Json(new { error = "Only users with the Builder role may define project structure." }, statusCode: 403);
-            if (request.Floors < 1 || request.UnitsPerFloor < 1)
-                return Results.Json(new { error = "floors and unitsPerFloor must be at least 1." }, statusCode: 422);
+            if (request.Floors < 1 || request.Floors > 50 || request.UnitsPerFloor < 1 || request.UnitsPerFloor > 20)
+                return Results.Json(new { error = "floors must be between 1 and 50, and unitsPerFloor must be between 1 and 20." }, statusCode: 422);
+            if ((long)request.Floors * request.UnitsPerFloor > 500)
+                return Results.Json(new { error = "Total units (floors * unitsPerFloor) cannot exceed 500." }, statusCode: 422);
             if (request.FloorNumbers?.Any(floor => floor < 1 || floor > request.Floors) == true)
                 return Results.BadRequest(new { error = "floor reference is out of range." });
 
@@ -255,12 +257,14 @@ public static class PublishingEndpoints
 
         clients.MapPost("", async (CreateClientResource resource, ClaimsPrincipal user, IClientCommandService commandService, IClientQueryService queryService, CancellationToken ct) =>
         {
-            if (resource.BuilderId != SelfId(user)) return Results.Forbid();
+            var tokenBuilderId = SelfId(user);
+            if (resource.BuilderId > 0 && resource.BuilderId != tokenBuilderId) return Results.Forbid();
+            var builderId = tokenBuilderId;
             var command = new CreateClientCommand(
                 resource.FullName,
                 resource.ProjectName,
                 resource.AccountStatement,
-                resource.BuilderId,
+                builderId,
                 resource.ProjectId,
                 resource.Email,
                 resource.PhoneNumber,

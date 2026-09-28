@@ -32,6 +32,8 @@
       "description-placeholder": "Enter project description",
       "location": "Location",
       "location-placeholder": "Enter project location",
+      "floors": "Floors",
+      "units-per-floor": "Units per floor",
       "total-units": "Total Units",
       "occupied-units": "Occupied Units",
       "occupancy-rate": "Occupancy Rate",
@@ -66,6 +68,31 @@
       "progress-display": "{progress}% Completed",
       "last-update-display": "Last Update: {date}",
       "in-progress-display": "In Progress ({progress}%)"
+    },
+    "structure": {
+      "configure-each-floor": "Configure each floor",
+      "floor": "Floor {number}",
+      "unit-single": "unit",
+      "unit-plural": "units",
+      "floor-iot-devices": "Floor IoT Devices",
+      "default-devices-placeholder": "Default devices (3)",
+      "units": "Units",
+      "unit": "Unit {number}",
+      "unit-devices-placeholder": "Unit devices (optional)",
+      "floors-hint": "Minimum 1, maximum {max} floors",
+      "units-hint": "Minimum 1, maximum {max} per floor",
+      "summary-prefix": "This will create",
+      "units-label": "unit(s)",
+      "summary-detail": "{floors} floor(s) × {units} unit(s) per floor.",
+      "max-units-exceeded": "Exceeds the maximum limit of {max} units per project.",
+      "dialog-title": "Configure Project Structure"
+    },
+    "deviceCatalog": {
+      "SmartMeter": "Smart Meter",
+      "WaterSensor": "Water Sensor",
+      "SmokeDetector": "Smoke Detector",
+      "AirConditioner": "Air Conditioner",
+      "SmartLight": "Smart Light"
     }
   },
 
