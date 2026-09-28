@@ -134,7 +134,15 @@ public static class PublishingEndpoints
             if (project is null || !OwnsProject(user, project)) return Results.NotFound();
             if (project.StructureDefined) return Results.Conflict(new { error = "Project structure already defined." });
 
-            await commandService.DefineProjectStructureAsync(id, request.Floors, request.UnitsPerFloor, request.FloorNumbers, ct);
+            try
+            {
+                await commandService.DefineProjectStructureAsync(id, request.Floors, request.UnitsPerFloor, request.FloorNumbers, ct);
+            }
+            catch (DbUpdateException ex) when (ex.InnerException is MySqlConnector.MySqlException mysql && mysql.Number == 1062)
+            {
+                // Lost a concurrent define race: the winner owns the structure.
+                return Results.Conflict(new { error = "Project structure already defined." });
+            }
 
             return Results.Created($"/api/v1/projects/{id}/structure", new { message = $"Project structure defined: {request.Floors} floor(s), {request.UnitsPerFloor} unit(s) per floor." });
         }).RequireAuthorization();
@@ -170,7 +178,16 @@ public static class PublishingEndpoints
         {
             if (!await OwnsProjectIdAsync(user, db, resource.ProjectId, ct)) return Results.NotFound();
             var command = new CreateUnitCommand(resource.ProjectId, resource.UnitNumber, resource.OwnerId, resource.Floor, resource.RoomNumber);
-            var unitId = await commandService.Handle(command, ct);
+            int unitId;
+            try
+            {
+                unitId = await commandService.Handle(command, ct);
+            }
+            catch (DbUpdateException ex) when (ex.InnerException is MySqlConnector.MySqlException mysql && mysql.Number == 1062)
+            {
+                // Duplicate (project, floor, room): update it instead of duplicating.
+                return Results.Conflict(new { error = "A unit with this floor and room already exists in the project." });
+            }
             var created = await queryService.Handle(new GetUnitByIdQuery(unitId), ct);
             return created is null ? Results.Problem(statusCode: 500) : Results.Created($"/api/v1/units/{unitId}", UnitResourceFromEntityAssembler.ToResourceFromEntity(created));
         }).RequireAuthorization();
