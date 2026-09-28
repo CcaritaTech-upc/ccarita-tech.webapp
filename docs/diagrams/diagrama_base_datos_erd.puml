@@ -1,0 +1,192 @@
+@startuml
+title <size:24>Diagrama de Base de Datos Relacional - IoBuild Platform (MySQL 8.0)</size>\n<size:16>Modelo Físico / Entidad-Relación de Persistencia Centralizada</size>
+
+skinparam roundcorner 5
+skinparam linetype ortho
+skinparam shadowing false
+skinparam class {
+    BackgroundColor #FFFFFF
+    ArrowColor #2980B9
+    BorderColor #2C3E50
+    FontName Consolas
+    FontSize 11
+}
+
+entity "iam_users" as iam_users {
+    * **id** : INT <<PK, AI>>
+    --
+    * email : VARCHAR(320) <<UQ>>
+    * password_hash : VARCHAR(255)
+    * role : VARCHAR(80)
+}
+
+entity "iam_revoked_tokens" as iam_revoked_tokens {
+    * **token_hash** : VARCHAR(64) <<PK>>
+    --
+    * revoked_at : DATETIME(6)
+}
+
+entity "profiles" as profiles {
+    * **id** : INT <<PK, AI>>
+    --
+    * user_id : INT <<FK, UQ>>
+    * name : VARCHAR(200)
+    * username : VARCHAR(100)
+    phone_number : VARCHAR(50)
+    address : VARCHAR(255)
+    second_email : VARCHAR(150)
+    age : INT
+    photo_reference : VARCHAR(128)
+    cloudinary_reference : LONGTEXT
+    photo_url : LONGTEXT
+}
+
+entity "projects" as projects {
+    * **id** : INT <<PK, AI>>
+    --
+    * name : VARCHAR(200)
+    * description : VARCHAR(2000)
+    * location : VARCHAR(500)
+    * total_units : INT
+    * builder_id : INT <<FK>>
+    image_url : VARCHAR(2000)
+    * structure_defined : BOOLEAN
+    * created_at : DATETIME(6)
+}
+
+entity "units" as units {
+    * **id** : INT <<PK, AI>>
+    --
+    * project_id : INT <<FK>>
+    * unit_number : VARCHAR(50)
+    * floor : INT
+    * room_number : VARCHAR(20)
+    owner_email : VARCHAR(255)
+    owner_id : INT <<FK>>
+    * status : VARCHAR(50)
+}
+
+entity "clients" as clients {
+    * **id** : INT <<PK, AI>>
+    --
+    * full_name : VARCHAR(200)
+    * project_name : VARCHAR(200)
+    * account_statement : VARCHAR(50)
+    * builder_id : INT <<FK>>
+    * project_id : INT <<FK>>
+    email : VARCHAR(150)
+    phone_number : VARCHAR(50)
+    address : VARCHAR(255)
+    unit_id : INT <<FK>>
+    unit_number : VARCHAR(50)
+}
+
+entity "plans" as plans {
+    * **id** : INT <<PK, AI>>
+    --
+    * name : VARCHAR(100) <<UQ>>
+    * description : VARCHAR(500)
+    * price : DECIMAL(10,2)
+    * interval : VARCHAR(50)
+    features_json : JSON
+}
+
+entity "subscriptions" as subscriptions {
+    * **id** : INT <<PK, AI>>
+    --
+    * builder_id : INT <<FK>>
+    * plan_id : INT <<FK>>
+    * status : VARCHAR(40)
+    * start_date : DATETIME(6)
+    end_date : DATETIME(6)
+}
+
+entity "subscription_webhooks" as subscription_webhooks {
+    * **event_id** : VARCHAR(255) <<PK>>
+    --
+    * event_type : VARCHAR(120)
+    * processed_at : DATETIME(6)
+}
+
+entity "devices" as devices {
+    * **id** : INT <<PK, AI>>
+    --
+    * name : VARCHAR(200)
+    * type : VARCHAR(100)
+    * location : VARCHAR(500)
+    mac_address : VARCHAR(17) <<UQ>>
+    * project_id : INT <<FK>>
+    unit_id : INT <<FK>>
+    * owner_id : INT <<FK>>
+    source : VARCHAR(30)
+    * status : VARCHAR(40)
+}
+
+entity "device_shadows" as device_shadows {
+    * **device_id** : INT <<PK, FK>>
+    --
+    * desired_json : LONGTEXT
+    * reported_json : LONGTEXT
+    * version : BIGINT
+    * updated_at : DATETIME(6)
+}
+
+entity "device_commands" as device_commands {
+    * **id** : BIGINT <<PK, AI>>
+    --
+    * command_id : VARCHAR(64) <<UQ>>
+    * device_id : INT <<FK>>
+    * desired_json : LONGTEXT
+    * issued_at : DATETIME(6)
+    acknowledged_at : DATETIME(6)
+}
+
+entity "device_telemetry" as device_telemetry {
+    * **id** : BIGINT <<PK, AI>>
+    --
+    * event_id : VARCHAR(128) <<UQ>>
+    * device_id : INT <<FK>>
+    * occurred_at : DATETIME(6)
+    status : VARCHAR(40)
+    * reported_json : LONGTEXT
+}
+
+entity "integration_dispatch" as integration_dispatch {
+    * **id** : BIGINT <<PK, AI>>
+    --
+    * owner_module : VARCHAR(80)
+    * channel : VARCHAR(80)
+    * ordering_key : VARCHAR(200)
+    * sequence : BIGINT
+    * payload : LONGTEXT
+    * idempotency_key : VARCHAR(200) <<UQ>>
+    * status : VARCHAR(20)
+    * attempts : INT
+    * next_attempt_at : DATETIME(6)
+    lease_owner : VARCHAR(255)
+    lease_expires_at : DATETIME(6)
+    last_error : LONGTEXT
+    * created_at : DATETIME(6)
+    * updated_at : DATETIME(6)
+}
+
+' Relaciones Físicas y de Integridad Referencial
+iam_users ||--o| profiles : "1:1"
+iam_users ||--o{ projects : "1:N (Builder)"
+iam_users ||--o{ units : "1:N (Owner)"
+iam_users ||--o{ clients : "1:N"
+iam_users ||--o{ subscriptions : "1:N"
+plans ||--o{ subscriptions : "1:N"
+
+projects ||--|{ units : "1:N"
+projects ||--o{ clients : "1:N"
+projects ||--o{ devices : "1:N"
+
+units ||--o{ clients : "1:N"
+units ||--o{ devices : "1:N"
+
+devices ||--|| device_shadows : "1:1"
+devices ||--o{ device_commands : "1:N"
+devices ||--o{ device_telemetry : "1:N"
+
+@enduml

@@ -1,5 +1,5 @@
 @startuml
-title <size:24>Container View: IoBuild Platform</size>\n<size:24>Nivel 2: Contenedores del Sistema</size>
+title <size:24>Container View: IoBuild Platform</size>\n<size:18>Nivel 2: Contenedores del Sistema IoBuild Platform</size>
 
 set separator none
 left to right direction
@@ -12,49 +12,45 @@ left to right direction
 </style>
 
 !include <C4/C4>
-!include <C4/C4_Context>
 !include <C4/C4_Container>
 
-Person(ConstructorInmobiliaria, "Constructor / Inmobiliaria", $descr="Crea proyectos inmobiliarios, define pisos/unidades, gestiona suscripciones de planes y analiza metricas.", $tags="", $link="")
-Person(PropietarioResidente, "Propietario / Residente", $descr="Monitorea su unidad habitacional, registra dispositivos IoT y envia ordenes de control remoto.", $tags="", $link="")
-System(Stripe, "Stripe", $descr="Pasarela de pagos para checkout y suscripciones recurrentes.", $tags="", $link="")
-System(Cloudinary, "Cloudinary", $descr="Servicio cloud para subida, optimizacion y entrega de fotos de proyectos y perfiles.", $tags="", $link="")
-System(DispositivosIoTySensores, "Dispositivos IoT y Sensores", $descr="Sensores de energia/temperatura y actuadores en departamentos (HVAC, luces).", $tags="", $link="")
-System(InfluxDBTimeSeriesDB, "InfluxDB (Time-Series DB)", $descr="Base de datos especializada para telemetria de dispositivos IoT de alta frecuencia.", $tags="", $link="")
-System(JaegerOpenTelemetry, "Jaeger / OpenTelemetry", $descr="Plataforma de observabilidad y trazado distribuido del sistema.", $tags="", $link="")
+SHOW_PERSON_OUTLINE()
 
-System_Boundary("IoBuildPlatform_boundary", "IoBuild Platform", $tags="") {
-  Container(IoBuildPlatform.MosquittoMQTTBroker, "Mosquitto (MQTT Broker)", $techn="Eclipse Mosquitto", $descr="Broker pub/sub para mensajes de telemetria (telemetry/#) y ordenes (commands/#).", $tags="", $link="")
-  ContainerDb(IoBuildPlatform.MySQLDatabase, "MySQL Database", $techn="MySQL 8.0", $descr="Instancia centralizada de base de datos relacional para todas las tablas del sistema IoBuild.", $tags="", $link="")
-  Container(IoBuildPlatform.LandingPage, "Landing Page", $techn="HTML / CSS / JS", $descr="Sitio web publico que presenta la propuesta de valor y capta constructores.", $tags="", $link="")
-  Container(IoBuildPlatform.WebSPA, "Web SPA", $techn="Vue 3, Vite, PrimeVue", $descr="Plataforma web donde los usuarios gestionan proyectos, suscripciones y dispositivos.", $tags="", $link="")
-  Container(IoBuildPlatform.MobileApp, "Mobile App", $techn="Android, Kotlin", $descr="App movil nativa para que propietarios y constructores gestionen dispositivos.", $tags="", $link="")
-  Container(IoBuildPlatform.NginxReverseProxy, "Nginx (Reverse Proxy)", $techn="Nginx / Alpine", $descr="Expuesto en puerto 80: entrega estaticos de la SPA y redirige peticiones /api al backend.", $tags="", $link="")
-  Container(IoBuildPlatform.APIMonolitoIoBuildApi, "API Monolito (IoBuild.Api)", $techn="ASP.NET Core 9, C#", $descr="Backend monolitico modular que aloja IAM, Publishing, Devices, Subscriptions, Analytics y Profiles.", $tags="", $link="")
+Person(AdministradordeCondominios, "Administrador de Condominios", $descr="Property Manager B2B que configura catastro y aprueba liquidaciones.")
+Person(PropietarioResidente, "Propietario / Residente", $descr="Copropietario B2C que visualiza consumos y paga cuotas.")
+
+System_Boundary(c1, "IoBuild Platform") {
+    Container(LandingPage, "Landing Page", "HTML / CSS / JS", "Sitio web público de marketing y captación comercial.")
+    Container(WebSPAPortal, "Web SPA Portal", "Vue 3, Vite, PrimeVue", "Portal web responsivo para gestión catastral y pagos.")
+    Container(MobileApp, "Mobile App", "Android, Kotlin", "App móvil nativa para copropietarios y chat con copiloto IA.")
+    Container(Nginx, "Nginx (Reverse Proxy)", "Nginx / Alpine", "Proxy inverso en puerto 8081/80; sirve estáticos y redirige a /api.")
+    Container(APIMonolito, "API Monolito (IoBuild.Api)", "ASP.NET Core 9, C#", "Backend modular: IAM, Cadastre, Subscriptions, Proration, Telemetry y AI.")
+    ContainerDb(MySQLDatabase, "MySQL Database", "MySQL 8.0", "Instancia centralizada con volumen persistente para todas las tablas relacionales.")
+    ContainerQueue(Mosquitto, "Mosquitto (MQTT Broker)", "Eclipse Mosquitto", "Broker pub/sub para ingesta asíncrona de telemetría y eventos de consumo.")
 }
 
-Rel(ConstructorInmobiliaria, IoBuildPlatform.LandingPage, "Visita para conocer", $techn="HTTPS", $tags="", $link="")
-Rel(IoBuildPlatform.LandingPage, IoBuildPlatform.WebSPA, "Redirige a login", $techn="HTTPS", $tags="", $link="")
-Rel(ConstructorInmobiliaria, IoBuildPlatform.WebSPA, "Ingreso directo", $techn="HTTPS", $tags="", $link="")
-Rel(ConstructorInmobiliaria, IoBuildPlatform.MobileApp, "Usa app movil", $techn="Android UI", $tags="", $link="")
-Rel(PropietarioResidente, IoBuildPlatform.WebSPA, "Usa plataforma", $techn="HTTPS", $tags="", $link="")
-Rel(PropietarioResidente, IoBuildPlatform.MobileApp, "Usa app movil", $techn="Android UI", $tags="", $link="")
-Rel(IoBuildPlatform.WebSPA, IoBuildPlatform.NginxReverseProxy, "Peticiones /api", $techn="HTTPS", $tags="", $link="")
-Rel(IoBuildPlatform.MobileApp, IoBuildPlatform.NginxReverseProxy, "Peticiones /api", $techn="HTTPS", $tags="", $link="")
-Rel(IoBuildPlatform.NginxReverseProxy, IoBuildPlatform.WebSPA, "Sirve archivos SPA", $techn="HTTP", $tags="", $link="")
-Rel(IoBuildPlatform.NginxReverseProxy, IoBuildPlatform.APIMonolitoIoBuildApi, "Proxy inverso a :8080", $techn="HTTP", $tags="", $link="")
-Rel(IoBuildPlatform.APIMonolitoIoBuildApi, IoBuildPlatform.MySQLDatabase, "Ejecuta queries y transacciones SQL", $techn="MySQL Protocol :3306", $tags="", $link="")
-Rel(IoBuildPlatform.WebSPA, Stripe, "Redirige a checkout", $techn="HTTPS / Stripe.js", $tags="", $link="")
-Rel(IoBuildPlatform.APIMonolitoIoBuildApi, Stripe, "Crea sesiones checkout", $techn="HTTPS / REST", $tags="", $link="")
-Rel(Stripe, IoBuildPlatform.APIMonolitoIoBuildApi, "Webhooks de cobro", $techn="HTTPS", $tags="", $link="")
-Rel(IoBuildPlatform.WebSPA, Cloudinary, "Sube/descarga fotos", $techn="HTTPS", $tags="", $link="")
-Rel(IoBuildPlatform.APIMonolitoIoBuildApi, Cloudinary, "Sube fotos de perfil", $techn="HTTPS / REST", $tags="", $link="")
-Rel(IoBuildPlatform.APIMonolitoIoBuildApi, IoBuildPlatform.MosquittoMQTTBroker, "Publica comandos y suscribe", $techn="MQTT :1883", $tags="", $link="")
-Rel(IoBuildPlatform.MosquittoMQTTBroker, IoBuildPlatform.APIMonolitoIoBuildApi, "Entrega telemetria recibida", $techn="MQTT :1883", $tags="", $link="")
-Rel(IoBuildPlatform.APIMonolitoIoBuildApi, InfluxDBTimeSeriesDB, "Ingesta telemetria", $techn="HTTP :8086", $tags="", $link="")
-Rel(IoBuildPlatform.APIMonolitoIoBuildApi, JaegerOpenTelemetry, "Envia trazas OTLP", $techn="gRPC :4317", $tags="", $link="")
-Rel(DispositivosIoTySensores, IoBuildPlatform.MosquittoMQTTBroker, "Publica lecturas sensor", $techn="MQTT :1883", $tags="", $link="")
-Rel(IoBuildPlatform.MosquittoMQTTBroker, DispositivosIoTySensores, "Recibe comandos actuador", $techn="MQTT :1883", $tags="", $link="")
+System_Ext(Stripe, "Stripe Payments Platform", "Pasarela de pagos para suscripciones y cuotas con tarjeta.")
+SystemDb_Ext(Cloudinary, "Cloudinary CDN", "Custodia y optimización de comprobantes bancarios y fotos.")
+System_Ext(Gemini, "Google Gemini / OpenAI API", "Modelos LLM para RAG y diagnóstico conversacional.")
+
+Rel(AdministradordeCondominios, LandingPage, "Visita para conocer plataforma", "HTTPS")
+Rel(LandingPage, WebSPAPortal, "Redirige a portal", "HTTPS")
+Rel(AdministradordeCondominios, WebSPAPortal, "Ingreso a gestión y catastro", "HTTPS")
+Rel(PropietarioResidente, WebSPAPortal, "Consulta cuentas y realiza pagos", "HTTPS")
+Rel(PropietarioResidente, MobileApp, "Consulta consumos y chat IA", "Android UI")
+
+Rel(WebSPAPortal, Nginx, "Peticiones /api", "HTTPS")
+Rel(MobileApp, Nginx, "Peticiones /api", "HTTPS")
+Rel(Nginx, WebSPAPortal, "Sirve archivos SPA", "HTTP")
+Rel(Nginx, APIMonolito, "Proxy inverso a :8080", "HTTP")
+
+Rel(APIMonolito, MySQLDatabase, "Lectura y persistencia relacional", "MySQL :3306")
+Rel(APIMonolito, Mosquitto, "Suscripción a telemetría y eventos", "MQTT :1883")
+
+Rel(WebSPAPortal, Stripe, "Redirige a checkout", "HTTPS / Stripe.js")
+Rel(APIMonolito, Stripe, "Crea sesiones checkout y webhooks", "HTTPS / REST")
+Rel(APIMonolito, Cloudinary, "Guarda fotos y comprobantes", "HTTPS / REST")
+Rel(APIMonolito, Gemini, "Inferencia LLM y RAG", "HTTPS / REST")
 
 SHOW_LEGEND(true)
 hide stereotypes

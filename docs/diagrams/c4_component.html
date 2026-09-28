@@ -8,7 +8,7 @@
 </head>
 <body>
     
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2400 1450" width="2400" height="1450" style="background-color:#f8fafd;">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2600 1500" width="2600" height="1500" style="background-color:#f8fafd;">
     <defs>
         <filter id="shadow" x="-5%" y="-5%" width="112%" height="116%" filterUnits="userSpaceOnUse">
             <feDropShadow dx="2" dy="5" stdDeviation="5" flood-color="#000000" flood-opacity="0.18"/>
@@ -21,114 +21,150 @@
         </marker>
     </defs>
 
-    <rect x="50" y="30" width="2300" height="70" rx="8" fill="#ffffff" stroke="#e1e8ed" stroke-width="1.5"/>
-    <text x="80" y="66" font-family="'Segoe UI', Roboto, sans-serif" font-size="24" font-weight="700" fill="#1c3d5a">[Nivel 3: Componentes] IoBuild Backend API - Arquitectura Monolítica Modular</text>
-    <text x="80" y="88" font-family="'Segoe UI', Roboto, sans-serif" font-size="14" fill="#6b7c96">Desglose horizontal de módulos DDD dentro del contenedor IoBuild.Api en ASP.NET Core 9 y Entity Framework Core</text>
+    <rect x="50" y="30" width="2500" height="70" rx="8" fill="#ffffff" stroke="#e1e8ed" stroke-width="1.5"/>
+    <text x="80" y="66" font-family="'Segoe UI', Roboto, sans-serif" font-size="24" font-weight="700" fill="#1c3d5a">[C4 Nivel 3: Components] IoBuild Backend API - Arquitectura Monolítica Modular</text>
+    <text x="80" y="88" font-family="'Segoe UI', Roboto, sans-serif" font-size="14" fill="#6b7c96">Desglose de módulos DDD (.NET 9) con shapes oficiales de Componente C4: IAM, Cadastre, Devices, Telemetry, Proration, Subscriptions y AiAssistant</text>
 
-    <!-- ENTRADA DE TRÁFICO (Top): Nginx y Clientes -->
+    <!-- ENTRADA DE TRÁFICO (Top): Nginx Reverse Proxy -->
     
-    <g transform="translate(1070,130)">
-        <rect x="0" y="0" width="260" height="120" rx="12" fill="#2A72C9" stroke="#1c5599" stroke-width="2" filter="url(#shadow)"/>
-        <text x="130.0" y="28" font-family="'Segoe UI', Roboto, sans-serif" font-size="17" font-weight="700" fill="#ffffff" text-anchor="middle">Nginx (Reverse Proxy)</text>
-        <text x="130.0" y="47" font-family="'Segoe UI', Roboto, sans-serif" font-size="11" fill="#cbe2fc" text-anchor="middle">[Contenedor: Nginx / Alpine]</text>
-        <foreignObject x="10" y="55" width="240" height="60">
+    <g transform="translate(1160,130)">
+        <rect x="0" y="0" width="280" height="120" rx="12" fill="#2A72C9" stroke="#1c5599" stroke-width="2" filter="url(#shadow)"/>
+        <text x="140.0" y="28" font-family="'Segoe UI', Roboto, sans-serif" font-size="17" font-weight="700" fill="#ffffff" text-anchor="middle">Nginx (Reverse Proxy)</text>
+        <text x="140.0" y="47" font-family="'Segoe UI', Roboto, sans-serif" font-size="11" fill="#cbe2fc" text-anchor="middle">[Container: Nginx / Alpine]</text>
+        <foreignObject x="10" y="55" width="260" height="60">
             <div xmlns="http://www.w3.org/1999/xhtml" style="font-family:'Segoe UI', Roboto, sans-serif; font-size:12px; color:#ffffff; text-align:center; line-height:1.35;">
-                Enruta el tráfico entrante de Web SPA y Mobile App hacia los módulos correspondientes.
+                Enruta el tráfico entrante de Web SPA y Mobile App hacia los controladores y endpoints de cada módulo.
             </div>
         </foreignObject>
     </g>
     
 
     <!-- BOUNDARY: API Monolito (IoBuild.Api) -->
-    <g transform="translate(100, 310)">
-        <rect x="0" y="0" width="2200" height="690" rx="18" fill="#ffffff" stroke="#2A72C9" stroke-width="2.5" stroke-dasharray="9,6"/>
+    <g transform="translate(80, 310)">
+        <rect x="0" y="0" width="2440" height="740" rx="18" fill="#ffffff" stroke="#2A72C9" stroke-width="2.5" stroke-dasharray="9,6"/>
         <text x="30" y="36" font-family="'Segoe UI', sans-serif" font-size="20" font-weight="700" fill="#2A72C9">API Monolito (IoBuild.Api)</text>
-        <text x="30" y="58" font-family="'Segoe UI', sans-serif" font-size="13" fill="#6b7c96">[Límite del Contenedor Backend en ASP.NET Core 9]</text>
+        <text x="30" y="58" font-family="'Segoe UI', sans-serif" font-size="13" fill="#6b7c96">[Límite del Contenedor Backend en ASP.NET Core 9 / C#]</text>
     </g>
 
-    <!-- FILA HORIZONTAL DE LOS 6 MÓDULOS DE NEGOCIO (Y=420) -->
+    <!-- FILA DE LOS 7 MÓDULOS DDD CON SHAPE COMPONENT -->
     
-    <g transform="translate(140,420)">
-        <rect x="0" y="0" width="320" height="180" rx="10" fill="#438DD5" stroke="#2b6fb5" stroke-width="2" filter="url(#shadow)"/>
-        <text x="160.0" y="26" font-family="'Segoe UI', Roboto, sans-serif" font-size="16" font-weight="700" fill="#ffffff" text-anchor="middle">Módulo IAM</text>
-        <text x="160.0" y="44" font-family="'Segoe UI', Roboto, sans-serif" font-size="11" fill="#d9ecff" text-anchor="middle">[Componente: ASP.NET Core]</text>
-        <foreignObject x="8" y="52" width="304" height="124">
+    <g transform="translate(120,420)">
+        <rect x="0" y="0" width="310" height="180" rx="10" fill="#438DD5" stroke="#2b6fb5" stroke-width="2" filter="url(#shadow)"/>
+        <!-- 2 UML component tabs -->
+        <rect x="-8" y="16" width="16" height="14" rx="2" fill="#2b6fb5"/>
+        <rect x="-8" y="38" width="16" height="14" rx="2" fill="#2b6fb5"/>
+        <text x="155.0" y="26" font-family="'Segoe UI', Roboto, sans-serif" font-size="16" font-weight="700" fill="#ffffff" text-anchor="middle">Módulo IAM</text>
+        <text x="155.0" y="44" font-family="'Segoe UI', Roboto, sans-serif" font-size="11" fill="#d9ecff" text-anchor="middle">[Component: ASP.NET Core]</text>
+        <foreignObject x="10" y="52" width="290" height="124">
             <div xmlns="http://www.w3.org/1999/xhtml" style="font-family:'Segoe UI', Roboto, sans-serif; font-size:11px; color:#ffffff; text-align:center; line-height:1.3;">
-                Autenticación, hashing BCrypt, emisión de tokens JWT, revoked tokens y registro de usuarios.
+                Autenticación, hashing BCrypt, emisión de tokens JWT con claims catastrales y control de accesos.
             </div>
         </foreignObject>
     </g>
     
     
-    <g transform="translate(500,420)">
-        <rect x="0" y="0" width="320" height="180" rx="10" fill="#438DD5" stroke="#2b6fb5" stroke-width="2" filter="url(#shadow)"/>
-        <text x="160.0" y="26" font-family="'Segoe UI', Roboto, sans-serif" font-size="16" font-weight="700" fill="#ffffff" text-anchor="middle">Módulo Publishing</text>
-        <text x="160.0" y="44" font-family="'Segoe UI', Roboto, sans-serif" font-size="11" fill="#d9ecff" text-anchor="middle">[Componente: ASP.NET Core]</text>
-        <foreignObject x="8" y="52" width="304" height="124">
+    <g transform="translate(460,420)">
+        <rect x="0" y="0" width="310" height="180" rx="10" fill="#438DD5" stroke="#2b6fb5" stroke-width="2" filter="url(#shadow)"/>
+        <!-- 2 UML component tabs -->
+        <rect x="-8" y="16" width="16" height="14" rx="2" fill="#2b6fb5"/>
+        <rect x="-8" y="38" width="16" height="14" rx="2" fill="#2b6fb5"/>
+        <text x="155.0" y="26" font-family="'Segoe UI', Roboto, sans-serif" font-size="16" font-weight="700" fill="#ffffff" text-anchor="middle">Módulo Cadastre & Units</text>
+        <text x="155.0" y="44" font-family="'Segoe UI', Roboto, sans-serif" font-size="11" fill="#d9ecff" text-anchor="middle">[Component: ASP.NET Core]</text>
+        <foreignObject x="10" y="52" width="290" height="124">
             <div xmlns="http://www.w3.org/1999/xhtml" style="font-family:'Segoe UI', Roboto, sans-serif; font-size:11px; color:#ffffff; text-align:center; line-height:1.3;">
-                Gestión de proyectos inmobiliarios, estructuras de pisos y departamentos, y asignación de propietarios.
+                Catastro físico de edificios, torres y departamentos, y padrón oficial de alícuotas de copropiedad.
             </div>
         </foreignObject>
     </g>
     
     
-    <g transform="translate(860,420)">
-        <rect x="0" y="0" width="320" height="180" rx="10" fill="#438DD5" stroke="#2b6fb5" stroke-width="2" filter="url(#shadow)"/>
-        <text x="160.0" y="26" font-family="'Segoe UI', Roboto, sans-serif" font-size="16" font-weight="700" fill="#ffffff" text-anchor="middle">Módulo Devices & IoT</text>
-        <text x="160.0" y="44" font-family="'Segoe UI', Roboto, sans-serif" font-size="11" fill="#d9ecff" text-anchor="middle">[Componente: ASP.NET Core]</text>
-        <foreignObject x="8" y="52" width="304" height="124">
+    <g transform="translate(800,420)">
+        <rect x="0" y="0" width="310" height="180" rx="10" fill="#438DD5" stroke="#2b6fb5" stroke-width="2" filter="url(#shadow)"/>
+        <!-- 2 UML component tabs -->
+        <rect x="-8" y="16" width="16" height="14" rx="2" fill="#2b6fb5"/>
+        <rect x="-8" y="38" width="16" height="14" rx="2" fill="#2b6fb5"/>
+        <text x="155.0" y="26" font-family="'Segoe UI', Roboto, sans-serif" font-size="16" font-weight="700" fill="#ffffff" text-anchor="middle">Módulo IoT Devices</text>
+        <text x="155.0" y="44" font-family="'Segoe UI', Roboto, sans-serif" font-size="11" fill="#d9ecff" text-anchor="middle">[Component: ASP.NET Core]</text>
+        <foreignObject x="10" y="52" width="290" height="124">
             <div xmlns="http://www.w3.org/1999/xhtml" style="font-family:'Segoe UI', Roboto, sans-serif; font-size:11px; color:#ffffff; text-align:center; line-height:1.3;">
-                Registro de dispositivos, envío de comandos autorizados y puente de transporte MQTT bidireccional.
+                Registro de medidores de agua/luz, comisionamiento y cliente de comunicación MQTT.
             </div>
         </foreignObject>
     </g>
     
     
-    <g transform="translate(1220,420)">
-        <rect x="0" y="0" width="320" height="180" rx="10" fill="#438DD5" stroke="#2b6fb5" stroke-width="2" filter="url(#shadow)"/>
-        <text x="160.0" y="26" font-family="'Segoe UI', Roboto, sans-serif" font-size="16" font-weight="700" fill="#ffffff" text-anchor="middle">Módulo Subscriptions</text>
-        <text x="160.0" y="44" font-family="'Segoe UI', Roboto, sans-serif" font-size="11" fill="#d9ecff" text-anchor="middle">[Componente: ASP.NET Core]</text>
-        <foreignObject x="8" y="52" width="304" height="124">
+    <g transform="translate(1140,420)">
+        <rect x="0" y="0" width="310" height="180" rx="10" fill="#438DD5" stroke="#2b6fb5" stroke-width="2" filter="url(#shadow)"/>
+        <!-- 2 UML component tabs -->
+        <rect x="-8" y="16" width="16" height="14" rx="2" fill="#2b6fb5"/>
+        <rect x="-8" y="38" width="16" height="14" rx="2" fill="#2b6fb5"/>
+        <text x="155.0" y="26" font-family="'Segoe UI', Roboto, sans-serif" font-size="16" font-weight="700" fill="#ffffff" text-anchor="middle">Módulo Telemetry & Analytics</text>
+        <text x="155.0" y="44" font-family="'Segoe UI', Roboto, sans-serif" font-size="11" fill="#d9ecff" text-anchor="middle">[Component: ASP.NET Core]</text>
+        <foreignObject x="10" y="52" width="290" height="124">
             <div xmlns="http://www.w3.org/1999/xhtml" style="font-family:'Segoe UI', Roboto, sans-serif; font-size:11px; color:#ffffff; text-align:center; line-height:1.3;">
-                Catálogo de planes, creación de sesiones checkout con Stripe y procesamiento de webhooks de pago.
+                Ingesta de telemetría, agregaciones horarias de m³ y kWh, y detección de patrones de fuga continua.
             </div>
         </foreignObject>
     </g>
     
     
-    <g transform="translate(1580,420)">
-        <rect x="0" y="0" width="320" height="180" rx="10" fill="#438DD5" stroke="#2b6fb5" stroke-width="2" filter="url(#shadow)"/>
-        <text x="160.0" y="26" font-family="'Segoe UI', Roboto, sans-serif" font-size="16" font-weight="700" fill="#ffffff" text-anchor="middle">Módulo Analytics</text>
-        <text x="160.0" y="44" font-family="'Segoe UI', Roboto, sans-serif" font-size="11" fill="#d9ecff" text-anchor="middle">[Componente: ASP.NET Core]</text>
-        <foreignObject x="8" y="52" width="304" height="124">
+    <g transform="translate(1480,420)">
+        <rect x="0" y="0" width="310" height="180" rx="10" fill="#438DD5" stroke="#2b6fb5" stroke-width="2" filter="url(#shadow)"/>
+        <!-- 2 UML component tabs -->
+        <rect x="-8" y="16" width="16" height="14" rx="2" fill="#2b6fb5"/>
+        <rect x="-8" y="38" width="16" height="14" rx="2" fill="#2b6fb5"/>
+        <text x="155.0" y="26" font-family="'Segoe UI', Roboto, sans-serif" font-size="16" font-weight="700" fill="#ffffff" text-anchor="middle">Módulo Proration (Core)</text>
+        <text x="155.0" y="44" font-family="'Segoe UI', Roboto, sans-serif" font-size="11" fill="#d9ecff" text-anchor="middle">[Component: ASP.NET Core]</text>
+        <foreignObject x="10" y="52" width="290" height="124">
             <div xmlns="http://www.w3.org/1999/xhtml" style="font-family:'Segoe UI', Roboto, sans-serif; font-size:11px; color:#ffffff; text-align:center; line-height:1.3;">
-                Consultas analíticas de consumo energético en vivo, proyecciones LWW y sink de series de tiempo.
+                Motor matemático de distribución de gastos comunes según alícuotas y liquidación de cuotas.
             </div>
         </foreignObject>
     </g>
     
     
-    <g transform="translate(1940,420)">
-        <rect x="0" y="0" width="320" height="180" rx="10" fill="#438DD5" stroke="#2b6fb5" stroke-width="2" filter="url(#shadow)"/>
-        <text x="160.0" y="26" font-family="'Segoe UI', Roboto, sans-serif" font-size="16" font-weight="700" fill="#ffffff" text-anchor="middle">Módulo Profiles</text>
-        <text x="160.0" y="44" font-family="'Segoe UI', Roboto, sans-serif" font-size="11" fill="#d9ecff" text-anchor="middle">[Componente: ASP.NET Core]</text>
-        <foreignObject x="8" y="52" width="304" height="124">
+    <g transform="translate(1820,420)">
+        <rect x="0" y="0" width="310" height="180" rx="10" fill="#438DD5" stroke="#2b6fb5" stroke-width="2" filter="url(#shadow)"/>
+        <!-- 2 UML component tabs -->
+        <rect x="-8" y="16" width="16" height="14" rx="2" fill="#2b6fb5"/>
+        <rect x="-8" y="38" width="16" height="14" rx="2" fill="#2b6fb5"/>
+        <text x="155.0" y="26" font-family="'Segoe UI', Roboto, sans-serif" font-size="16" font-weight="700" fill="#ffffff" text-anchor="middle">Módulo Subscriptions</text>
+        <text x="155.0" y="44" font-family="'Segoe UI', Roboto, sans-serif" font-size="11" fill="#d9ecff" text-anchor="middle">[Component: ASP.NET Core]</text>
+        <foreignObject x="10" y="52" width="290" height="124">
             <div xmlns="http://www.w3.org/1999/xhtml" style="font-family:'Segoe UI', Roboto, sans-serif; font-size:11px; color:#ffffff; text-align:center; line-height:1.3;">
-                Perfiles de usuarios (builders/owners) y orquestación de subida de fotos a Cloudinary.
+                Planes SaaS B2B, facturación HaaS por medidor instalado y procesamiento de webhooks Stripe.
+            </div>
+        </foreignObject>
+    </g>
+    
+    
+    <g transform="translate(2160,420)">
+        <rect x="0" y="0" width="310" height="180" rx="10" fill="#438DD5" stroke="#2b6fb5" stroke-width="2" filter="url(#shadow)"/>
+        <!-- 2 UML component tabs -->
+        <rect x="-8" y="16" width="16" height="14" rx="2" fill="#2b6fb5"/>
+        <rect x="-8" y="38" width="16" height="14" rx="2" fill="#2b6fb5"/>
+        <text x="155.0" y="26" font-family="'Segoe UI', Roboto, sans-serif" font-size="16" font-weight="700" fill="#ffffff" text-anchor="middle">Módulo AiAssistant (RAG)</text>
+        <text x="155.0" y="44" font-family="'Segoe UI', Roboto, sans-serif" font-size="11" fill="#d9ecff" text-anchor="middle">[Component: ASP.NET Core]</text>
+        <foreignObject x="10" y="52" width="290" height="124">
+            <div xmlns="http://www.w3.org/1999/xhtml" style="font-family:'Segoe UI', Roboto, sans-serif; font-size:11px; color:#ffffff; text-align:center; line-height:1.3;">
+                Copiloto conversacional: inyección de contexto RAG de consumos y diagnósticos con Gemini/OpenAI.
             </div>
         </foreignObject>
     </g>
     
 
-    <!-- COMPONENTE TRANSVERSAL DE PERSISTENCIA (Y=740) -->
+    <!-- COMPONENTE TRANSVERSAL DE PERSISTENCIA (Y=760) -->
     
-    <g transform="translate(820,750)">
+    <g transform="translate(920,770)">
         <rect x="0" y="0" width="760" height="160" rx="10" fill="#438DD5" stroke="#2b6fb5" stroke-width="2" filter="url(#shadow)"/>
+        <!-- 2 UML component tabs -->
+        <rect x="-8" y="16" width="16" height="14" rx="2" fill="#2b6fb5"/>
+        <rect x="-8" y="38" width="16" height="14" rx="2" fill="#2b6fb5"/>
         <text x="380.0" y="26" font-family="'Segoe UI', Roboto, sans-serif" font-size="16" font-weight="700" fill="#ffffff" text-anchor="middle">Módulo Persistence (IoBuildDbContext)</text>
-        <text x="380.0" y="44" font-family="'Segoe UI', Roboto, sans-serif" font-size="11" fill="#d9ecff" text-anchor="middle">[Componente: Entity Framework Core]</text>
-        <foreignObject x="8" y="52" width="744" height="104">
+        <text x="380.0" y="44" font-family="'Segoe UI', Roboto, sans-serif" font-size="11" fill="#d9ecff" text-anchor="middle">[Component: Entity Framework Core 9]</text>
+        <foreignObject x="10" y="52" width="740" height="104">
             <div xmlns="http://www.w3.org/1999/xhtml" style="font-family:'Segoe UI', Roboto, sans-serif; font-size:11px; color:#ffffff; text-align:center; line-height:1.3;">
-                Unit of Work centralizado que gestiona DbSets, mapeos de entidades, transacciones y migraciones consolidadas.
+                Unit of Work centralizado que gestiona DbSets, mapeos de entidades, transacciones ACID y migraciones relacionales.
             </div>
         </foreignObject>
     </g>
@@ -136,75 +172,82 @@
 
     <!-- DEPENDENCIAS EXTERNAS E INFRAESTRUCTURA (Abajo) -->
     
-    <g transform="translate(140,1120)">
-        <rect x="0" y="0" width="280" height="140" rx="14" fill="#8A9BA8" stroke="#5f717d" stroke-width="2.5" filter="url(#shadow)"/>
-        <text x="140.0" y="32" font-family="'Segoe UI', Roboto, sans-serif" font-size="19" font-weight="700" fill="#ffffff" text-anchor="middle">InfluxDB</text>
-        <text x="140.0" y="52" font-family="'Segoe UI', Roboto, sans-serif" font-size="12" fill="#e6edf2" text-anchor="middle">[Sistema Externo]</text>
-        <foreignObject x="12" y="62" width="256" height="70">
-            <div xmlns="http://www.w3.org/1999/xhtml" style="font-family:'Segoe UI', Roboto, sans-serif; font-size:13px; color:#ffffff; text-align:center; line-height:1.4;">
-                Almacena y consulta telemetría de energía de alta frecuencia.
-            </div>
-        </foreignObject>
-    </g>
-    
-    
-    <g transform="translate(540,1120)">
-        <rect x="0" y="0" width="280" height="140" rx="12" fill="#2A72C9" stroke="#1c5599" stroke-width="2" filter="url(#shadow)"/>
-        <text x="140.0" y="28" font-family="'Segoe UI', Roboto, sans-serif" font-size="17" font-weight="700" fill="#ffffff" text-anchor="middle">Mosquitto (Broker MQTT)</text>
-        <text x="140.0" y="47" font-family="'Segoe UI', Roboto, sans-serif" font-size="11" fill="#cbe2fc" text-anchor="middle">[Contenedor: Eclipse Mosquitto]</text>
-        <foreignObject x="10" y="55" width="260" height="80">
+    <g transform="translate(300,1180)">
+        <!-- Horizontal pipe body -->
+        <rect x="20" y="0" width="300" height="140" fill="#1F618D" stroke="#154360" stroke-width="2" filter="url(#shadow)"/>
+        <!-- Left end cap -->
+        <ellipse cx="20" cy="70.0" rx="18" ry="70.0" fill="#2980B9" stroke="#154360" stroke-width="2"/>
+        <!-- Right end cap -->
+        <ellipse cx="320" cy="70.0" rx="18" ry="70.0" fill="#1F618D" stroke="#154360" stroke-width="2"/>
+        <text x="170.0" y="32" font-family="'Segoe UI', Roboto, sans-serif" font-size="17" font-weight="700" fill="#ffffff" text-anchor="middle">Mosquitto MQTT Broker</text>
+        <text x="170.0" y="52" font-family="'Segoe UI', Roboto, sans-serif" font-size="11" fill="#d4e6f1" text-anchor="middle">[Container: Pipe / Queue (Eclipse Mosquitto)]</text>
+        <foreignObject x="25" y="60" width="290" height="75">
             <div xmlns="http://www.w3.org/1999/xhtml" style="font-family:'Segoe UI', Roboto, sans-serif; font-size:12px; color:#ffffff; text-align:center; line-height:1.35;">
-                Intercambia mensajes MQTT de telemetría y comandos con los dispositivos.
+                Intercambia mensajes MQTT de telemetría de medidores y comandos en tiempo real.
             </div>
         </foreignObject>
     </g>
     
     
-    <g transform="translate(990,1100)">
-        <path d="M 0,20 L 0,170 A 190.0,20 0 0 0 380,170 L 380,20 Z" fill="#1F618D" stroke="#154360" stroke-width="2.5" filter="url(#shadow)"/>
-        <ellipse cx="190.0" cy="170" rx="190.0" ry="20" fill="#1F618D" stroke="#154360" stroke-width="2.5"/>
-        <ellipse cx="190.0" cy="20" rx="190.0" ry="20" fill="#2980B9" stroke="#154360" stroke-width="2.5"/>
-        <text x="190.0" y="60" font-family="'Segoe UI', Roboto, sans-serif" font-size="17" font-weight="700" fill="#ffffff" text-anchor="middle">MySQL Database</text>
-        <text x="190.0" y="80" font-family="'Segoe UI', Roboto, sans-serif" font-size="11" fill="#d4e6f1" text-anchor="middle">[Base de Datos: MySQL 8.0]</text>
-        <foreignObject x="12" y="90" width="356" height="90">
+    <g transform="translate(1080,1160)">
+        <path d="M 0,20 L 0,160 A 220.0,20 0 0 0 440,160 L 440,20 Z" fill="#1F618D" stroke="#154360" stroke-width="2.5" filter="url(#shadow)"/>
+        <ellipse cx="220.0" cy="160" rx="220.0" ry="20" fill="#1F618D" stroke="#154360" stroke-width="2.5"/>
+        <ellipse cx="220.0" cy="20" rx="220.0" ry="20" fill="#2980B9" stroke="#154360" stroke-width="2.5"/>
+        <text x="220.0" y="58" font-family="'Segoe UI', Roboto, sans-serif" font-size="17" font-weight="700" fill="#ffffff" text-anchor="middle">MySQL Database</text>
+        <text x="220.0" y="78" font-family="'Segoe UI', Roboto, sans-serif" font-size="11" fill="#d4e6f1" text-anchor="middle">[Container: Database (MySQL 8.0)]</text>
+        <foreignObject x="12" y="88" width="416" height="85">
             <div xmlns="http://www.w3.org/1999/xhtml" style="font-family:'Segoe UI', Roboto, sans-serif; font-size:12px; color:#ffffff; text-align:center; line-height:1.35;">
-                Instancia centralizada de base de datos relacional para todas las tablas del sistema IoBuild.
+                Instancia de base de datos relacional para usuarios, catastro, recibos, cuotas y telemetría consolidada.
             </div>
         </foreignObject>
     </g>
     
     
-    <g transform="translate(1490,1120)">
+    <g transform="translate(1660,1180)">
         <rect x="0" y="0" width="280" height="140" rx="14" fill="#8A9BA8" stroke="#5f717d" stroke-width="2.5" filter="url(#shadow)"/>
-        <text x="140.0" y="32" font-family="'Segoe UI', Roboto, sans-serif" font-size="19" font-weight="700" fill="#ffffff" text-anchor="middle">Stripe API</text>
-        <text x="140.0" y="52" font-family="'Segoe UI', Roboto, sans-serif" font-size="12" fill="#e6edf2" text-anchor="middle">[Sistema Externo]</text>
+        <text x="140.0" y="32" font-family="'Segoe UI', Roboto, sans-serif" font-size="19" font-weight="700" fill="#ffffff" text-anchor="middle">Stripe Payments API</text>
+        <text x="140.0" y="52" font-family="'Segoe UI', Roboto, sans-serif" font-size="12" fill="#e6edf2" text-anchor="middle">[Software System - Externo]</text>
         <foreignObject x="12" y="62" width="256" height="70">
-            <div xmlns="http://www.w3.org/1999/xhtml" style="font-family:'Segoe UI', Roboto, sans-serif; font-size:13px; color:#ffffff; text-align:center; line-height:1.4;">
-                Crea sesiones checkout y emite webhooks de confirmación.
+            <div xmlns="http://www.w3.org/1999/xhtml" style="font-family:'Segoe UI', Roboto, sans-serif; font-size:12.5px; color:#ffffff; text-align:center; line-height:1.4;">
+                Procesa cargos recurrentes SaaS y transacciones de recibos con tarjeta.
             </div>
         </foreignObject>
     </g>
     
     
-    <g transform="translate(1890,1120)">
-        <rect x="0" y="0" width="280" height="140" rx="14" fill="#8A9BA8" stroke="#5f717d" stroke-width="2.5" filter="url(#shadow)"/>
-        <text x="140.0" y="32" font-family="'Segoe UI', Roboto, sans-serif" font-size="19" font-weight="700" fill="#ffffff" text-anchor="middle">Cloudinary API</text>
-        <text x="140.0" y="52" font-family="'Segoe UI', Roboto, sans-serif" font-size="12" fill="#e6edf2" text-anchor="middle">[Sistema Externo]</text>
-        <foreignObject x="12" y="62" width="256" height="70">
-            <div xmlns="http://www.w3.org/1999/xhtml" style="font-family:'Segoe UI', Roboto, sans-serif; font-size:13px; color:#ffffff; text-align:center; line-height:1.4;">
-                Almacena y optimiza las imágenes de perfil y proyectos.
+    <g transform="translate(2000,1170)">
+        <path d="M 0,20 L 0,130 A 140.0,20 0 0 0 280,130 L 280,20 Z" fill="#7f8c8d" stroke="#515a5a" stroke-width="2.5" filter="url(#shadow)"/>
+        <ellipse cx="140.0" cy="130" rx="140.0" ry="20" fill="#7f8c8d" stroke="#515a5a" stroke-width="2.5"/>
+        <ellipse cx="140.0" cy="20" rx="140.0" ry="20" fill="#95a5a6" stroke="#515a5a" stroke-width="2.5"/>
+        <text x="140.0" y="58" font-family="'Segoe UI', Roboto, sans-serif" font-size="17" font-weight="700" fill="#ffffff" text-anchor="middle">Cloudinary CDN</text>
+        <text x="140.0" y="78" font-family="'Segoe UI', Roboto, sans-serif" font-size="11" fill="#d4e6f1" text-anchor="middle">[Database Externo: Cloud Media]</text>
+        <foreignObject x="12" y="88" width="256" height="55">
+            <div xmlns="http://www.w3.org/1999/xhtml" style="font-family:'Segoe UI', Roboto, sans-serif; font-size:12px; color:#ffffff; text-align:center; line-height:1.35;">
+                Almacenamiento y entrega de comprobantes bancarios y fotos de incidencias.
+            </div>
+        </foreignObject>
+    </g>
+    
+    
+    <g transform="translate(2320,1180)">
+        <rect x="0" y="0" width="250" height="140" rx="14" fill="#8A9BA8" stroke="#5f717d" stroke-width="2.5" filter="url(#shadow)"/>
+        <text x="125.0" y="32" font-family="'Segoe UI', Roboto, sans-serif" font-size="19" font-weight="700" fill="#ffffff" text-anchor="middle">Google Gemini API</text>
+        <text x="125.0" y="52" font-family="'Segoe UI', Roboto, sans-serif" font-size="12" fill="#e6edf2" text-anchor="middle">[Software System - Externo]</text>
+        <foreignObject x="12" y="62" width="226" height="70">
+            <div xmlns="http://www.w3.org/1999/xhtml" style="font-family:'Segoe UI', Roboto, sans-serif; font-size:12.5px; color:#ffffff; text-align:center; line-height:1.4;">
+                Inferencia de modelos fundacionales RAG para explicaciones de cobro.
             </div>
         </foreignObject>
     </g>
     
 
-    <!-- RELACIONES DESDE NGINX HACIA CADA MÓDULO -->
+    <!-- RELACIONES DESDE NGINX -->
     
-    <path d="M 1100,250 L 300,420" stroke="#666666" stroke-width="2"  marker-end="url(#arrowhead)"/>
+    <path d="M 1200,250 L 270,420" stroke="#666666" stroke-width="2"  marker-end="url(#arrowhead)"/>
     
-        <g transform="translate(635.0, 315.0)">
-            <rect width="130" height="38" rx="6" fill="#ffffff" stroke="#bbbbbb" stroke-width="1" filter="url(#mini-shadow)" opacity="0.96"/>
-            <foreignObject x="0" y="2" width="130" height="34">
+        <g transform="translate(675.0, 315.0)">
+            <rect width="120" height="38" rx="6" fill="#ffffff" stroke="#bbbbbb" stroke-width="1" filter="url(#mini-shadow)" opacity="0.96"/>
+            <foreignObject x="0" y="2" width="120" height="34">
                 <div xmlns="http://www.w3.org/1999/xhtml" style="font-family:'Segoe UI', sans-serif; text-align:center;">
                     <div style="font-weight:600; color:#222; font-size:11px;">Enruta /auth</div><div style="font-weight:400; color:#555; font-size:10px; margin-top:2px;">[HTTP]</div>
                 </div>
@@ -213,24 +256,24 @@
         
     
     
-    <path d="M 1140,250 L 660,420" stroke="#666666" stroke-width="2"  marker-end="url(#arrowhead)"/>
+    <path d="M 1240,250 L 610,420" stroke="#666666" stroke-width="2"  marker-end="url(#arrowhead)"/>
     
-        <g transform="translate(835.0, 315.0)">
-            <rect width="130" height="38" rx="6" fill="#ffffff" stroke="#bbbbbb" stroke-width="1" filter="url(#mini-shadow)" opacity="0.96"/>
-            <foreignObject x="0" y="2" width="130" height="34">
+        <g transform="translate(865.0, 315.0)">
+            <rect width="120" height="38" rx="6" fill="#ffffff" stroke="#bbbbbb" stroke-width="1" filter="url(#mini-shadow)" opacity="0.96"/>
+            <foreignObject x="0" y="2" width="120" height="34">
                 <div xmlns="http://www.w3.org/1999/xhtml" style="font-family:'Segoe UI', sans-serif; text-align:center;">
-                    <div style="font-weight:600; color:#222; font-size:11px;">Enruta /projects</div><div style="font-weight:400; color:#555; font-size:10px; margin-top:2px;">[HTTP]</div>
+                    <div style="font-weight:600; color:#222; font-size:11px;">Enruta /cadastre</div><div style="font-weight:400; color:#555; font-size:10px; margin-top:2px;">[HTTP]</div>
                 </div>
             </foreignObject>
         </g>
         
     
     
-    <path d="M 1180,250 L 1020,420" stroke="#666666" stroke-width="2"  marker-end="url(#arrowhead)"/>
+    <path d="M 1270,250 L 950,420" stroke="#666666" stroke-width="2"  marker-end="url(#arrowhead)"/>
     
-        <g transform="translate(1035.0, 315.0)">
-            <rect width="130" height="38" rx="6" fill="#ffffff" stroke="#bbbbbb" stroke-width="1" filter="url(#mini-shadow)" opacity="0.96"/>
-            <foreignObject x="0" y="2" width="130" height="34">
+        <g transform="translate(1050.0, 315.0)">
+            <rect width="120" height="38" rx="6" fill="#ffffff" stroke="#bbbbbb" stroke-width="1" filter="url(#mini-shadow)" opacity="0.96"/>
+            <foreignObject x="0" y="2" width="120" height="34">
                 <div xmlns="http://www.w3.org/1999/xhtml" style="font-family:'Segoe UI', sans-serif; text-align:center;">
                     <div style="font-weight:600; color:#222; font-size:11px;">Enruta /devices</div><div style="font-weight:400; color:#555; font-size:10px; margin-top:2px;">[HTTP]</div>
                 </div>
@@ -239,9 +282,35 @@
         
     
     
-    <path d="M 1220,250 L 1380,420" stroke="#666666" stroke-width="2"  marker-end="url(#arrowhead)"/>
+    <path d="M 1300,250 L 1290,420" stroke="#666666" stroke-width="2"  marker-end="url(#arrowhead)"/>
     
         <g transform="translate(1230.0, 315.0)">
+            <rect width="130" height="38" rx="6" fill="#ffffff" stroke="#bbbbbb" stroke-width="1" filter="url(#mini-shadow)" opacity="0.96"/>
+            <foreignObject x="0" y="2" width="130" height="34">
+                <div xmlns="http://www.w3.org/1999/xhtml" style="font-family:'Segoe UI', sans-serif; text-align:center;">
+                    <div style="font-weight:600; color:#222; font-size:11px;">Enruta /telemetry</div><div style="font-weight:400; color:#555; font-size:10px; margin-top:2px;">[HTTP]</div>
+                </div>
+            </foreignObject>
+        </g>
+        
+    
+    
+    <path d="M 1330,250 L 1630,420" stroke="#666666" stroke-width="2"  marker-end="url(#arrowhead)"/>
+    
+        <g transform="translate(1415.0, 315.0)">
+            <rect width="130" height="38" rx="6" fill="#ffffff" stroke="#bbbbbb" stroke-width="1" filter="url(#mini-shadow)" opacity="0.96"/>
+            <foreignObject x="0" y="2" width="130" height="34">
+                <div xmlns="http://www.w3.org/1999/xhtml" style="font-family:'Segoe UI', sans-serif; text-align:center;">
+                    <div style="font-weight:600; color:#222; font-size:11px;">Enruta /proration</div><div style="font-weight:400; color:#555; font-size:10px; margin-top:2px;">[HTTP]</div>
+                </div>
+            </foreignObject>
+        </g>
+        
+    
+    
+    <path d="M 1360,250 L 1970,420" stroke="#666666" stroke-width="2"  marker-end="url(#arrowhead)"/>
+    
+        <g transform="translate(1595.0, 315.0)">
             <rect width="140" height="38" rx="6" fill="#ffffff" stroke="#bbbbbb" stroke-width="1" filter="url(#mini-shadow)" opacity="0.96"/>
             <foreignObject x="0" y="2" width="140" height="34">
                 <div xmlns="http://www.w3.org/1999/xhtml" style="font-family:'Segoe UI', sans-serif; text-align:center;">
@@ -252,39 +321,26 @@
         
     
     
-    <path d="M 1260,250 L 1740,420" stroke="#666666" stroke-width="2"  marker-end="url(#arrowhead)"/>
+    <path d="M 1400,250 L 2300,420" stroke="#666666" stroke-width="2"  marker-end="url(#arrowhead)"/>
     
-        <g transform="translate(1435.0, 315.0)">
-            <rect width="130" height="38" rx="6" fill="#ffffff" stroke="#bbbbbb" stroke-width="1" filter="url(#mini-shadow)" opacity="0.96"/>
-            <foreignObject x="0" y="2" width="130" height="34">
+        <g transform="translate(1790.0, 315.0)">
+            <rect width="120" height="38" rx="6" fill="#ffffff" stroke="#bbbbbb" stroke-width="1" filter="url(#mini-shadow)" opacity="0.96"/>
+            <foreignObject x="0" y="2" width="120" height="34">
                 <div xmlns="http://www.w3.org/1999/xhtml" style="font-family:'Segoe UI', sans-serif; text-align:center;">
-                    <div style="font-weight:600; color:#222; font-size:11px;">Enruta /analytics</div><div style="font-weight:400; color:#555; font-size:10px; margin-top:2px;">[HTTP]</div>
-                </div>
-            </foreignObject>
-        </g>
-        
-    
-    
-    <path d="M 1300,250 L 2100,420" stroke="#666666" stroke-width="2"  marker-end="url(#arrowhead)"/>
-    
-        <g transform="translate(1635.0, 315.0)">
-            <rect width="130" height="38" rx="6" fill="#ffffff" stroke="#bbbbbb" stroke-width="1" filter="url(#mini-shadow)" opacity="0.96"/>
-            <foreignObject x="0" y="2" width="130" height="34">
-                <div xmlns="http://www.w3.org/1999/xhtml" style="font-family:'Segoe UI', sans-serif; text-align:center;">
-                    <div style="font-weight:600; color:#222; font-size:11px;">Enruta /profiles</div><div style="font-weight:400; color:#555; font-size:10px; margin-top:2px;">[HTTP]</div>
+                    <div style="font-weight:600; color:#222; font-size:11px;">Enruta /ai-chat</div><div style="font-weight:400; color:#555; font-size:10px; margin-top:2px;">[HTTP]</div>
                 </div>
             </foreignObject>
         </g>
         
     
 
-    <!-- RELACIONES DESDE CADA MÓDULO HACIA PERSISTENCIA -->
+    <!-- RELACIONES A PERSISTENCIA -->
     
-    <path d="M 300,600 L 860,750" stroke="#666666" stroke-width="2"  marker-end="url(#arrowhead)"/>
+    <path d="M 270,600 L 950,770" stroke="#666666" stroke-width="2"  marker-end="url(#arrowhead)"/>
     
-        <g transform="translate(515.0, 655.0)">
-            <rect width="130" height="38" rx="6" fill="#ffffff" stroke="#bbbbbb" stroke-width="1" filter="url(#mini-shadow)" opacity="0.96"/>
-            <foreignObject x="0" y="2" width="130" height="34">
+        <g transform="translate(525.0, 665.0)">
+            <rect width="170" height="38" rx="6" fill="#ffffff" stroke="#bbbbbb" stroke-width="1" filter="url(#mini-shadow)" opacity="0.96"/>
+            <foreignObject x="0" y="2" width="170" height="34">
                 <div xmlns="http://www.w3.org/1999/xhtml" style="font-family:'Segoe UI', sans-serif; text-align:center;">
                     <div style="font-weight:600; color:#222; font-size:11px;">Guarda usuarios</div>
                 </div>
@@ -293,65 +349,65 @@
         
     
     
-    <path d="M 660,600 L 1000,750" stroke="#666666" stroke-width="2"  marker-end="url(#arrowhead)"/>
+    <path d="M 610,600 L 1050,770" stroke="#666666" stroke-width="2"  marker-end="url(#arrowhead)"/>
     
-        <g transform="translate(745.0, 655.0)">
+        <g transform="translate(745.0, 665.0)">
             <rect width="170" height="38" rx="6" fill="#ffffff" stroke="#bbbbbb" stroke-width="1" filter="url(#mini-shadow)" opacity="0.96"/>
             <foreignObject x="0" y="2" width="170" height="34">
                 <div xmlns="http://www.w3.org/1999/xhtml" style="font-family:'Segoe UI', sans-serif; text-align:center;">
-                    <div style="font-weight:600; color:#222; font-size:11px;">Guarda proyectos y unidades</div>
+                    <div style="font-weight:600; color:#222; font-size:11px;">Guarda edificios y alícuotas</div>
                 </div>
             </foreignObject>
         </g>
         
     
     
-    <path d="M 1020,600 L 1140,750" stroke="#666666" stroke-width="2"  marker-end="url(#arrowhead)"/>
+    <path d="M 950,600 L 1150,770" stroke="#666666" stroke-width="2"  marker-end="url(#arrowhead)"/>
     
-        <g transform="translate(1010.0, 655.0)">
-            <rect width="140" height="38" rx="6" fill="#ffffff" stroke="#bbbbbb" stroke-width="1" filter="url(#mini-shadow)" opacity="0.96"/>
-            <foreignObject x="0" y="2" width="140" height="34">
+        <g transform="translate(965.0, 665.0)">
+            <rect width="170" height="38" rx="6" fill="#ffffff" stroke="#bbbbbb" stroke-width="1" filter="url(#mini-shadow)" opacity="0.96"/>
+            <foreignObject x="0" y="2" width="170" height="34">
                 <div xmlns="http://www.w3.org/1999/xhtml" style="font-family:'Segoe UI', sans-serif; text-align:center;">
-                    <div style="font-weight:600; color:#222; font-size:11px;">Guarda dispositivos</div>
+                    <div style="font-weight:600; color:#222; font-size:11px;">Guarda medidores</div>
                 </div>
             </foreignObject>
         </g>
         
     
     
-    <path d="M 1380,600 L 1260,750" stroke="#666666" stroke-width="2"  marker-end="url(#arrowhead)"/>
+    <path d="M 1290,600 L 1300,770" stroke="#666666" stroke-width="2"  marker-end="url(#arrowhead)"/>
     
-        <g transform="translate(1230.0, 655.0)">
-            <rect width="180" height="38" rx="6" fill="#ffffff" stroke="#bbbbbb" stroke-width="1" filter="url(#mini-shadow)" opacity="0.96"/>
-            <foreignObject x="0" y="2" width="180" height="34">
+        <g transform="translate(1210.0, 665.0)">
+            <rect width="170" height="38" rx="6" fill="#ffffff" stroke="#bbbbbb" stroke-width="1" filter="url(#mini-shadow)" opacity="0.96"/>
+            <foreignObject x="0" y="2" width="170" height="34">
                 <div xmlns="http://www.w3.org/1999/xhtml" style="font-family:'Segoe UI', sans-serif; text-align:center;">
-                    <div style="font-weight:600; color:#222; font-size:11px;">Guarda planes y suscripciones</div>
+                    <div style="font-weight:600; color:#222; font-size:11px;">Guarda consumos</div>
                 </div>
             </foreignObject>
         </g>
         
     
     
-    <path d="M 1740,600 L 1400,750" stroke="#666666" stroke-width="2"  marker-end="url(#arrowhead)"/>
+    <path d="M 1630,600 L 1450,770" stroke="#666666" stroke-width="2"  marker-end="url(#arrowhead)"/>
     
-        <g transform="translate(1495.0, 655.0)">
-            <rect width="150" height="38" rx="6" fill="#ffffff" stroke="#bbbbbb" stroke-width="1" filter="url(#mini-shadow)" opacity="0.96"/>
-            <foreignObject x="0" y="2" width="150" height="34">
+        <g transform="translate(1455.0, 665.0)">
+            <rect width="170" height="38" rx="6" fill="#ffffff" stroke="#bbbbbb" stroke-width="1" filter="url(#mini-shadow)" opacity="0.96"/>
+            <foreignObject x="0" y="2" width="170" height="34">
                 <div xmlns="http://www.w3.org/1999/xhtml" style="font-family:'Segoe UI', sans-serif; text-align:center;">
-                    <div style="font-weight:600; color:#222; font-size:11px;">Consulta proyecciones</div>
+                    <div style="font-weight:600; color:#222; font-size:11px;">Guarda liquidaciones y cuotas</div>
                 </div>
             </foreignObject>
         </g>
         
     
     
-    <path d="M 2100,600 L 1540,750" stroke="#666666" stroke-width="2"  marker-end="url(#arrowhead)"/>
+    <path d="M 1970,600 L 1550,770" stroke="#666666" stroke-width="2"  marker-end="url(#arrowhead)"/>
     
-        <g transform="translate(1755.0, 655.0)">
-            <rect width="130" height="38" rx="6" fill="#ffffff" stroke="#bbbbbb" stroke-width="1" filter="url(#mini-shadow)" opacity="0.96"/>
-            <foreignObject x="0" y="2" width="130" height="34">
+        <g transform="translate(1675.0, 665.0)">
+            <rect width="170" height="38" rx="6" fill="#ffffff" stroke="#bbbbbb" stroke-width="1" filter="url(#mini-shadow)" opacity="0.96"/>
+            <foreignObject x="0" y="2" width="170" height="34">
                 <div xmlns="http://www.w3.org/1999/xhtml" style="font-family:'Segoe UI', sans-serif; text-align:center;">
-                    <div style="font-weight:600; color:#222; font-size:11px;">Guarda perfiles</div>
+                    <div style="font-weight:600; color:#222; font-size:11px;">Guarda planes y facturación</div>
                 </div>
             </foreignObject>
         </g>
@@ -360,11 +416,11 @@
 
     <!-- PERSISTENCIA A MYSQL -->
     
-    <path d="M 1200,910 L 1200,1100" stroke="#666666" stroke-width="2"  marker-end="url(#arrowhead)"/>
+    <path d="M 1300,930 L 1300,1160" stroke="#666666" stroke-width="2"  marker-end="url(#arrowhead)"/>
     
-        <g transform="translate(1085.0, 985.0)">
-            <rect width="230" height="38" rx="6" fill="#ffffff" stroke="#bbbbbb" stroke-width="1" filter="url(#mini-shadow)" opacity="0.96"/>
-            <foreignObject x="0" y="2" width="230" height="34">
+        <g transform="translate(1180.0, 1025.0)">
+            <rect width="240" height="38" rx="6" fill="#ffffff" stroke="#bbbbbb" stroke-width="1" filter="url(#mini-shadow)" opacity="0.96"/>
+            <foreignObject x="0" y="2" width="240" height="34">
                 <div xmlns="http://www.w3.org/1999/xhtml" style="font-family:'Segoe UI', sans-serif; text-align:center;">
                     <div style="font-weight:600; color:#222; font-size:11px;">Ejecuta queries y transacciones SQL</div><div style="font-weight:400; color:#555; font-size:10px; margin-top:2px;">[MySQL Protocol :3306]</div>
                 </div>
@@ -373,87 +429,71 @@
         
     
 
-    <!-- CONEXIONES EXTERNAS LIMPIAS (Laterales/Descendentes) -->
-    <!-- Devices -> Mosquitto (Directo vertical) -->
+    <!-- CONEXIONES A SISTEMAS EXTERNOS -->
     
-    <path d="M 940,600 L 680,1120" stroke="#666666" stroke-width="2"  marker-end="url(#arrowhead)"/>
+    <path d="M 950,600 L 470,1180" stroke="#666666" stroke-width="2"  marker-end="url(#arrowhead)"/>
     
-        <g transform="translate(655.0, 840.0)">
-            <rect width="190" height="38" rx="6" fill="#ffffff" stroke="#bbbbbb" stroke-width="1" filter="url(#mini-shadow)" opacity="0.96"/>
-            <foreignObject x="0" y="2" width="190" height="34">
-                <div xmlns="http://www.w3.org/1999/xhtml" style="font-family:'Segoe UI', sans-serif; text-align:center;">
-                    <div style="font-weight:600; color:#222; font-size:11px;">Publica comandos y suscribe</div><div style="font-weight:400; color:#555; font-size:10px; margin-top:2px;">[MQTT :1883]</div>
-                </div>
-            </foreignObject>
-        </g>
-        
-    
-    <!-- Subscriptions <-> Stripe (Directo vertical) -->
-    
-    <path d="M 1460,600 L 1600,1120" stroke="#666666" stroke-width="2"  marker-end="url(#arrowhead)"/>
-    
-        <g transform="translate(1485.0, 840.0)">
+        <g transform="translate(625.0, 870.0)">
             <rect width="170" height="38" rx="6" fill="#ffffff" stroke="#bbbbbb" stroke-width="1" filter="url(#mini-shadow)" opacity="0.96"/>
             <foreignObject x="0" y="2" width="170" height="34">
                 <div xmlns="http://www.w3.org/1999/xhtml" style="font-family:'Segoe UI', sans-serif; text-align:center;">
-                    <div style="font-weight:600; color:#222; font-size:11px;">Crea sesiones checkout</div><div style="font-weight:400; color:#555; font-size:10px; margin-top:2px;">[HTTPS / REST]</div>
+                    <div style="font-weight:600; color:#222; font-size:11px;">Suscripción y comandos</div><div style="font-weight:400; color:#555; font-size:10px; margin-top:2px;">[MQTT :1883]</div>
                 </div>
             </foreignObject>
         </g>
         
     
     
-    <path d="M 1680,1120 Q 1750,850 1500,600" stroke="#666666" stroke-width="2" fill="none" marker-end="url(#arrowhead)"/>
+    <path d="M 1970,600 L 1800,1180" stroke="#666666" stroke-width="2"  marker-end="url(#arrowhead)"/>
     
-        <g transform="translate(1595.0, 835.0)">
-            <rect width="150" height="36" rx="6" fill="#ffffff" stroke="#bbbbbb" stroke-width="1" filter="url(#mini-shadow)" opacity="0.96"/>
-            <foreignObject x="0" y="2" width="150" height="32">
+        <g transform="translate(1790.0, 870.0)">
+            <rect width="190" height="38" rx="6" fill="#ffffff" stroke="#bbbbbb" stroke-width="1" filter="url(#mini-shadow)" opacity="0.96"/>
+            <foreignObject x="0" y="2" width="190" height="34">
                 <div xmlns="http://www.w3.org/1999/xhtml" style="font-family:'Segoe UI', sans-serif; text-align:center;">
-                    <div style="font-weight:600; color:#222; font-size:11px;">Webhooks de cobro</div><div style="font-weight:400; color:#555; font-size:10px; margin-top:2px;">[HTTPS]</div>
+                    <div style="font-weight:600; color:#222; font-size:11px;">Sesiones checkout y webhooks</div><div style="font-weight:400; color:#555; font-size:10px; margin-top:2px;">[HTTPS / REST]</div>
                 </div>
             </foreignObject>
         </g>
         
     
-    <!-- Profiles -> Cloudinary (Directo vertical) -->
     
-    <path d="M 2100,600 L 2030,1120" stroke="#666666" stroke-width="2"  marker-end="url(#arrowhead)"/>
+    <path d="M 2300,600 L 2140,1170" stroke="#666666" stroke-width="2"  marker-end="url(#arrowhead)"/>
     
-        <g transform="translate(1985.0, 840.0)">
-            <rect width="160" height="38" rx="6" fill="#ffffff" stroke="#bbbbbb" stroke-width="1" filter="url(#mini-shadow)" opacity="0.96"/>
-            <foreignObject x="0" y="2" width="160" height="34">
+        <g transform="translate(2125.0, 865.0)">
+            <rect width="190" height="38" rx="6" fill="#ffffff" stroke="#bbbbbb" stroke-width="1" filter="url(#mini-shadow)" opacity="0.96"/>
+            <foreignObject x="0" y="2" width="190" height="34">
                 <div xmlns="http://www.w3.org/1999/xhtml" style="font-family:'Segoe UI', sans-serif; text-align:center;">
-                    <div style="font-weight:600; color:#222; font-size:11px;">Sube fotos de perfil</div><div style="font-weight:400; color:#555; font-size:10px; margin-top:2px;">[HTTPS / REST]</div>
+                    <div style="font-weight:600; color:#222; font-size:11px;">Guarda fotos de perfil/vouchers</div><div style="font-weight:400; color:#555; font-size:10px; margin-top:2px;">[HTTPS / REST]</div>
                 </div>
             </foreignObject>
         </g>
         
     
-    <!-- Analytics -> InfluxDB (Lado izquierdo) -->
     
-    <path d="M 1660,600 Q 800,990 320,1120" stroke="#666666" stroke-width="2" fill="none" marker-end="url(#arrowhead)"/>
+    <path d="M 2310,600 L 2440,1180" stroke="#666666" stroke-width="2"  marker-end="url(#arrowhead)"/>
     
-        <g transform="translate(820.0, 905.0)">
-            <rect width="150" height="36" rx="6" fill="#ffffff" stroke="#bbbbbb" stroke-width="1" filter="url(#mini-shadow)" opacity="0.96"/>
-            <foreignObject x="0" y="2" width="150" height="32">
+        <g transform="translate(2285.0, 870.0)">
+            <rect width="180" height="38" rx="6" fill="#ffffff" stroke="#bbbbbb" stroke-width="1" filter="url(#mini-shadow)" opacity="0.96"/>
+            <foreignObject x="0" y="2" width="180" height="34">
                 <div xmlns="http://www.w3.org/1999/xhtml" style="font-family:'Segoe UI', sans-serif; text-align:center;">
-                    <div style="font-weight:600; color:#222; font-size:11px;">Ingesta telemetría</div><div style="font-weight:400; color:#555; font-size:10px; margin-top:2px;">[HTTP :8086]</div>
+                    <div style="font-weight:600; color:#222; font-size:11px;">Prompts RAG multimodales</div><div style="font-weight:400; color:#555; font-size:10px; margin-top:2px;">[HTTPS / REST]</div>
                 </div>
             </foreignObject>
         </g>
         
     
 
-    <g transform="translate(60, 1340)">
-        <rect width="900" height="60" rx="8" fill="#ffffff" stroke="#d0dbe5" stroke-width="1"/>
+    <!-- Leyenda -->
+    <g transform="translate(60, 1380)">
+        <rect width="950" height="60" rx="8" fill="#ffffff" stroke="#d0dbe5" stroke-width="1"/>
         <rect x="20" y="18" width="24" height="24" rx="4" fill="#438DD5"/>
         <text x="52" y="35" font-family="'Segoe UI', sans-serif" font-size="13" font-weight="600" fill="#222222">Componente de Módulo (.NET 9)</text>
-        <rect x="310" y="18" width="24" height="24" rx="4" fill="#2A72C9"/>
-        <text x="342" y="35" font-family="'Segoe UI', sans-serif" font-size="13" font-weight="600" fill="#222222">Contenedor Relacionado</text>
-        <rect x="550" y="18" width="24" height="24" rx="4" fill="#1F618D"/>
-        <text x="582" y="35" font-family="'Segoe UI', sans-serif" font-size="13" font-weight="600" fill="#222222">Base de Datos</text>
-        <rect x="700" y="18" width="24" height="24" rx="4" fill="#8A9BA8"/>
-        <text x="732" y="35" font-family="'Segoe UI', sans-serif" font-size="13" font-weight="600" fill="#222222">Sistema Externo</text>
+        <rect x="300" y="18" width="24" height="24" rx="4" fill="#2A72C9"/>
+        <text x="332" y="35" font-family="'Segoe UI', sans-serif" font-size="13" font-weight="600" fill="#222222">Contenedor Nginx</text>
+        <ellipse cx="530" cy="30" rx="12" ry="8" fill="#1F618D"/>
+        <text x="552" y="35" font-family="'Segoe UI', sans-serif" font-size="13" font-weight="600" fill="#222222">Base de Datos (Cylinder)</text>
+        <rect x="740" y="18" width="24" height="24" rx="4" fill="#8A9BA8"/>
+        <text x="772" y="35" font-family="'Segoe UI', sans-serif" font-size="13" font-weight="600" fill="#222222">Sistema Externo</text>
     </g>
 </svg>
 
