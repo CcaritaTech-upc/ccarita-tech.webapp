@@ -47,6 +47,8 @@ public sealed class DeviceCommandService(IoBuildDbContext db, IDeviceMqttPublish
         ValidateCommand(device.Type, attribute, value);
         var shadow = await db.DeviceShadows.FindAsync([deviceId], cancellationToken);
         var desired = shadow?.DesiredJson is { Length: > 0 } json ? JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(json) ?? [] : [];
+        if (attribute != "power" && desired.TryGetValue("power", out var power) && power.ValueKind == JsonValueKind.False)
+            throw new InvalidOperationException("Device is powered off; turn it on before changing other attributes.");
         desired[attribute] = value;
         var desiredJson = JsonSerializer.Serialize(desired);
         if (shadow is null)

@@ -83,6 +83,44 @@ public sealed class DeviceControlFlowTests
         Assert.Equal(HttpStatusCode.Unauthorized, anonymous.StatusCode);
     }
 
+    [Fact]
+    [Trait("Flow", "DEVICES.CONTROL")]
+    [Trait("Layer", "Api")]
+    [Trait("Risk", "A")]
+    public async Task CONTROL_POWERED_OFF_device_only_accepts_power_commands()
+    {
+        await using var factory = new DeviceApiFactory();
+        using var client = factory.CreateClient();
+        await SeedAsync(factory, SeedUnitDeviceAsync);
+        var owner = Token(51, "owner51@example.test", "Owner");
+        const string path = "/api/v1/devices/511/commands";
+
+        // Unknown power state locks nothing: attributes stay controllable.
+        using var beforePower = await SendAsync(client, HttpMethod.Post, path, owner, "{\"attribute\":\"brightness\",\"value\":40}");
+        Assert.Equal(HttpStatusCode.OK, beforePower.StatusCode);
+
+        using var off = await SendAsync(client, HttpMethod.Post, path, owner, "{\"attribute\":\"power\",\"value\":false}");
+        Assert.Equal(HttpStatusCode.OK, off.StatusCode);
+
+        using var locked = await SendAsync(client, HttpMethod.Post, path, owner, "{\"attribute\":\"brightness\",\"value\":80}");
+        Assert.Equal(HttpStatusCode.Conflict, locked.StatusCode);
+        Assert.Contains("powered off", await locked.Content.ReadAsStringAsync());
+
+        using var offAgain = await SendAsync(client, HttpMethod.Post, path, owner, "{\"attribute\":\"power\",\"value\":false}");
+        Assert.Equal(HttpStatusCode.OK, offAgain.StatusCode);
+
+        using var on = await SendAsync(client, HttpMethod.Post, path, owner, "{\"attribute\":\"power\",\"value\":true}");
+        Assert.Equal(HttpStatusCode.OK, on.StatusCode);
+
+        using var unlocked = await SendAsync(client, HttpMethod.Post, path, owner, "{\"attribute\":\"brightness\",\"value\":80}");
+        Assert.Equal(HttpStatusCode.OK, unlocked.StatusCode);
+
+        // The rejected command must leave no trace: only the 5 accepted commands are stored.
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<IoBuildDbContext>();
+        Assert.Equal(5, await db.DeviceCommands.CountAsync(c => c.DeviceId == 511));
+    }
+
     private static async Task SeedUnitDeviceAsync(IoBuildDbContext db)
     {
         db.Projects.Add(new Project { Id = 51, BuilderId = 51, Name = "Control Tower" });
