@@ -1,0 +1,883 @@
+{
+  "id": "86708218-5858-511e-99bd-14735515096c",
+  "version": "2.0",
+  "name": "IoBuild deployed IAM smoke",
+  "url": "https://iobuild-remix.arroz.dev",
+  "tests": [
+    {
+      "id": "06159bd1-88a9-50db-aa18-b65a1e656743",
+      "name": "IAM login: wrong credentials give a generic error",
+      "commands": [
+        {
+          "id": "9a72738a-244d-52c3-9b29-9221d3e8e612",
+          "comment": "Unique suffix so each run registers a new account",
+          "command": "executeScript",
+          "target": "return String(Date.now())",
+          "targets": [],
+          "value": "stamp"
+        },
+        {
+          "id": "a725f9de-570d-5ceb-9987-d888c9a91b0b",
+          "comment": "",
+          "command": "executeScript",
+          "target": "return String(Date.now()).slice(-6)",
+          "targets": [],
+          "value": "suffix"
+        },
+        {
+          "id": "8a5360e8-44e3-5f59-a3a8-592a2e7ca139",
+          "comment": "Start clean: drop any session left by a previous test",
+          "command": "open",
+          "target": "/",
+          "targets": [],
+          "value": ""
+        },
+        {
+          "id": "566bd8f1-4279-5fbc-a2dd-6368d29812f5",
+          "comment": "",
+          "command": "executeScript",
+          "target": "localStorage.clear(); sessionStorage.clear(); return true",
+          "targets": [],
+          "value": "cleared"
+        },
+        {
+          "id": "102768f6-5bc4-5a75-b8d9-fa52b892cb57",
+          "comment": "",
+          "command": "setWindowSize",
+          "target": "1280x900",
+          "targets": [],
+          "value": ""
+        },
+        {
+          "id": "0168818d-c28a-50c8-8de2-a53c6344f905",
+          "comment": "",
+          "command": "open",
+          "target": "/iam/login",
+          "targets": [],
+          "value": ""
+        },
+        {
+          "id": "b86399fc-4a0f-5800-9712-75424b3a3d53",
+          "comment": "",
+          "command": "waitForElementVisible",
+          "target": "id=email",
+          "targets": [],
+          "value": "20000"
+        },
+        {
+          "id": "63fadc80-b793-5909-b64d-f11bde57b00a",
+          "comment": "",
+          "command": "type",
+          "target": "id=email",
+          "targets": [],
+          "value": "nobody.${stamp}@example.test"
+        },
+        {
+          "id": "0561b0e0-7db2-52fd-b15b-777a4e02418f",
+          "comment": "",
+          "command": "type",
+          "target": "css=#password input",
+          "targets": [],
+          "value": "wrong-password"
+        },
+        {
+          "id": "e68a4e75-f17d-53b1-bd2d-c8f01cda407c",
+          "comment": "",
+          "command": "click",
+          "target": "css=button[type='submit']",
+          "targets": [],
+          "value": ""
+        },
+        {
+          "id": "1b7c0175-c714-5ac8-8149-863f1f912a59",
+          "comment": "",
+          "command": "waitForElementVisible",
+          "target": "xpath=//*[normalize-space()='Correo o contraseña incorrectos.']",
+          "targets": [],
+          "value": "20000"
+        },
+        {
+          "id": "7be08940-6e85-5271-a1f9-652cfa7d9106",
+          "comment": "No field is blamed",
+          "command": "assertElementNotPresent",
+          "target": "css=.p-error",
+          "targets": [],
+          "value": ""
+        },
+        {
+          "id": "d923de87-6adb-53d9-b34f-880b7a913e5c",
+          "comment": "",
+          "command": "executeScript",
+          "target": "return window.location.pathname",
+          "targets": [],
+          "value": "path"
+        },
+        {
+          "id": "1be74034-8908-5173-8908-5a773e2db692",
+          "comment": "",
+          "command": "assert",
+          "target": "path",
+          "targets": [],
+          "value": "/iam/login"
+        }
+      ]
+    },
+    {
+      "id": "b961f37b-1352-5dfd-811c-659e4abcbe2f",
+      "name": "IAM registration: builder form names each failing field",
+      "commands": [
+        {
+          "id": "16712883-59e7-54dd-8641-98f6c823e5b9",
+          "comment": "Start clean: drop any session left by a previous test",
+          "command": "open",
+          "target": "/",
+          "targets": [],
+          "value": ""
+        },
+        {
+          "id": "bed2d878-531c-53c8-b3c2-ca2b0a763555",
+          "comment": "",
+          "command": "executeScript",
+          "target": "localStorage.clear(); sessionStorage.clear(); return true",
+          "targets": [],
+          "value": "cleared"
+        },
+        {
+          "id": "94770dda-5a01-5c32-9c6a-66e2c99860a8",
+          "comment": "",
+          "command": "setWindowSize",
+          "target": "1280x900",
+          "targets": [],
+          "value": ""
+        },
+        {
+          "id": "ad24dc7d-b66d-5ed6-bb7c-fddd1198593c",
+          "comment": "",
+          "command": "open",
+          "target": "/iam/register-builder",
+          "targets": [],
+          "value": ""
+        },
+        {
+          "id": "f8af6766-14b8-56cf-821f-0e3ae4722fd3",
+          "comment": "",
+          "command": "waitForElementVisible",
+          "target": "id=email",
+          "targets": [],
+          "value": "20000"
+        },
+        {
+          "id": "5eba2206-31b4-5be0-815a-175057593696",
+          "comment": "Step 1 submitted empty",
+          "command": "click",
+          "target": "xpath=//button[normalize-space()='Next']",
+          "targets": [],
+          "value": ""
+        },
+        {
+          "id": "e2ab2e9b-6c87-556f-a6ef-7d12bd8f8c5a",
+          "comment": "",
+          "command": "waitForElementVisible",
+          "target": "xpath=//*[normalize-space()='El correo electrónico es obligatorio.']",
+          "targets": [],
+          "value": "20000"
+        },
+        {
+          "id": "3c506030-f9a2-51a1-9372-1ba538da3a15",
+          "comment": "",
+          "command": "waitForElementVisible",
+          "target": "xpath=//*[normalize-space()='La contraseña es obligatoria.']",
+          "targets": [],
+          "value": "20000"
+        },
+        {
+          "id": "4083bd10-4aef-5186-b2b6-e64f8e8189d9",
+          "comment": "",
+          "command": "waitForElementVisible",
+          "target": "xpath=//*[normalize-space()='Debe confirmar su contraseña.']",
+          "targets": [],
+          "value": "20000"
+        },
+        {
+          "id": "2b224275-bdca-5654-9385-2c7bb67a823b",
+          "comment": "Unique suffix so each run registers a new account",
+          "command": "executeScript",
+          "target": "return String(Date.now())",
+          "targets": [],
+          "value": "stamp"
+        },
+        {
+          "id": "969db73d-a051-5e52-b496-5f95a4b13cd7",
+          "comment": "",
+          "command": "executeScript",
+          "target": "return String(Date.now()).slice(-6)",
+          "targets": [],
+          "value": "suffix"
+        },
+        {
+          "id": "d1bfade1-7816-5946-85f9-9464ad9d9363",
+          "comment": "",
+          "command": "type",
+          "target": "id=email",
+          "targets": [],
+          "value": "feedback.${stamp}@example.test"
+        },
+        {
+          "id": "02fa3e56-5b97-5dca-9fc2-5f509cb2c32b",
+          "comment": "",
+          "command": "type",
+          "target": "css=#password input",
+          "targets": [],
+          "value": "secret123"
+        },
+        {
+          "id": "0b74d786-f64d-54f5-8336-e67ce1a6c87b",
+          "comment": "",
+          "command": "type",
+          "target": "css=#confirmPassword input",
+          "targets": [],
+          "value": "secret123"
+        },
+        {
+          "id": "28c8deb7-7290-5aa9-9a1f-d567972e7d01",
+          "comment": "",
+          "command": "click",
+          "target": "xpath=//button[normalize-space()='Next']",
+          "targets": [],
+          "value": ""
+        },
+        {
+          "id": "227a7f4c-164a-53fb-8cac-e0c6ed1a268e",
+          "comment": "",
+          "command": "waitForElementVisible",
+          "target": "id=name",
+          "targets": [],
+          "value": "10000"
+        },
+        {
+          "id": "0287c21e-8997-5739-81ec-081b3a610425",
+          "comment": "Step 2 submitted empty (nothing is created)",
+          "command": "click",
+          "target": "xpath=//button[normalize-space()='Register']",
+          "targets": [],
+          "value": ""
+        },
+        {
+          "id": "b86b67f1-fdee-536f-8b55-f31fc5a37227",
+          "comment": "",
+          "command": "waitForElementVisible",
+          "target": "xpath=//*[normalize-space()='El nombre completo es obligatorio.']",
+          "targets": [],
+          "value": "10000"
+        },
+        {
+          "id": "ae4619ee-8d69-508e-bbae-be328ec56902",
+          "comment": "",
+          "command": "waitForElementVisible",
+          "target": "xpath=//*[normalize-space()='El nombre de usuario es obligatorio.']",
+          "targets": [],
+          "value": "10000"
+        },
+        {
+          "id": "9f19d829-e765-5f37-aa1d-c86b9d055515",
+          "comment": "",
+          "command": "waitForElementVisible",
+          "target": "xpath=//*[normalize-space()='La dirección es obligatoria.']",
+          "targets": [],
+          "value": "10000"
+        },
+        {
+          "id": "bf9f82e4-e065-55ea-a19a-b44d3dd02036",
+          "comment": "",
+          "command": "waitForElementVisible",
+          "target": "xpath=//*[normalize-space()='La edad es obligatoria.']",
+          "targets": [],
+          "value": "10000"
+        },
+        {
+          "id": "4e95fe0e-8641-5a86-80bb-2f9f82511b57",
+          "comment": "",
+          "command": "waitForElementVisible",
+          "target": "xpath=//*[normalize-space()='El número de teléfono es obligatorio.']",
+          "targets": [],
+          "value": "10000"
+        }
+      ]
+    },
+    {
+      "id": "f1856af4-8b8d-59dc-8b7b-be779b810425",
+      "name": "IAM Builder happy path: register, logout, login",
+      "commands": [
+        {
+          "id": "8a0ede8b-7ac9-5023-be2f-dcede8c36ec3",
+          "comment": "Unique suffix so each run registers a new account",
+          "command": "executeScript",
+          "target": "return String(Date.now())",
+          "targets": [],
+          "value": "stamp"
+        },
+        {
+          "id": "1b778f99-a9e9-506c-999f-a28a542d78e2",
+          "comment": "",
+          "command": "executeScript",
+          "target": "return String(Date.now()).slice(-6)",
+          "targets": [],
+          "value": "suffix"
+        },
+        {
+          "id": "ac2f066c-b7db-5829-9588-89e88e673486",
+          "comment": "Start clean: drop any session left by a previous test",
+          "command": "open",
+          "target": "/",
+          "targets": [],
+          "value": ""
+        },
+        {
+          "id": "75301914-162f-5c94-805d-817171d39a65",
+          "comment": "",
+          "command": "executeScript",
+          "target": "localStorage.clear(); sessionStorage.clear(); return true",
+          "targets": [],
+          "value": "cleared"
+        },
+        {
+          "id": "7618cfe1-586b-55c4-9eb5-10c2d254406c",
+          "comment": "",
+          "command": "setWindowSize",
+          "target": "1280x900",
+          "targets": [],
+          "value": ""
+        },
+        {
+          "id": "4152032f-acb0-55bd-bb07-1d70c8b0617d",
+          "comment": "",
+          "command": "open",
+          "target": "/iam/register-builder",
+          "targets": [],
+          "value": ""
+        },
+        {
+          "id": "e5bee570-79b9-5684-959a-b6849a59e22d",
+          "comment": "",
+          "command": "waitForElementVisible",
+          "target": "id=email",
+          "targets": [],
+          "value": "20000"
+        },
+        {
+          "id": "34c38c93-2055-5078-99ac-6a9edc8baf1d",
+          "comment": "",
+          "command": "type",
+          "target": "id=email",
+          "targets": [],
+          "value": "sel.b.${stamp}@example.test"
+        },
+        {
+          "id": "07fe219f-224a-5f5f-ac1f-9dba4b6ae8ab",
+          "comment": "",
+          "command": "type",
+          "target": "css=#password input",
+          "targets": [],
+          "value": "secret123"
+        },
+        {
+          "id": "af8d56c2-819a-59be-b366-ca583e59a8ff",
+          "comment": "",
+          "command": "type",
+          "target": "css=#confirmPassword input",
+          "targets": [],
+          "value": "secret123"
+        },
+        {
+          "id": "0a458aeb-6dfa-5649-8424-49a4fe158bf0",
+          "comment": "",
+          "command": "click",
+          "target": "xpath=//button[normalize-space()='Next']",
+          "targets": [],
+          "value": ""
+        },
+        {
+          "id": "33143f5b-4b18-5541-b014-32c3b509e574",
+          "comment": "",
+          "command": "waitForElementVisible",
+          "target": "id=name",
+          "targets": [],
+          "value": "10000"
+        },
+        {
+          "id": "ba2f244c-8fc9-5e71-ad77-e4f93bb605c3",
+          "comment": "",
+          "command": "type",
+          "target": "id=name",
+          "targets": [],
+          "value": "Selenium Builder"
+        },
+        {
+          "id": "ed6ab711-dd8f-5e44-b4c7-ebcbfd724474",
+          "comment": "",
+          "command": "type",
+          "target": "id=username",
+          "targets": [],
+          "value": "selb${suffix}"
+        },
+        {
+          "id": "edecbd71-894d-53b5-920b-89ac18753427",
+          "comment": "",
+          "command": "type",
+          "target": "id=address",
+          "targets": [],
+          "value": "Av. Selenium 123"
+        },
+        {
+          "id": "6cde8474-22b6-5bd9-8659-c71a0bb68672",
+          "comment": "",
+          "command": "type",
+          "target": "css=#age input",
+          "targets": [],
+          "value": "30"
+        },
+        {
+          "id": "03f307f3-47d1-5817-ad54-4282dafd7dcb",
+          "comment": "",
+          "command": "type",
+          "target": "id=phoneNumber",
+          "targets": [],
+          "value": "+51987654321"
+        },
+        {
+          "id": "b3473d1d-4bdc-5712-9ea8-77f4e3bf9d66",
+          "comment": "",
+          "command": "click",
+          "target": "xpath=//button[normalize-space()='Register']",
+          "targets": [],
+          "value": ""
+        },
+        {
+          "id": "256f91a6-38a2-57c1-a28d-85c77a0115da",
+          "comment": "Registration signs the user in and leaves the form",
+          "command": "waitForElementNotPresent",
+          "target": "id=email",
+          "targets": [],
+          "value": "20000"
+        },
+        {
+          "id": "47675635-e1ab-541a-a489-abdae3de77c3",
+          "comment": "",
+          "command": "waitForElementPresent",
+          "target": "css=.logout-button",
+          "targets": [],
+          "value": "20000"
+        },
+        {
+          "id": "4e5e3410-35f3-5dce-b8ce-9449602e8fc5",
+          "comment": "",
+          "command": "executeScript",
+          "target": "return localStorage.getItem('token') !== null",
+          "targets": [],
+          "value": "hasToken"
+        },
+        {
+          "id": "b0991c41-69a2-580f-beee-b8cf55829637",
+          "comment": "Registration left a bearer token",
+          "command": "assert",
+          "target": "hasToken",
+          "targets": [],
+          "value": "true"
+        },
+        {
+          "id": "eb93c813-d07c-53e3-96de-c4ebc7cc56d0",
+          "comment": "",
+          "command": "click",
+          "target": "css=.logout-button",
+          "targets": [],
+          "value": ""
+        },
+        {
+          "id": "33ca6dd9-92c4-5309-aea8-6aa7471e6ecb",
+          "comment": "Logout returns to the public login route",
+          "command": "waitForElementPresent",
+          "target": "id=email",
+          "targets": [],
+          "value": "20000"
+        },
+        {
+          "id": "57282d45-6b05-51f2-8fea-3409685c31c7",
+          "comment": "",
+          "command": "executeScript",
+          "target": "return localStorage.getItem('token') === null",
+          "targets": [],
+          "value": "tokenCleared"
+        },
+        {
+          "id": "09cad079-62d8-5708-afe5-5c31f4cade64",
+          "comment": "",
+          "command": "assert",
+          "target": "tokenCleared",
+          "targets": [],
+          "value": "true"
+        },
+        {
+          "id": "0db72c18-3610-52d0-b996-886a7df44d8f",
+          "comment": "",
+          "command": "type",
+          "target": "id=email",
+          "targets": [],
+          "value": "sel.b.${stamp}@example.test"
+        },
+        {
+          "id": "1a1f8f2f-7f02-51dd-ac73-633aab8ff213",
+          "comment": "",
+          "command": "type",
+          "target": "css=#password input",
+          "targets": [],
+          "value": "secret123"
+        },
+        {
+          "id": "e5d46f35-d8be-50b5-8092-6f527a4abe13",
+          "comment": "",
+          "command": "click",
+          "target": "css=button[type='submit']",
+          "targets": [],
+          "value": ""
+        },
+        {
+          "id": "982bcd45-cb99-5650-896b-c33af5159213",
+          "comment": "Login with the created account opens the app",
+          "command": "waitForElementPresent",
+          "target": "css=.logout-button",
+          "targets": [],
+          "value": "20000"
+        },
+        {
+          "id": "48390ffc-8083-525f-9c39-f8d881c91c4b",
+          "comment": "",
+          "command": "executeScript",
+          "target": "return localStorage.getItem('token') !== null",
+          "targets": [],
+          "value": "hasToken2"
+        },
+        {
+          "id": "2cb28892-4ee9-52ed-ba82-2892bbb24fa4",
+          "comment": "",
+          "command": "assert",
+          "target": "hasToken2",
+          "targets": [],
+          "value": "true"
+        },
+        {
+          "id": "661ff893-cbb7-59fc-b2e7-a820e9318699",
+          "comment": "",
+          "command": "click",
+          "target": "css=.logout-button",
+          "targets": [],
+          "value": ""
+        },
+        {
+          "id": "62c5502d-d53a-54f4-b6c4-bd817b50752f",
+          "comment": "",
+          "command": "waitForElementPresent",
+          "target": "id=email",
+          "targets": [],
+          "value": "20000"
+        }
+      ]
+    },
+    {
+      "id": "4c1a65d5-a0b2-5350-b5e4-43b047698761",
+      "name": "IAM Owner happy path: register, logout, login",
+      "commands": [
+        {
+          "id": "f981f074-0619-56bd-8a54-de75894861d9",
+          "comment": "Unique suffix so each run registers a new account",
+          "command": "executeScript",
+          "target": "return String(Date.now())",
+          "targets": [],
+          "value": "stamp"
+        },
+        {
+          "id": "09b6edae-da38-5f00-8106-86bfe7c8e2f6",
+          "comment": "",
+          "command": "executeScript",
+          "target": "return String(Date.now()).slice(-6)",
+          "targets": [],
+          "value": "suffix"
+        },
+        {
+          "id": "b0135e36-2e67-5940-ac5a-0390885d49d7",
+          "comment": "Start clean: drop any session left by a previous test",
+          "command": "open",
+          "target": "/",
+          "targets": [],
+          "value": ""
+        },
+        {
+          "id": "19d9bc63-eed4-5b80-b6eb-5a299cb124bd",
+          "comment": "",
+          "command": "executeScript",
+          "target": "localStorage.clear(); sessionStorage.clear(); return true",
+          "targets": [],
+          "value": "cleared"
+        },
+        {
+          "id": "70dda5b4-0325-5c63-b606-1fecef8818f9",
+          "comment": "",
+          "command": "setWindowSize",
+          "target": "1280x900",
+          "targets": [],
+          "value": ""
+        },
+        {
+          "id": "d44e9218-a1ac-5230-ae11-b6a11d5467c2",
+          "comment": "",
+          "command": "open",
+          "target": "/iam/register-owner",
+          "targets": [],
+          "value": ""
+        },
+        {
+          "id": "39f9b4b9-98e1-55f3-9439-0e5bc667b0cb",
+          "comment": "",
+          "command": "waitForElementVisible",
+          "target": "id=email",
+          "targets": [],
+          "value": "20000"
+        },
+        {
+          "id": "5720c16a-0ed5-5ca2-9c90-f5f4583941e4",
+          "comment": "",
+          "command": "type",
+          "target": "id=email",
+          "targets": [],
+          "value": "sel.o.${stamp}@example.test"
+        },
+        {
+          "id": "7997a2d1-0fb9-52e0-9b9f-60c441eea49f",
+          "comment": "",
+          "command": "type",
+          "target": "css=#password input",
+          "targets": [],
+          "value": "secret123"
+        },
+        {
+          "id": "a0cc55ec-f969-57e0-96fd-2e89f2a304c8",
+          "comment": "",
+          "command": "type",
+          "target": "css=#confirmPassword input",
+          "targets": [],
+          "value": "secret123"
+        },
+        {
+          "id": "d82f7fe8-4adc-59f9-893f-7467a991b5bc",
+          "comment": "",
+          "command": "click",
+          "target": "xpath=//button[normalize-space()='Next']",
+          "targets": [],
+          "value": ""
+        },
+        {
+          "id": "92002d25-36ea-5969-9dac-01cbe81786c8",
+          "comment": "",
+          "command": "waitForElementVisible",
+          "target": "id=name",
+          "targets": [],
+          "value": "10000"
+        },
+        {
+          "id": "81e14760-17cd-5a9b-9f61-33542db70b6f",
+          "comment": "",
+          "command": "type",
+          "target": "id=name",
+          "targets": [],
+          "value": "Selenium Owner"
+        },
+        {
+          "id": "1a988fba-5f20-5d78-9a29-fcc6b4f85fcb",
+          "comment": "",
+          "command": "type",
+          "target": "id=username",
+          "targets": [],
+          "value": "selo${suffix}"
+        },
+        {
+          "id": "362d86dd-124b-5244-ac52-d29c737fceea",
+          "comment": "",
+          "command": "type",
+          "target": "id=address",
+          "targets": [],
+          "value": "Av. Selenium 123"
+        },
+        {
+          "id": "2704f818-3f21-5415-9f2f-bbdcf778c54c",
+          "comment": "",
+          "command": "type",
+          "target": "css=#age input",
+          "targets": [],
+          "value": "30"
+        },
+        {
+          "id": "bc1e1f6c-ae4a-57ac-a31b-bfaf5603f5f0",
+          "comment": "",
+          "command": "type",
+          "target": "id=phoneNumber",
+          "targets": [],
+          "value": "+51987654322"
+        },
+        {
+          "id": "52e5add9-9914-56f4-b3dd-7867698918c8",
+          "comment": "",
+          "command": "click",
+          "target": "xpath=//button[normalize-space()='Register']",
+          "targets": [],
+          "value": ""
+        },
+        {
+          "id": "7528dfcb-19e1-52f2-9dc6-38641566696e",
+          "comment": "Registration signs the user in and leaves the form",
+          "command": "waitForElementNotPresent",
+          "target": "id=email",
+          "targets": [],
+          "value": "20000"
+        },
+        {
+          "id": "21d0d046-daa3-5742-b260-2a9e01516b21",
+          "comment": "",
+          "command": "waitForElementPresent",
+          "target": "css=.logout-button",
+          "targets": [],
+          "value": "20000"
+        },
+        {
+          "id": "75d2f6e9-b279-5941-97db-8178a9780165",
+          "comment": "",
+          "command": "executeScript",
+          "target": "return localStorage.getItem('token') !== null",
+          "targets": [],
+          "value": "hasToken"
+        },
+        {
+          "id": "c6d0f853-a6d8-57c5-bc7d-96eda757af30",
+          "comment": "Registration left a bearer token",
+          "command": "assert",
+          "target": "hasToken",
+          "targets": [],
+          "value": "true"
+        },
+        {
+          "id": "09a991d2-5f33-5bd3-85c6-8932f09a237b",
+          "comment": "",
+          "command": "click",
+          "target": "css=.logout-button",
+          "targets": [],
+          "value": ""
+        },
+        {
+          "id": "18e24856-2cd4-5504-84ba-e486810614d8",
+          "comment": "Logout returns to the public login route",
+          "command": "waitForElementPresent",
+          "target": "id=email",
+          "targets": [],
+          "value": "20000"
+        },
+        {
+          "id": "e5622ab9-4584-5050-b068-aa4f3f0b1020",
+          "comment": "",
+          "command": "executeScript",
+          "target": "return localStorage.getItem('token') === null",
+          "targets": [],
+          "value": "tokenCleared"
+        },
+        {
+          "id": "2c4967e7-5a1e-5a99-8c77-31ca3e72aa51",
+          "comment": "",
+          "command": "assert",
+          "target": "tokenCleared",
+          "targets": [],
+          "value": "true"
+        },
+        {
+          "id": "f472e897-51a6-5d59-8492-123909628b51",
+          "comment": "",
+          "command": "type",
+          "target": "id=email",
+          "targets": [],
+          "value": "sel.o.${stamp}@example.test"
+        },
+        {
+          "id": "fe04fa97-9d89-5486-8df6-ddbefc3e289d",
+          "comment": "",
+          "command": "type",
+          "target": "css=#password input",
+          "targets": [],
+          "value": "secret123"
+        },
+        {
+          "id": "c90be2a2-a6e2-54bb-921e-790096172340",
+          "comment": "",
+          "command": "click",
+          "target": "css=button[type='submit']",
+          "targets": [],
+          "value": ""
+        },
+        {
+          "id": "bdc4c037-f0aa-564f-8421-bc8ea70c46c8",
+          "comment": "Login with the created account opens the app",
+          "command": "waitForElementPresent",
+          "target": "css=.logout-button",
+          "targets": [],
+          "value": "20000"
+        },
+        {
+          "id": "27eed015-2053-5d3e-a6ba-d75dfa65c808",
+          "comment": "",
+          "command": "executeScript",
+          "target": "return localStorage.getItem('token') !== null",
+          "targets": [],
+          "value": "hasToken2"
+        },
+        {
+          "id": "b6cd86ec-71bc-5d1d-819a-720bf76c667e",
+          "comment": "",
+          "command": "assert",
+          "target": "hasToken2",
+          "targets": [],
+          "value": "true"
+        },
+        {
+          "id": "b51a13f5-48af-523b-b315-db940ad82447",
+          "comment": "",
+          "command": "click",
+          "target": "css=.logout-button",
+          "targets": [],
+          "value": ""
+        },
+        {
+          "id": "87d8abcc-8055-5fc1-9009-1113be81ff43",
+          "comment": "",
+          "command": "waitForElementPresent",
+          "target": "id=email",
+          "targets": [],
+          "value": "20000"
+        }
+      ]
+    }
+  ],
+  "suites": [
+    {
+      "id": "6511d7bc-cf30-5d5f-bbd9-fac65f3843d7",
+      "name": "IoBuild deployed smoke",
+      "persistSession": false,
+      "parallel": false,
+      "timeout": 300,
+      "tests": [
+        "06159bd1-88a9-50db-aa18-b65a1e656743",
+        "b961f37b-1352-5dfd-811c-659e4abcbe2f",
+        "f1856af4-8b8d-59dc-8b7b-be779b810425",
+        "4c1a65d5-a0b2-5350-b5e4-43b047698761"
+      ]
+    }
+  ],
+  "urls": [
+    "https://iobuild-remix.arroz.dev"
+  ],
+  "plugins": []
+}
