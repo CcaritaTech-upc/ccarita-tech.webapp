@@ -45,8 +45,15 @@ public sealed class LiveEnergyService : ILiveEnergyService
             using var response = await _httpClient.SendAsync(request, ct);
             response.EnsureSuccessStatusCode();
             var body = await response.Content.ReadAsStringAsync(ct);
-            _logger?.LogInformation("LiveEnergyService: received {Length} bytes", body.Length);
-            return [];
+            var points = FluxCsv.Parse(body)
+                .Where(row => row.TryGetValue("_time", out _) && row.TryGetValue("_value", out _))
+                .Select(row => new EnergyMinutePoint(
+                    DateTimeOffset.Parse(row["_time"], System.Globalization.CultureInfo.InvariantCulture).UtcDateTime,
+                    Math.Round(double.Parse(row["_value"], System.Globalization.CultureInfo.InvariantCulture), 3)))
+                .OrderBy(point => point.Timestamp)
+                .ToList();
+            _logger?.LogInformation("LiveEnergyService: {Count} point(s) from Influx", points.Count);
+            return points;
         }
         catch (Exception ex)
         {

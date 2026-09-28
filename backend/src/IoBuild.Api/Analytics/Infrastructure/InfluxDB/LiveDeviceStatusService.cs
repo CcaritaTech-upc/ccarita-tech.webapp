@@ -42,8 +42,12 @@ public sealed class LiveDeviceStatusService : ILiveDeviceStatusService
             using var response = await _httpClient.SendAsync(request, ct);
             response.EnsureSuccessStatusCode();
             var body = await response.Content.ReadAsStringAsync(ct);
-            _logger?.LogInformation("LiveDeviceStatusService: received {Length} bytes", body.Length);
-            return new Dictionary<string, string>();
+            var statuses = new Dictionary<string, string>();
+            foreach (var row in FluxCsv.Parse(body))
+                if (row.TryGetValue("deviceId", out var id) && row.TryGetValue("_value", out var status) && id.Length > 0 && status.Length > 0)
+                    statuses[id] = status;
+            _logger?.LogInformation("LiveDeviceStatusService: {Count} status(es) from Influx", statuses.Count);
+            return statuses;
         }
         catch (Exception ex)
         {
