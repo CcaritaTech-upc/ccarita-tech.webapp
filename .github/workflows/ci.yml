@@ -70,6 +70,7 @@ jobs:
         env:
           INFLUXDB_ADMIN_PASSWORD: ci-only-password
           INFLUXDB_ADMIN_TOKEN: ci-only-token
+          MQTT_PASSWORD: ci-only-mqtt-password
 
       - name: Compose up (smoke)
         run: docker compose -f docker-compose.yml up -d --wait
