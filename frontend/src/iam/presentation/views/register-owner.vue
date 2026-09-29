@@ -622,14 +622,11 @@ function goToLogin() {
 
 .form-content {
   width: 100%;
-  max-width: 28rem;
-  position: relative;
-  z-index: 1;
+  max-width: 550px;
 }
 
 .form-wrapper {
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(10px);
+  background: white;
   padding: 2rem;
   border-radius: 1rem;
   box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
