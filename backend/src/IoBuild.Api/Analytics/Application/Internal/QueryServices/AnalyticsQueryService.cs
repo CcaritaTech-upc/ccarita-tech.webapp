@@ -209,19 +209,15 @@ public sealed class AnalyticsQueryService : IAnalyticsQueryService
             // Monthly occupancy: last 6 months (based on real occupancy rate and project timeline)
             var projectStartDates = realProjects.Select(p => p.CreatedAt.UtcDateTime).ToList();
             var earliestProject = projectStartDates.Count > 0 ? projectStartDates.Min() : now;
+            var earliestMonthStart = new DateTime(earliestProject.Year, earliestProject.Month, 1, 0, 0, 0, DateTimeKind.Utc);
 
             for (int m = 5; m >= 0; m--)
             {
                 var monthDate = now.AddMonths(-m);
                 var startOfMonth = new DateTime(monthDate.Year, monthDate.Month, 1, 0, 0, 0, DateTimeKind.Utc);
-                var endOfMonth = startOfMonth.AddMonths(1);
+                if (startOfMonth < earliestMonthStart) continue;
 
-                double rate = 0.0;
-                if (earliestProject <= endOfMonth)
-                {
-                    rate = Math.Round(occupancyRate, 1);
-                }
-                monthlyOccupancy.Add(new HistoricalDataPoint { Timestamp = startOfMonth, Value = rate, Metric = "occupancy" });
+                monthlyOccupancy.Add(new HistoricalDataPoint { Timestamp = startOfMonth, Value = Math.Round(occupancyRate, 1), Metric = "occupancy" });
             }
 
             // Real Hourly energy: last 24 hours from actual device telemetry
@@ -233,15 +229,21 @@ public sealed class AnalyticsQueryService : IAnalyticsQueryService
                     .ToListAsync(ct)
                 : [];
 
-            for (int h = 23; h >= 0; h--)
+            if (telemetry24h.Count > 0)
             {
-                var hourStart = new DateTime(now.Year, now.Month, now.Day, now.Hour, 0, 0, DateTimeKind.Utc).AddHours(-h);
-                var hourEnd = hourStart.AddHours(1);
-                var readingsInHour = telemetry24h.Where(t => t.OccurredAt >= hourStart && t.OccurredAt < hourEnd).ToList();
-                double hourEnergy = readingsInHour.Count > 0
-                    ? Math.Round(readingsInHour.Sum(t => t.EnergyKwh), 2)
-                    : 0.0;
-                hourlyEnergyData.Add(new HistoricalDataPoint { Timestamp = hourStart, Value = hourEnergy, Metric = "energy" });
+                var hourGroups = telemetry24h
+                    .GroupBy(t => new DateTime(t.OccurredAt.Year, t.OccurredAt.Month, t.OccurredAt.Day, t.OccurredAt.Hour, 0, 0, DateTimeKind.Utc))
+                    .OrderBy(g => g.Key);
+
+                foreach (var g in hourGroups)
+                {
+                    hourlyEnergyData.Add(new HistoricalDataPoint
+                    {
+                        Timestamp = g.Key,
+                        Value = Math.Round(g.Sum(t => t.EnergyKwh), 2),
+                        Metric = "energy"
+                    });
+                }
             }
 
             // Real Temperature trend: last 7 days from actual device telemetry
@@ -253,16 +255,23 @@ public sealed class AnalyticsQueryService : IAnalyticsQueryService
                     .ToListAsync(ct)
                 : [];
 
-            var overallAvgTemp = telemetry7d.Count > 0 ? telemetry7d.Average(t => t.TemperatureC) : 22.0;
-
-            for (int d = 6; d >= 0; d--)
+            if (telemetry7d.Count > 0)
             {
-                var dayDate = now.AddDays(-d).Date;
-                var dayReadings = telemetry7d.Where(t => t.OccurredAt.Date == dayDate).ToList();
-                double temp = dayReadings.Count > 0
-                    ? Math.Round(dayReadings.Average(t => t.TemperatureC), 1)
-                    : Math.Round(overallAvgTemp, 1);
-                temperatureHistory.Add(new HistoricalDataPoint { Timestamp = dayDate, Value = temp, Metric = "temperature" });
+                var earliestTempDate = telemetry7d.Min(t => t.OccurredAt.Date);
+                var startDate = earliestTempDate > now.AddDays(-6).Date ? earliestTempDate : now.AddDays(-6).Date;
+                for (var d = startDate; d <= now.Date; d = d.AddDays(1))
+                {
+                    var dayReadings = telemetry7d.Where(t => t.OccurredAt.Date == d).ToList();
+                    if (dayReadings.Count > 0)
+                    {
+                        temperatureHistory.Add(new HistoricalDataPoint
+                        {
+                            Timestamp = d,
+                            Value = Math.Round(dayReadings.Average(t => t.TemperatureC), 1),
+                            Metric = "temperature"
+                        });
+                    }
+                }
             }
         }
 
@@ -443,7 +452,7 @@ public sealed class AnalyticsQueryService : IAnalyticsQueryService
             : [];
 
         var validTempReadings = telemetry.Where(t => t.TemperatureC > 0).ToList();
-        var avgTemp = validTempReadings.Count > 0 ? Math.Round(validTempReadings.Average(t => t.TemperatureC), 1) : 22.0;
+        var avgTemp = validTempReadings.Count > 0 ? Math.Round(validTempReadings.Average(t => t.TemperatureC), 1) : 0.0;
 
         var startOfCurrentMonth = new DateTime(now.Year, now.Month, 1, 0, 0, 0, DateTimeKind.Utc);
         var currentMonthReadings = telemetry.Where(t => t.OccurredAt >= startOfCurrentMonth).ToList();
@@ -462,40 +471,72 @@ public sealed class AnalyticsQueryService : IAnalyticsQueryService
             ? Math.Round(waterReadingsThisMonth.Sum(t => t.EnergyKwh), 2)
             : (waterDeviceIds.Count > 0 ? Math.Round(telemetry.Where(t => waterDeviceIds.Contains(t.DeviceId)).Sum(t => t.EnergyKwh), 2) : 0.0);
 
-        // Daily energy: last 30 days
+        // Daily energy: last 30 days (only from dates with real readings)
         var dailyEnergyConsumption = new List<HistoricalDataPoint>();
-        for (int d = 29; d >= 0; d--)
+        if (telemetry.Count > 0)
         {
-            var dayDate = now.AddDays(-d).Date;
-            var dayReadings = telemetry.Where(t => t.OccurredAt.Date == dayDate).ToList();
-            var dayVal = dayReadings.Count > 0
-                ? Math.Round(dayReadings.Sum(t => t.EnergyKwh), 2)
-                : 0.0;
-            dailyEnergyConsumption.Add(new HistoricalDataPoint { Timestamp = dayDate, Value = dayVal, Metric = "energy" });
+            var earliestEnergyDate = telemetry.Min(t => t.OccurredAt.Date);
+            var startDate = earliestEnergyDate > now.AddDays(-29).Date ? earliestEnergyDate : now.AddDays(-29).Date;
+            for (var d = startDate; d <= now.Date; d = d.AddDays(1))
+            {
+                var dayReadings = telemetry.Where(t => t.OccurredAt.Date == d).ToList();
+                if (dayReadings.Count > 0)
+                {
+                    dailyEnergyConsumption.Add(new HistoricalDataPoint
+                    {
+                        Timestamp = d,
+                        Value = Math.Round(dayReadings.Sum(t => t.EnergyKwh), 2),
+                        Metric = "energy"
+                    });
+                }
+            }
         }
 
-        // Temperature comfort: last 7 days
+        // Temperature comfort: last 7 days (only from dates with real readings)
         var temperatureHistory = new List<HistoricalDataPoint>();
-        for (int d = 6; d >= 0; d--)
+        if (validTempReadings.Count > 0)
         {
-            var dayDate = now.AddDays(-d).Date;
-            var dayReadings = telemetry.Where(t => t.OccurredAt.Date == dayDate && t.TemperatureC > 0).ToList();
-            var tempVal = dayReadings.Count > 0
-                ? Math.Round(dayReadings.Average(t => t.TemperatureC), 1)
-                : avgTemp;
-            temperatureHistory.Add(new HistoricalDataPoint { Timestamp = dayDate, Value = tempVal, Metric = "temperature" });
+            var temp7d = validTempReadings.Where(t => t.OccurredAt >= now.AddDays(-7)).ToList();
+            if (temp7d.Count > 0)
+            {
+                var earliestTempDate = temp7d.Min(t => t.OccurredAt.Date);
+                var startDate = earliestTempDate > now.AddDays(-6).Date ? earliestTempDate : now.AddDays(-6).Date;
+                for (var d = startDate; d <= now.Date; d = d.AddDays(1))
+                {
+                    var dayReadings = temp7d.Where(t => t.OccurredAt.Date == d).ToList();
+                    if (dayReadings.Count > 0)
+                    {
+                        temperatureHistory.Add(new HistoricalDataPoint
+                        {
+                            Timestamp = d,
+                            Value = Math.Round(dayReadings.Average(t => t.TemperatureC), 1),
+                            Metric = "temperature"
+                        });
+                    }
+                }
+            }
         }
 
-        // Water usage: last 7 days
+        // Water usage: last 7 days (only from dates with real water readings)
         var waterUsageWeekly = new List<HistoricalDataPoint>();
-        for (int d = 6; d >= 0; d--)
+        var waterReadings = telemetry.Where(t => waterDeviceIds.Contains(t.DeviceId)).ToList();
+        if (waterReadings.Count > 0)
         {
-            var dayDate = now.AddDays(-d).Date;
-            var dayWaterReadings = telemetry.Where(t => t.OccurredAt.Date == dayDate && waterDeviceIds.Contains(t.DeviceId)).ToList();
-            var waterVal = dayWaterReadings.Count > 0
-                ? Math.Round(dayWaterReadings.Sum(t => t.EnergyKwh), 2)
-                : 0.0;
-            waterUsageWeekly.Add(new HistoricalDataPoint { Timestamp = dayDate, Value = waterVal, Metric = "water" });
+            var earliestWaterDate = waterReadings.Min(t => t.OccurredAt.Date);
+            var startDate = earliestWaterDate > now.AddDays(-6).Date ? earliestWaterDate : now.AddDays(-6).Date;
+            for (var d = startDate; d <= now.Date; d = d.AddDays(1))
+            {
+                var dayReadings = waterReadings.Where(t => t.OccurredAt.Date == d).ToList();
+                if (dayReadings.Count > 0)
+                {
+                    waterUsageWeekly.Add(new HistoricalDataPoint
+                    {
+                        Timestamp = d,
+                        Value = Math.Round(dayReadings.Sum(t => t.EnergyKwh), 2),
+                        Metric = "water"
+                    });
+                }
+            }
         }
 
         return new OwnerMetrics
