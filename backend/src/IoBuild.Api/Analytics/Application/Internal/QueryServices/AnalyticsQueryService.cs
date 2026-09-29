@@ -154,28 +154,43 @@ public sealed class AnalyticsQueryService : IAnalyticsQueryService
             // Sync devices for these projects
             var realDevices = await _db.Devices.Where(d => pIds.Contains(d.ProjectId)).ToListAsync(ct);
             var dIds = realDevices.Select(d => d.Id).ToList();
-            var existingDeviceProjIds = await _db.DeviceProjections
+            var existingDeviceProjs = await _db.DeviceProjections
                 .Where(d => dIds.Contains(d.DeviceId))
-                .Select(d => d.DeviceId)
                 .ToListAsync(ct);
+            var existingProjMap = existingDeviceProjs.ToDictionary(p => p.DeviceId);
 
-            var missingDevices = realDevices.Where(d => !existingDeviceProjIds.Contains(d.Id)).ToList();
-            foreach (var d in missingDevices)
+            var updatedDevicesCount = 0;
+            foreach (var d in realDevices)
             {
-                _db.DeviceProjections.Add(new DeviceProjection
+                if (existingProjMap.TryGetValue(d.Id, out var existingProj))
                 {
-                    DeviceId = d.Id,
-                    ProjectId = d.ProjectId,
-                    UnitId = d.UnitId,
-                    DeviceName = d.Name,
-                    DeviceType = d.Type,
-                    Status = d.Status,
-                    OwnerUserId = d.OwnerId,
-                    LastEventAt = DateTime.UtcNow
-                });
+                    if (existingProj.DeviceType != d.Type || existingProj.DeviceName != d.Name || existingProj.ProjectId != d.ProjectId || existingProj.UnitId != d.UnitId)
+                    {
+                        existingProj.DeviceType = d.Type;
+                        existingProj.DeviceName = d.Name;
+                        existingProj.ProjectId = d.ProjectId;
+                        existingProj.UnitId = d.UnitId;
+                        updatedDevicesCount++;
+                    }
+                }
+                else
+                {
+                    _db.DeviceProjections.Add(new DeviceProjection
+                    {
+                        DeviceId = d.Id,
+                        ProjectId = d.ProjectId,
+                        UnitId = d.UnitId,
+                        DeviceName = d.Name,
+                        DeviceType = d.Type,
+                        Status = d.Status,
+                        OwnerUserId = d.OwnerId,
+                        LastEventAt = DateTime.UtcNow
+                    });
+                    updatedDevicesCount++;
+                }
             }
 
-            if (missingProjects.Count > 0 || missingUnits.Count > 0 || missingDevices.Count > 0)
+            if (missingProjects.Count > 0 || missingUnits.Count > 0 || updatedDevicesCount > 0)
             {
                 await _db.SaveChangesAsync(ct);
             }
@@ -268,11 +283,23 @@ public sealed class AnalyticsQueryService : IAnalyticsQueryService
                 }
             }
 
-            // Real Temperature trend: last 7 days from actual device telemetry
+            // Temperature devices: only devices measuring ambient/building temperature
+            var tempDeviceIds = devices
+                .Where(d => !string.IsNullOrEmpty(d.DeviceType) &&
+                            (d.DeviceType.Equals("Temperature", StringComparison.OrdinalIgnoreCase) ||
+                             d.DeviceType.Equals("TemperatureSensor", StringComparison.OrdinalIgnoreCase) ||
+                             d.DeviceType.Equals("Thermostat", StringComparison.OrdinalIgnoreCase) ||
+                             d.DeviceType.Equals("TempSensor", StringComparison.OrdinalIgnoreCase) ||
+                             d.DeviceType.Equals("ClimateSensor", StringComparison.OrdinalIgnoreCase) ||
+                             d.DeviceType.IndexOf("Temperature", StringComparison.OrdinalIgnoreCase) >= 0))
+                .Select(d => d.DeviceId)
+                .ToList();
+
+            // Real Temperature trend: last 7 days from actual temperature device telemetry
             var last7d = now.AddDays(-7);
-            var telemetry7d = deviceIds.Count > 0
+            var telemetry7d = tempDeviceIds.Count > 0
                 ? await _db.DeviceTelemetry
-                    .Where(t => deviceIds.Contains(t.DeviceId) && t.OccurredAt >= last7d && t.TemperatureC > 0)
+                    .Where(t => tempDeviceIds.Contains(t.DeviceId) && t.OccurredAt >= last7d && t.TemperatureC > 0)
                     .Select(t => new { t.OccurredAt, t.TemperatureC })
                     .ToListAsync(ct)
                 : [];

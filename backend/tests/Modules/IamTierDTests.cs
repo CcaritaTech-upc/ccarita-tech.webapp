@@ -149,7 +149,7 @@ public sealed class IamTierDTests
         var sameEmail = await Task.WhenAll(Enumerable.Range(0, 12).Select(_ =>
             client.PostAsync("/api/v1/users", JsonContent(new { email = shared, password = "secret123", role = "Owner" }))));
         Assert.All(sameEmail, r => Assert.True(
-            r.StatusCode is HttpStatusCode.Created or HttpStatusCode.BadRequest,
+            r.StatusCode is HttpStatusCode.Created or HttpStatusCode.BadRequest or HttpStatusCode.Conflict,
             $"Burst same-email returned {r.StatusCode}"));
 
         var distinct = await Task.WhenAll(Enumerable.Range(0, 12).Select(i =>

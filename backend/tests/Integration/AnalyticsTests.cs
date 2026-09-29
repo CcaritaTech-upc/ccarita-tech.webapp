@@ -69,6 +69,51 @@ public sealed class AnalyticsTests
         Assert.Equal(2, park["totalUnits"]);
         Assert.Equal(1, park["occupiedUnits"]);
         Assert.Equal(3, park["deviceCount"]);
+        Assert.Empty(metrics.TemperatureHistory);
+    }
+
+    [Fact]
+    [Trait("Category", "Analytics")]
+    public async Task BuilderDashboard_temperature_history_empty_when_no_temperature_devices_and_populates_when_present()
+    {
+        await using var db = Db();
+        db.ProjectProjections.Add(new ProjectProjection { ProjectId = 1, BuilderUserId = 10, Name = "P", Status = "OnGoing", LastEventAt = DateTime.UtcNow });
+        db.DeviceProjections.Add(new DeviceProjection { DeviceId = 1, ProjectId = 1, DeviceType = "SmartMeter", Status = "online", LastEventAt = DateTime.UtcNow });
+        db.DeviceTelemetry.Add(new IoBuild.Api.Devices.Domain.Model.Aggregates.DeviceTelemetry
+        {
+            DeviceId = 1,
+            EventId = "evt-meter-temp",
+            OccurredAt = DateTimeOffset.UtcNow.AddDays(-1),
+            Status = "online",
+            ReportedJson = "{}",
+            EnergyKwh = 1.0,
+            TemperatureC = 25.0
+        });
+        await db.SaveChangesAsync();
+
+        var service = new AnalyticsQueryService(db, new FakeLiveEnergyService(), new FakeLiveDeviceStatusService());
+        var metricsWithoutTempSensor = await service.Handle(new GetBuilderDashboardQuery(10));
+
+        // SmartMeter is not a temperature device -> TemperatureHistory must be empty
+        Assert.Empty(metricsWithoutTempSensor!.TemperatureHistory);
+
+        // Add a temperature sensor
+        db.DeviceProjections.Add(new DeviceProjection { DeviceId = 2, ProjectId = 1, DeviceType = "TemperatureSensor", Status = "online", LastEventAt = DateTime.UtcNow });
+        db.DeviceTelemetry.Add(new IoBuild.Api.Devices.Domain.Model.Aggregates.DeviceTelemetry
+        {
+            DeviceId = 2,
+            EventId = "evt-temp-sensor",
+            OccurredAt = DateTimeOffset.UtcNow.AddDays(-1),
+            Status = "online",
+            ReportedJson = "{}",
+            EnergyKwh = 0.1,
+            TemperatureC = 23.5
+        });
+        await db.SaveChangesAsync();
+
+        var metricsWithTempSensor = await service.Handle(new GetBuilderDashboardQuery(10));
+        Assert.NotEmpty(metricsWithTempSensor!.TemperatureHistory);
+        Assert.Equal(23.5, metricsWithTempSensor.TemperatureHistory[0].Value);
     }
 
     [Fact]

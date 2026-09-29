@@ -11,7 +11,7 @@ import { useIamStore } from '../../../iam/application/iam.store.js';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, ArcElement, Title, Tooltip, Legend, Filler);
 
-const { t } = useI18n();
+const { t, te } = useI18n();
 
 const props = defineProps({
   dashboard: {
@@ -269,21 +269,48 @@ const doughnutOptions = {
 
 // Device type icons
 const deviceTypeIcons = {
-  'Temperature': 'pi-thermometer',
+  'SmartMeter': 'pi-bolt',
+  'smartmeter': 'pi-bolt',
+  'WaterSensor': 'pi-wave-pulse',
+  'watersensor': 'pi-wave-pulse',
+  'SmokeDetector': 'pi-shield',
+  'smokedetector': 'pi-shield',
+  'AirConditioner': 'pi-sync',
+  'airconditioner': 'pi-sync',
+  'SmartLight': 'pi-lightbulb',
+  'smartlight': 'pi-lightbulb',
+  'Temperature': 'pi-chart-line',
+  'temperature': 'pi-chart-line',
   'Humidity': 'pi-cloud',
+  'humidity': 'pi-cloud',
   'Energy': 'pi-bolt',
-  'Water': 'pi-inbox',
+  'energy': 'pi-bolt',
+  'Water': 'pi-wave-pulse',
+  'water': 'pi-wave-pulse',
   'Security': 'pi-shield',
+  'security': 'pi-shield',
   'Construction': 'pi-wrench',
+  'construction': 'pi-wrench',
   'Access Control': 'pi-lock',
+  'access control': 'pi-lock',
   'HVAC': 'pi-sync',
-  'Lighting': 'pi-sun'
+  'hvac': 'pi-sync',
+  'Lighting': 'pi-lightbulb',
+  'lighting': 'pi-lightbulb'
 };
 
-const getDeviceIcon = (type) => deviceTypeIcons[type] || 'pi-box';
+const getDeviceIcon = (type) => {
+  if (!type) return 'pi-box';
+  return deviceTypeIcons[type] || deviceTypeIcons[type.toLowerCase()] || 'pi-box';
+};
 
 const translateDeviceType = (type) => {
-  return t(`analytics.deviceTypes.${type}`, type);
+  if (!type) return '';
+  const key = `analytics.deviceTypes.${type}`;
+  if (te(key)) return t(key);
+  const catalogKey = `devices.deviceCatalog.${type}`;
+  if (te(catalogKey)) return t(catalogKey);
+  return t(key, type);
 };
 </script>
 

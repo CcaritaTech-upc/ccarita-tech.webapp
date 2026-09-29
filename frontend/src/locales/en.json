@@ -465,6 +465,11 @@
   },
   "analytics": {
     "deviceTypes": {
+      "SmartMeter": "Smart Meter",
+      "WaterSensor": "Water Sensor",
+      "SmokeDetector": "Smoke Detector",
+      "AirConditioner": "Air Conditioner",
+      "SmartLight": "Smart Light",
       "Temperature": "Temperature",
       "Humidity": "Humidity",
       "Energy": "Energy",

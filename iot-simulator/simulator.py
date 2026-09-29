@@ -113,11 +113,22 @@ def generate_payload(device_id: int, desired: dict, device_type: str = '') -> di
     else:
         energy_kwh = _energy_generic(desired)
 
+    is_temp_device = dtype in ('airconditioner', 'thermostat', 'temperature', 'temperaturesensor', 'climatesensor')
+    if is_temp_device:
+        if dtype == 'airconditioner':
+            target = float(desired.get('targetTemperature', 22.0))
+            is_on = desired.get('power', False)
+            temperature_c = round(target + random.uniform(-0.8, 0.8), 1) if is_on else round(random.uniform(22.0, 26.0), 1)
+        else:
+            temperature_c = round(random.uniform(18.0, 30.0), 1)
+    else:
+        temperature_c = 0.0
+
     payload = {
         "deviceId": device_id,
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "energy_kwh": energy_kwh,
-        "temperature_c": round(random.uniform(18.0, 35.0), 1),
+        "temperature_c": temperature_c,
         "voltage_v": round(random.uniform(215.0, 230.0), 1),
         "status": _device_status(desired, device_type),
         "location": LOCATIONS[(device_id - 1) % len(LOCATIONS)],
