@@ -30,8 +30,12 @@
               :placeholder="$t('iam.registerOwner.emailPlaceholder')"
               :invalid="!!fieldErrors.email"
               class="w-full"
+              @blur="onEmailBlur"
             />
-            <small v-if="fieldErrors.email" class="p-error block mt-1">{{ fieldErrors.email }}</small>
+            <small v-if="fieldErrors.email" class="p-error block mt-1">
+              {{ fieldErrors.email }}
+              <a v-if="isEmailAlreadyRegistered" href="#" @click.prevent="goToLogin" class="text-green-500 font-semibold underline ml-1">Iniciar sesión</a>
+            </small>
           </div>
 
           <!-- Password -->
@@ -83,6 +87,7 @@
                     :label="'Next'"
                     icon="pi pi-arrow-right"
                     iconPos="right"
+                    :loading="checkingInvitation"
                     @click="goToStep2"
                     class="flex-1"
                   />
@@ -350,12 +355,21 @@ const errorMessage = ref('');
 const successMessage = ref('');
 const invitationInfo = ref(null);
 const checkingInvitation = ref(false);
+const isEmailAlreadyRegistered = ref(false);
 
 async function checkBuilderAssignment(email) {
-  if (!email || !email.includes('@')) return;
+  if (!email || !email.includes('@')) return false;
   try {
     checkingInvitation.value = true;
     const res = await iamApi.checkInvitation(email.trim());
+    if (res?.data?.alreadyRegistered) {
+      isEmailAlreadyRegistered.value = true;
+      invitationInfo.value = null;
+      fieldErrors.value.email = 'Este correo electrónico ya está registrado. Por favor inicia sesión.';
+      errorMessage.value = 'Este correo electrónico ya cuenta con una cuenta de usuario.';
+      return false;
+    }
+    isEmailAlreadyRegistered.value = false;
     if (res?.data?.assigned) {
       invitationInfo.value = res.data;
       if (!registerForm.value.name && res.data.fullName) {
@@ -370,14 +384,36 @@ async function checkBuilderAssignment(email) {
     } else {
       invitationInfo.value = null;
     }
+    return true;
   } catch (err) {
-    console.debug('Invitation lookup failed or none found:', err);
+    console.debug('Invitation lookup failed or error:', err);
+    return true;
   } finally {
     checkingInvitation.value = false;
   }
 }
 
-function goToStep2() {
+async function onEmailBlur() {
+  const email = (registerForm.value.email || '').trim();
+  if (email && isValidEmail(email)) {
+    try {
+      const res = await iamApi.checkInvitation(email);
+      if (res?.data?.alreadyRegistered) {
+        isEmailAlreadyRegistered.value = true;
+        fieldErrors.value.email = 'Este correo electrónico ya está registrado. Por favor inicia sesión.';
+        errorMessage.value = 'Este correo electrónico ya cuenta con una cuenta registrada.';
+      } else {
+        isEmailAlreadyRegistered.value = false;
+        if (fieldErrors.value.email === 'Este correo electrónico ya está registrado. Por favor inicia sesión.') {
+          fieldErrors.value.email = null;
+          errorMessage.value = '';
+        }
+      }
+    } catch (_) {}
+  }
+}
+
+async function goToStep2() {
   errorMessage.value = '';
   fieldErrors.value = {};
 
@@ -408,9 +444,14 @@ function goToStep2() {
     return;
   }
 
+  // Check if email already registered before allowing step 2
+  const allowed = await checkBuilderAssignment(email);
+  if (!allowed || isEmailAlreadyRegistered.value) {
+    return;
+  }
+
   registerForm.value.email = email;
   currentStep.value = 2;
-  checkBuilderAssignment(registerForm.value.email);
 }
 
 async function handleRegister() {
@@ -523,10 +564,13 @@ async function handleRegister() {
     // Provide more specific error messages
     if (error.message.includes('user ID')) {
       errorMessage.value = 'Failed to complete registration. Please try logging in manually.';
-    } else if (error.response?.status === 409) {
-      errorMessage.value = 'Email already exists. Please try logging in instead.';
+    } else if (error.response?.status === 409 || error.response?.data?.error?.includes('already exists')) {
+      errorMessage.value = 'Este correo electrónico ya está registrado. Por favor inicie sesión.';
+      fieldErrors.value.email = 'Este correo electrónico ya cuenta con una cuenta registrada.';
+      isEmailAlreadyRegistered.value = true;
+      currentStep.value = 1;
     } else {
-      errorMessage.value = error.response?.data?.message || error.message || 'Registration failed. Please try again.';
+      errorMessage.value = error.response?.data?.message || error.response?.data?.error || error.message || 'Registration failed. Please try again.';
     }
   } finally {
     isLoading.value = false;
