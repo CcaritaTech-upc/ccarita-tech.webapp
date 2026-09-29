@@ -53,8 +53,8 @@ public sealed class IamTierATests
         var first = await client.PostAsync("/api/v1/users", Json($"{{\"email\":\"{email}\",\"password\":\"secret123\",\"role\":\"Owner\"}}"));
         var second = await client.PostAsync("/api/v1/users", Json($"{{\"email\":\"{email}\",\"password\":\"secret123\",\"role\":\"Owner\"}}"));
         Assert.Equal(HttpStatusCode.Created, first.StatusCode);
-        // Current contract always returns 201; service layer keeps a single user + dispatch row.
-        Assert.Equal(HttpStatusCode.Created, second.StatusCode);
+        // Duplicate registration must return 409 Conflict to prevent re-registration
+        Assert.Equal(HttpStatusCode.Conflict, second.StatusCode);
     }
 
     [Fact]

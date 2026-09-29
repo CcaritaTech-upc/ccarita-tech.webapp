@@ -47,7 +47,15 @@ public sealed class DeviceTelemetryService(IoBuildDbContext db, IInfluxTelemetry
             }
             return true;
         }
-        if (await db.Devices.FindAsync([message.DeviceId], cancellationToken) is null) return false;
+        var device = await db.Devices.FindAsync([message.DeviceId], cancellationToken);
+        if (device is null) return false;
+        device.Status = message.Status;
+        var devProj = await db.DeviceProjections.FindAsync([message.DeviceId], cancellationToken);
+        if (devProj is not null)
+        {
+            devProj.Status = message.Status;
+            devProj.LastEventAt = message.OccurredAt.UtcDateTime;
+        }
         var shadow = await db.DeviceShadows.FindAsync([message.DeviceId], cancellationToken);
         var isNewer = shadow is null || message.OccurredAt > shadow.ReportedAt;
         var record = new DeviceTelemetry { DeviceId = message.DeviceId, EventId = message.EventId, OccurredAt = message.OccurredAt, Status = message.Status, ReportedJson = message.ReportedJson, EnergyKwh = message.EnergyKwh, TemperatureC = message.TemperatureC, VoltageV = message.VoltageV };
@@ -70,17 +78,24 @@ public sealed class DeviceTelemetryService(IoBuildDbContext db, IInfluxTelemetry
         db.TelemetryRecoveries.Add(new TelemetryRecovery { EventId = message.EventId, CreatedAt = DateTimeOffset.UtcNow });
         await db.SaveChangesAsync(cancellationToken);
         try { await ReplayExistingAsync(record, cancellationToken); }
-        catch (HttpRequestException) { }
+        catch (Exception) { }
         return true;
     }
 
     private async Task ReplayExistingAsync(DeviceTelemetry record, CancellationToken cancellationToken)
     {
-        await influx.WriteAsync(new TelemetryMessage(record.DeviceId, record.EventId, record.OccurredAt, record.Status, record.ReportedJson, record.EnergyKwh, record.TemperatureC, record.VoltageV), cancellationToken);
-        record.InfluxWrittenAt = DateTimeOffset.UtcNow;
-        var intent = await db.TelemetryRecoveries.SingleOrDefaultAsync(item => item.EventId == record.EventId, cancellationToken);
-        if (intent is not null) db.TelemetryRecoveries.Remove(intent);
-        await db.SaveChangesAsync(cancellationToken);
+        try
+        {
+            await influx.WriteAsync(new TelemetryMessage(record.DeviceId, record.EventId, record.OccurredAt, record.Status, record.ReportedJson, record.EnergyKwh, record.TemperatureC, record.VoltageV), cancellationToken);
+            record.InfluxWrittenAt = DateTimeOffset.UtcNow;
+            var intent = await db.TelemetryRecoveries.SingleOrDefaultAsync(item => item.EventId == record.EventId, cancellationToken);
+            if (intent is not null) db.TelemetryRecoveries.Remove(intent);
+            await db.SaveChangesAsync(cancellationToken);
+        }
+        catch (Exception)
+        {
+            // Influx is auxiliary; failure must never break or crash telemetry ingestion.
+        }
     }
 
     private static bool EquivalentJson(string expected, string actual)
@@ -96,7 +111,7 @@ public sealed class DeviceTelemetryService(IoBuildDbContext db, IInfluxTelemetry
         {
             var record = await db.DeviceTelemetry.SingleAsync(item => item.EventId == recovery.EventId, cancellationToken);
             try { await ReplayExistingAsync(record, cancellationToken); replayed++; }
-            catch (HttpRequestException) { break; }
+            catch (Exception) { break; }
         }
         return replayed;
     }

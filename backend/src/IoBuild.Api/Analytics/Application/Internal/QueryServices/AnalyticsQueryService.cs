@@ -1,3 +1,4 @@
+using System.Text.Json;
 using IoBuild.Api.Analytics.Domain.Model.Aggregates;
 using IoBuild.Api.Analytics.Domain.Model.Queries;
 using IoBuild.Api.Persistence;
@@ -62,8 +63,29 @@ public sealed class AnalyticsQueryService : IAnalyticsQueryService
         }
         if (missingDevices.Count > 0)
         {
+            var missingIds = missingDevices.Select(d => d.DeviceId).ToList();
+            var shadows = await _db.DeviceShadows
+                .Where(s => missingIds.Contains(s.DeviceId))
+                .ToDictionaryAsync(s => s.DeviceId, ct);
+
             foreach (var d in missingDevices)
             {
+                if (shadows.TryGetValue(d.DeviceId, out var devShadow) && devShadow.DesiredJson is { Length: > 0 } dj)
+                {
+                    try
+                    {
+                        using var doc = JsonDocument.Parse(dj);
+                        if (doc.RootElement.TryGetProperty("power", out var p))
+                        {
+                            var isPowerOn = (p.ValueKind == JsonValueKind.True) ||
+                                            (p.ValueKind == JsonValueKind.String && p.GetString()?.Equals("on", StringComparison.OrdinalIgnoreCase) == true);
+                            result[d.DeviceId] = isPowerOn ? "online" : "idle";
+                            continue;
+                        }
+                    }
+                    catch { }
+                }
+
                 var latestStatus = await _db.DeviceTelemetry
                     .Where(t => t.DeviceId == d.DeviceId)
                     .OrderByDescending(t => t.OccurredAt)

@@ -108,6 +108,20 @@ public static class DevicesEndpoints
                 catch { desired = null; }
             }
             var effectiveStatus = telemetry?.Status ?? device.Status ?? "online";
+            if (shadow?.DesiredJson is { Length: > 0 } dJson)
+            {
+                try
+                {
+                    using var doc = JsonDocument.Parse(dJson);
+                    if (doc.RootElement.TryGetProperty("power", out var pProp))
+                    {
+                        var isPowerOn = (pProp.ValueKind == JsonValueKind.True) ||
+                                        (pProp.ValueKind == JsonValueKind.String && pProp.GetString()?.Equals("on", StringComparison.OrdinalIgnoreCase) == true);
+                        effectiveStatus = isPowerOn ? "online" : "idle";
+                    }
+                }
+                catch { }
+            }
             var lastSeen = telemetry?.OccurredAt ?? DateTimeOffset.UtcNow;
             var tempC = telemetry?.TemperatureC ?? 22.0;
             var voltV = telemetry?.VoltageV ?? 220.0;

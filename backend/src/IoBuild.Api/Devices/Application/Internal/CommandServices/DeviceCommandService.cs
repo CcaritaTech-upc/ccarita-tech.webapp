@@ -50,6 +50,18 @@ public sealed class DeviceCommandService(IoBuildDbContext db, IDeviceMqttPublish
         if (attribute != "power" && desired.TryGetValue("power", out var power) && power.ValueKind == JsonValueKind.False)
             throw new InvalidOperationException("Device is powered off; turn it on before changing other attributes.");
         desired[attribute] = value;
+        if (attribute == "power")
+        {
+            var isPowerOn = (value.ValueKind == JsonValueKind.True) ||
+                            (value.ValueKind == JsonValueKind.String && value.GetString()?.Equals("on", StringComparison.OrdinalIgnoreCase) == true);
+            device.Status = isPowerOn ? "online" : "idle";
+            var devProj = await db.DeviceProjections.FindAsync([deviceId], cancellationToken);
+            if (devProj is not null)
+            {
+                devProj.Status = device.Status;
+                devProj.LastEventAt = DateTime.UtcNow;
+            }
+        }
         var desiredJson = JsonSerializer.Serialize(desired);
         if (shadow is null)
         {
