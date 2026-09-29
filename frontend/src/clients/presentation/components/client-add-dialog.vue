@@ -1,5 +1,6 @@
 <script setup>
 import { ref, watch, computed, onMounted } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { Client } from '../../domain/model/client.entity.js';
 import { ProjectsFacade } from '../../infrastructure/projects.facade.js';
 import { isValidEmail, isValidPhone, isValidName } from '../../../shared/presentation/validators.js';
@@ -13,6 +14,8 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['update:visible', 'save']);
+
+const { t, te } = useI18n();
 
 const iamStore = useIamStore();
 const projectsFacade = new ProjectsFacade();
@@ -49,14 +52,19 @@ const projectOptions = computed(() => {
 
 // Computed property to format units for dropdown
 const unitOptions = computed(() => {
+  const unassignedLabel = te('clients.fields.unassigned') ? t('clients.fields.unassigned') : 'Sin asignar';
   const list = [
-    { label: 'Sin asignar / None', value: null }
+    { label: unassignedLabel, value: null }
   ];
   units.value.forEach(u => {
     const isOccupied = !!u.ownerEmail;
-    const statusText = isOccupied ? `(Ocupada - ${u.ownerEmail})` : '(Disponible)';
+    const occupiedText = te('projects.structure.occupied') ? t('projects.structure.occupied') : 'Ocupada';
+    const availableText = te('projects.structure.available') ? t('projects.structure.available') : 'Disponible';
+    const statusText = isOccupied ? `(${occupiedText} - ${u.ownerEmail})` : `(${availableText})`;
+    const unitText = te('projects.structure.unit') ? t('projects.structure.unit', { number: u.unitNumber || u.roomNumber }) : `Unidad ${u.unitNumber || u.roomNumber}`;
+    const floorText = te('projects.structure.floor') ? t('projects.structure.floor', { number: u.floor }) : `Piso ${u.floor}`;
     list.push({
-      label: `Unidad ${u.unitNumber || u.roomNumber} - Piso ${u.floor} ${statusText}`,
+      label: `${unitText} - ${floorText} ${statusText}`,
       value: u.id
     });
   });

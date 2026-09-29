@@ -10,7 +10,7 @@ import { ProjectApi } from "../../infrastructure/project-api.js";
 import { ProjectAssembler } from "../../infrastructure/project.assembler.js";
 import { ClientApi } from "../../../clients/infrastructure/client-api.js";
 
-const { t } = useI18n();
+const { t, te } = useI18n();
 const route = useRoute();
 const router = useRouter();
 const confirm = useConfirm();
@@ -209,8 +209,12 @@ async function assignClientToUnit() {
 
 function confirmClearUnit(unit) {
   confirm.require({
-    message: `¿Estás seguro de liberar la Unidad ${unit.roomNumber}? Esto desvinculará al cliente asignado.`,
-    header: 'Liberar Unidad',
+    message: te('projects.structure.confirm-release-message')
+      ? t('projects.structure.confirm-release-message', { number: unit.roomNumber })
+      : `¿Estás seguro de liberar la Unidad ${unit.roomNumber}? Esto desvinculará al cliente asignado.`,
+    header: te('projects.structure.confirm-release-header')
+      ? t('projects.structure.confirm-release-header')
+      : 'Liberar Unidad',
     icon: 'pi pi-exclamation-triangle',
     acceptClass: 'p-button-danger',
     accept: () => clearUnitOwner(unit)
@@ -340,7 +344,7 @@ async function clearUnitOwner(unit) {
         <!-- Units fetch error — prevents misreading a failed load as empty project -->
         <div v-if="unitsError" class="project-hero__error">
           <i class="pi pi-exclamation-circle"></i>
-          Could not load project structure. Please refresh and try again.
+          {{ te('projects.structure.load-error') ? t('projects.structure.load-error') : 'Could not load project structure. Please refresh and try again.' }}
         </div>
       </div>
     </div>
@@ -349,11 +353,11 @@ async function clearUnitOwner(unit) {
     <div v-if="hasStructure" class="mt-8">
       <div class="flex align-items-center gap-2 mb-4">
         <i class="pi pi-building section-icon text-lg"></i>
-        <h2 class="text-lg font-semibold text-gray-800">Estructura del Proyecto</h2>
-        <pv-tag :value="`${units.length} unidades`" severity="success" />
+        <h2 class="text-lg font-semibold text-gray-800">{{ te('projects.structure.title') ? t('projects.structure.title') : 'Estructura del Proyecto' }}</h2>
+        <pv-tag :value="te('projects.structure.units-count') ? t('projects.structure.units-count', { count: units.length }) : `${units.length} unidades`" severity="success" />
         <div class="ml-auto flex align-items-center gap-2">
           <pv-button
-              label="Gestionar en Clientes"
+              :label="te('projects.structure.manage-in-clients') ? t('projects.structure.manage-in-clients') : 'Gestionar en Clientes'"
               icon="pi pi-users"
               severity="secondary"
               outlined
@@ -367,10 +371,10 @@ async function clearUnitOwner(unit) {
       <div v-if="structureGrid.length > 0" class="structure-floors">
         <section v-for="row in structureGrid" :key="row.floor" class="floor-card">
           <header class="floor-card__head">
-            <span class="floor-card__name">Piso {{ row.floor }}</span>
+            <span class="floor-card__name">{{ te('projects.structure.floor') ? t('projects.structure.floor', { number: row.floor }) : `Piso ${row.floor}` }}</span>
             <span class="floor-card__occ">
               <i class="pi pi-user"></i>
-              {{ occupiedCount(row.units) }}/{{ row.units.length }} ocupadas
+              {{ te('projects.structure.occupied-summary') ? t('projects.structure.occupied-summary', { occupied: occupiedCount(row.units), total: row.units.length }) : `${occupiedCount(row.units)}/${row.units.length} ocupadas` }}
             </span>
           </header>
 
@@ -380,14 +384,14 @@ async function clearUnitOwner(unit) {
               <div
                   v-if="unit.ownerEmail"
                   class="unit-card unit-card--occupied"
-                  :title="`Ocupada: ${getClientForUnit(unit)?.fullName || unit.ownerEmail}`"
+                  :title="te('projects.structure.occupied-by') ? t('projects.structure.occupied-by', { name: getClientForUnit(unit)?.fullName || unit.ownerEmail }) : `Ocupada: ${getClientForUnit(unit)?.fullName || unit.ownerEmail}`"
               >
                 <div class="unit-card__top">
                   <div class="flex align-items-center gap-2">
                     <i class="pi pi-user"></i>
                     <span class="unit-card__no">{{ unit.roomNumber }}</span>
                   </div>
-                  <pv-tag value="Ocupada" severity="success" class="text-xs" />
+                  <pv-tag :value="te('projects.structure.occupied') ? t('projects.structure.occupied') : 'Ocupada'" severity="success" class="text-xs" />
                 </div>
                 <div class="unit-card__body">
                   <div
@@ -407,7 +411,7 @@ async function clearUnitOwner(unit) {
                 <div class="unit-card__actions">
                   <pv-button
                       v-if="getClientForUnit(unit)"
-                      label="Ver Cliente"
+                      :label="te('projects.structure.view-client') ? t('projects.structure.view-client') : 'Ver Cliente'"
                       icon="pi pi-external-link"
                       size="small"
                       text
@@ -422,7 +426,7 @@ async function clearUnitOwner(unit) {
                       rounded
                       size="small"
                       :loading="savingUnit === unit.id"
-                      title="Liberar Unidad"
+                      :title="te('projects.structure.release-unit') ? t('projects.structure.release-unit') : 'Liberar Unidad'"
                       @click="confirmClearUnit(unit)"
                   />
                 </div>
@@ -438,14 +442,14 @@ async function clearUnitOwner(unit) {
                     <i class="pi pi-home"></i>
                     <span class="unit-card__no">{{ unit.roomNumber }}</span>
                   </div>
-                  <pv-tag value="Disponible" severity="info" class="text-xs" />
+                  <pv-tag :value="te('projects.structure.available') ? t('projects.structure.available') : 'Disponible'" severity="info" class="text-xs" />
                 </div>
                 <div class="unit-card__body">
-                  <span class="text-xs text-gray-400 italic">Sin propietario</span>
+                  <span class="text-xs text-gray-400 italic">{{ te('projects.structure.no-owner') ? t('projects.structure.no-owner') : 'Sin propietario' }}</span>
                 </div>
                 <div class="unit-card__actions">
                   <pv-button
-                      label="Asignar Cliente"
+                      :label="te('projects.structure.assign-client') ? t('projects.structure.assign-client') : 'Asignar Cliente'"
                       icon="pi pi-user-plus"
                       size="small"
                       text
@@ -462,8 +466,7 @@ async function clearUnitOwner(unit) {
       <!-- Fallback while units load -->
       <div v-else class="units-loading-hint p-3 text-sm">
         <i class="pi pi-info-circle mr-2"></i>
-        This project has <strong>{{ project.totalUnits }}</strong> total unit(s)
-        and <strong>{{ project.occupiedUnits }}</strong> occupied.
+        <span>{{ te('projects.structure.loading-hint') ? t('projects.structure.loading-hint', { total: project.totalUnits, occupied: project.occupiedUnits }) : `This project has ${project.totalUnits} total unit(s) and ${project.occupiedUnits} occupied.` }}</span>
       </div>
     </div>
   </div>
@@ -472,7 +475,7 @@ async function clearUnitOwner(unit) {
     <div class="inline-flex align-items-center justify-content-center w-4rem h-4rem border-circle bg-gray-100 text-gray-500 mb-3">
       <i class="pi pi-building text-2xl"></i>
     </div>
-    <h3 class="text-lg font-semibold text-gray-800 mb-2">Proyecto no encontrado</h3>
+    <h3 class="text-lg font-semibold text-gray-800 mb-2">{{ te('projects.structure.project-not-found') ? t('projects.structure.project-not-found') : 'Proyecto no encontrado' }}</h3>
     <p class="text-gray-500 text-sm mb-4">{{ t("projects.messages.no-projects") }}</p>
     <pv-button
       :label="t('projects.actions.go-back') || 'Regresar a Proyectos'"
@@ -486,23 +489,23 @@ async function clearUnitOwner(unit) {
   <pv-dialog
       v-model:visible="showAssignModal"
       modal
-      :header="`Asignar Cliente - Unidad ${selectedUnitForAssign?.roomNumber || ''}`"
+      :header="te('projects.structure.assign-modal-header') ? t('projects.structure.assign-modal-header', { number: selectedUnitForAssign?.roomNumber || '' }) : `Asignar Cliente - Unidad ${selectedUnitForAssign?.roomNumber || ''}`"
       :style="{ width: '450px' }"
   >
     <div class="p-fluid">
       <p class="text-sm text-gray-600 mb-3">
-        Selecciona un cliente registrado en este proyecto para asignarlo al departamento <strong>{{ selectedUnitForAssign?.roomNumber }}</strong>:
+        {{ te('projects.structure.assign-modal-desc') ? t('projects.structure.assign-modal-desc', { number: selectedUnitForAssign?.roomNumber || '' }) : `Selecciona un cliente registrado en este proyecto para asignarlo al departamento ${selectedUnitForAssign?.roomNumber}:` }}
       </p>
 
       <div v-if="unassignedClients.length > 0" class="mb-3">
-        <label for="assignClientSelect" class="block text-sm font-semibold mb-2">Cliente *</label>
+        <label for="assignClientSelect" class="block text-sm font-semibold mb-2">{{ te('projects.structure.assign-client-label') ? t('projects.structure.assign-client-label') : 'Cliente *' }}</label>
         <pv-select
             id="assignClientSelect"
             v-model="selectedClientId"
             :options="unassignedClients"
             optionLabel="fullName"
             optionValue="id"
-            placeholder="Selecciona un cliente..."
+            :placeholder="te('projects.structure.assign-client-placeholder') ? t('projects.structure.assign-client-placeholder') : 'Selecciona un cliente...'"
             class="w-full"
         >
           <template #option="slotProps">
@@ -517,13 +520,13 @@ async function clearUnitOwner(unit) {
       <div v-else class="p-3 bg-yellow-50 border-round border-1 border-yellow-200 mb-3">
         <p class="text-sm text-yellow-800 m-0">
           <i class="pi pi-exclamation-circle mr-1"></i>
-          Todos los clientes registrados en este proyecto ya tienen departamento asignado, o aún no has registrado clientes.
+          {{ te('projects.structure.assign-all-assigned-warning') ? t('projects.structure.assign-all-assigned-warning') : 'Todos los clientes registrados en este proyecto ya tienen departamento asignado, o aún no has registrado clientes.' }}
         </p>
       </div>
 
       <div class="text-center mt-2">
         <pv-button
-            label="+ Ir a registrar nuevo Cliente"
+            :label="te('projects.structure.register-new-client') ? t('projects.structure.register-new-client') : '+ Ir a registrar nuevo Cliente'"
             icon="pi pi-plus"
             text
             size="small"
@@ -534,14 +537,14 @@ async function clearUnitOwner(unit) {
 
     <template #footer>
       <pv-button
-          label="Cancelar"
+          :label="te('projects.actions.cancel') ? t('projects.actions.cancel') : 'Cancelar'"
           icon="pi pi-times"
           text
           severity="secondary"
           @click="showAssignModal = false"
       />
       <pv-button
-          label="Confirmar Asignación"
+          :label="te('projects.structure.confirm-assignment') ? t('projects.structure.confirm-assignment') : 'Confirmar Asignación'"
           icon="pi pi-check"
           severity="success"
           :disabled="!selectedClientId || isAssigning"
