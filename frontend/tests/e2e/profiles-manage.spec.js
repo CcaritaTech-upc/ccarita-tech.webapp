@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { provisionAssignedOwner } from './owner-assignment.fixture.js';
 
 // PROFILES.MANAGE per actor (Builder and Owner).
 // Convergent Testing G2 with the IAM handoff the journey depends on:
@@ -63,6 +64,8 @@ test('PROFILES Builder: registration data manages through view, update, reload',
 
 test('PROFILES Owner: registration data manages through view, update, reload', async ({ page }) => {
   const stamp = Date.now();
-  await registerViaUi(page, 'owner', `e2e.prof.o.${stamp}@example.test`, 'E2E Prof Owner', `e2eprofo${String(stamp).slice(-6)}`);
+  const email = `e2e.prof.o.${stamp}@example.test`;
+  await provisionAssignedOwner(page, email, stamp);
+  await registerViaUi(page, 'owner', email, 'E2E Prof Owner', `e2eprofo${String(stamp).slice(-6)}`);
   await proveProfileManage(page, 'E2E Prof Owner', 'Av. Persist 300');
 });

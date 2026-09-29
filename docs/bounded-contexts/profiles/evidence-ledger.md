@@ -69,4 +69,13 @@ roles_covered:
     happy_path: frontend/tests/e2e/profiles-manage.spec.js (Builder test)
   - role: Owner
     happy_path: frontend/tests/e2e/profiles-manage.spec.js (Owner test)
+owner_assignment_regression:
+  cause: Owner profile E2E attempted registration without provisioning an assigned unit after IAM eligibility changed; Next correctly stayed disabled.
+  repair: Owner fixture now provisions an actual builder, project, unit, and client assignment before the UI registration.
+  commands:
+    - command: E2E_BASE_URL=http://localhost:8081 npx playwright test tests/e2e/profiles-manage.spec.js tests/e2e/iam-happy-path.spec.js tests/e2e/iam-form-feedback.spec.js
+      result: 7/7 passed against isolated MySQL 8 Compose stack.
+    - command: E2E_BASE_URL=http://localhost:8081 npx playwright test
+      result: 13/13 passed against isolated MySQL 8 Compose stack.
+  delivery_note: CI rerun remains pending; local evidence is not CI evidence.
 ```
