@@ -23,25 +23,24 @@ async function loadDashboard() {
   if (userRole.value === 'builder') {
     await analyticsStore.fetchBuilderDashboard(userId.value);
 
-    // Retry when projects exist but units/devices are still 0 — covers read-model eventual-consistency lag.
+    // Background retry when projects exist but units/devices are still 0 (silent)
     const dash = analyticsStore.builderDashboard;
     if (dash && dash.activeProjectsCount > 0 && (dash.totalUnits === 0 || dash.totalDevices === 0)) {
       retryTimer = setTimeout(async () => {
         retryTimer = null;
-        await analyticsStore.fetchBuilderDashboard(userId.value);
+        await analyticsStore.fetchBuilderDashboard(userId.value, true);
       }, RETRY_DELAY_LONG_MS);
     }
   } else if (userRole.value === 'owner') {
     await analyticsStore.fetchOwnerDashboard(userId.value);
 
-    // Retry until myUnitsCount > 0 to handle Analytics read-model propagation lag.
-    // Up to 4 attempts at 1.5 s intervals (~6 s total).
+    // Background retry if needed (silent)
     let ownerRetries = RETRY_OWNER_DASHBOARD_MAX_ATTEMPTS;
     const scheduleOwnerRetry = () => {
       if (ownerRetries-- <= 0) return;
       retryTimer = setTimeout(async () => {
         retryTimer = null;
-        await analyticsStore.fetchOwnerDashboard(userId.value);
+        await analyticsStore.fetchOwnerDashboard(userId.value, true);
         if ((analyticsStore.ownerDashboard?.myUnitsCount ?? 1) === 0) {
           scheduleOwnerRetry();
         }

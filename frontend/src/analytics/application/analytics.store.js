@@ -24,27 +24,27 @@ export const useAnalyticsStore = defineStore("analytics", () => {
     const liveEnergyLoading = ref(false);
     let _liveEnergyInterval = null;
 
-    async function fetchBuilderDashboard(builderId) {
-        loading.value = true;
+    async function fetchBuilderDashboard(builderId, silent = false) {
+        if (!silent) loading.value = true;
         try {
             builderDashboard.value = await analyticsApi.getBuilderDashboard(builderId);
         } catch (error) {
             errors.value.push(error);
             console.error('Error fetching builder dashboard:', error);
         } finally {
-            loading.value = false;
+            if (!silent) loading.value = false;
         }
     }
 
-    async function fetchOwnerDashboard(ownerId) {
-        loading.value = true;
+    async function fetchOwnerDashboard(ownerId, silent = false) {
+        if (!silent) loading.value = true;
         try {
             ownerDashboard.value = await analyticsApi.getOwnerDashboard(ownerId);
         } catch (error) {
             errors.value.push(error);
             console.error('Error fetching owner dashboard:', error);
         } finally {
-            loading.value = false;
+            if (!silent) loading.value = false;
         }
     }
 

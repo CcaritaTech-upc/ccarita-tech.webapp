@@ -6,6 +6,9 @@ namespace IoBuild.Api.Analytics.Infrastructure.InfluxDB;
 
 public sealed class LiveDeviceStatusService : ILiveDeviceStatusService
 {
+    private static DateTimeOffset _lastFailureTime = DateTimeOffset.MinValue;
+    private static readonly TimeSpan CoolOffPeriod = TimeSpan.FromSeconds(60);
+
     private readonly HttpClient _httpClient;
     private readonly IConfiguration _configuration;
     private readonly ILogger<LiveDeviceStatusService>? _logger;
@@ -21,6 +24,10 @@ public sealed class LiveDeviceStatusService : ILiveDeviceStatusService
     {
         var ids = deviceIds.ToList();
         if (ids.Count == 0) return new Dictionary<string, string>();
+        if (DateTimeOffset.UtcNow - _lastFailureTime < CoolOffPeriod)
+        {
+            return new Dictionary<string, string>();
+        }
         var url = _configuration["Influx:Url"];
         var org = _configuration["Influx:Org"];
         var bucket = _configuration["Influx:Bucket"];
@@ -51,7 +58,8 @@ public sealed class LiveDeviceStatusService : ILiveDeviceStatusService
         }
         catch (Exception ex)
         {
-            _logger?.LogWarning(ex, "LiveDeviceStatusService: Influx query failed — returning empty");
+            _lastFailureTime = DateTimeOffset.UtcNow;
+            _logger?.LogWarning(ex, "LiveDeviceStatusService: Influx query failed — cooling off for 60s, returning empty");
             return new Dictionary<string, string>();
         }
     }
