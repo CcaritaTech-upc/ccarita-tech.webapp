@@ -11,6 +11,12 @@ using Microsoft.EntityFrameworkCore;
 
 namespace IoBuild.Api.IAM.Application.Internal.CommandServices;
 
+public sealed class OwnerUnitAssignmentRequiredException : InvalidOperationException
+{
+    public OwnerUnitAssignmentRequiredException()
+        : base("An Owner account requires an assigned unit.") { }
+}
+
 /// <summary>
 /// IAM Application: registration workflow (transactional outbox via IntegrationDispatch).
 /// </summary>
@@ -42,6 +48,9 @@ public sealed class RegisterUserWorkflow(
             var email = rawEmail.ToLowerInvariant();
             var existing = await dbContext.IamUsers.SingleOrDefaultAsync(user => user.Email == email, cancellationToken);
             if (existing is not null) return 0;
+
+            if (canonicalRole == "Owner" && !await HasAssignedUnitAsync(email, cancellationToken))
+                throw new OwnerUnitAssignmentRequiredException();
 
             var newUser = new IamUser { Email = email, PasswordHash = passwordHasher.Hash(request.Password), Role = canonicalRole };
             dbContext.IamUsers.Add(newUser);
@@ -203,4 +212,13 @@ public sealed class RegisterUserWorkflow(
             await queue.EnqueueAsync(new DispatchRequest("iam", "domain-event", $"iam-user:{email}", 1, $"{{\"email\":\"{email}\",\"role\":\"{canonicalRole}\"}}", $"iam.user-registered:{email}"), cancellationToken);
             return newUser.Id;
         }, cancellationToken);
+
+    private Task<bool> HasAssignedUnitAsync(string email, CancellationToken cancellationToken) =>
+        dbContext.Units.AnyAsync(unit =>
+            (!string.IsNullOrEmpty(unit.OwnerEmail) && unit.OwnerEmail.ToLower() == email) ||
+            dbContext.Clients.Any(client =>
+                !string.IsNullOrEmpty(client.Email) &&
+                client.Email.ToLower() == email &&
+                client.UnitId == unit.Id),
+            cancellationToken);
 }

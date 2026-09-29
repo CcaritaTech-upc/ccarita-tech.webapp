@@ -21,7 +21,12 @@ public static class IamEndpoints
             {
                 return Results.Conflict(new { error = "An account with this email already exists." });
             }
-            try { await iam.RegisterAsync(request, ct); return Results.Created("/api/v1/users", new { message = "User created successfully." }); } catch (InvalidOperationException) { return Results.BadRequest(new { error = "Invalid registration data." }); }
+            try { await iam.RegisterAsync(request, ct); return Results.Created("/api/v1/users", new { message = "User created successfully." }); }
+            catch (OwnerUnitAssignmentRequiredException)
+            {
+                return Results.Json(new { code = "owner_unit_assignment_required", error = "An assigned unit is required to register as an owner." }, statusCode: StatusCodes.Status403Forbidden);
+            }
+            catch (InvalidOperationException) { return Results.BadRequest(new { error = "Invalid registration data." }); }
         }).AllowAnonymous();
 
         group.MapPost("/authentication/sign-up", async (RegisterUser request, IamService iam, IoBuildDbContext db, CancellationToken ct) =>
@@ -31,7 +36,12 @@ public static class IamEndpoints
             {
                 return Results.Conflict(new { error = "An account with this email already exists." });
             }
-            try { await iam.RegisterAsync(request, ct); return Results.Created("/api/v1/authentication/sign-up", new { message = "User created successfully." }); } catch (InvalidOperationException) { return Results.BadRequest(new { error = "Invalid registration data." }); }
+            try { await iam.RegisterAsync(request, ct); return Results.Created("/api/v1/authentication/sign-up", new { message = "User created successfully." }); }
+            catch (OwnerUnitAssignmentRequiredException)
+            {
+                return Results.Json(new { code = "owner_unit_assignment_required", error = "An assigned unit is required to register as an owner." }, statusCode: StatusCodes.Status403Forbidden);
+            }
+            catch (InvalidOperationException) { return Results.BadRequest(new { error = "Invalid registration data." }); }
         }).AllowAnonymous();
 
         group.MapGet("/authentication/invitation", async (string? email, IoBuildDbContext db, CancellationToken ct) =>
@@ -51,7 +61,7 @@ public static class IamEndpoints
             var unit = await db.Units
                 .FirstOrDefaultAsync(u => (!string.IsNullOrEmpty(u.OwnerEmail) && u.OwnerEmail.ToLower() == normalized) || (client != null && client.UnitId == u.Id), ct);
 
-            if (client is null && unit is null)
+            if (unit is null)
             {
                 return Results.Ok(new { assigned = false, alreadyRegistered = false });
             }

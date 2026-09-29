@@ -22,7 +22,7 @@ public sealed class IamTierATests
         await using var factory = new TierAApiFactory();
         using var client = factory.CreateClient();
         var email = $"tier-a-{Guid.NewGuid():N}@example.test";
-        var register = await client.PostAsync("/api/v1/users", Json($"{{\"email\":\"{email}\",\"password\":\"secret123\",\"role\":\"Owner\"}}"));
+        var register = await client.PostAsync("/api/v1/users", Json($"{{\"email\":\"{email}\",\"password\":\"secret123\",\"role\":\"Builder\"}}"));
         Assert.Equal(HttpStatusCode.Created, register.StatusCode);
 
         var login = await client.PostAsync("/api/v1/sessions", Json($"{{\"email\":\"{email}\",\"password\":\"wrong-password\"}}"));
@@ -50,8 +50,8 @@ public sealed class IamTierATests
         await using var factory = new TierAApiFactory();
         using var client = factory.CreateClient();
         var email = $"dup-{Guid.NewGuid():N}@example.test";
-        var first = await client.PostAsync("/api/v1/users", Json($"{{\"email\":\"{email}\",\"password\":\"secret123\",\"role\":\"Owner\"}}"));
-        var second = await client.PostAsync("/api/v1/users", Json($"{{\"email\":\"{email}\",\"password\":\"secret123\",\"role\":\"Owner\"}}"));
+        var first = await client.PostAsync("/api/v1/users", Json($"{{\"email\":\"{email}\",\"password\":\"secret123\",\"role\":\"Builder\"}}"));
+        var second = await client.PostAsync("/api/v1/users", Json($"{{\"email\":\"{email}\",\"password\":\"secret123\",\"role\":\"Builder\"}}"));
         Assert.Equal(HttpStatusCode.Created, first.StatusCode);
         // Duplicate registration must return 409 Conflict to prevent re-registration
         Assert.Equal(HttpStatusCode.Conflict, second.StatusCode);
@@ -66,7 +66,7 @@ public sealed class IamTierATests
         await using var factory = new TierAApiFactory();
         using var client = factory.CreateClient();
         var email = $"tamper-{Guid.NewGuid():N}@example.test";
-        await client.PostAsync("/api/v1/users", Json($"{{\"email\":\"{email}\",\"password\":\"secret123\",\"role\":\"Owner\"}}"));
+        await client.PostAsync("/api/v1/users", Json($"{{\"email\":\"{email}\",\"password\":\"secret123\",\"role\":\"Builder\"}}"));
         var session = await client.PostAsync("/api/v1/sessions", Json($"{{\"email\":\"{email}\",\"password\":\"secret123\"}}"));
         var token = (await session.Content.ReadFromJsonAsync<IoBuild.Api.IAM.Domain.Model.Commands.AuthenticatedUser>())!.Token;
 
@@ -112,13 +112,13 @@ public sealed class IamTierATests
         await using var factory = new TierAApiFactory();
         using var client = factory.CreateClient();
         var email = $"canonical-{Guid.NewGuid():N}@example.test";
-        var register = await client.PostAsync("/api/v1/users", Json($"{{\"email\":\"{email}\",\"password\":\"secret123\",\"role\":\"owner\"}}"));
+        var register = await client.PostAsync("/api/v1/users", Json($"{{\"email\":\"{email}\",\"password\":\"secret123\",\"role\":\"builder\"}}"));
         Assert.Equal(HttpStatusCode.Created, register.StatusCode);
 
         var session = await client.PostAsync("/api/v1/sessions", Json($"{{\"email\":\"{email}\",\"password\":\"secret123\"}}"));
         Assert.Equal(HttpStatusCode.Created, session.StatusCode);
         var authenticated = await session.Content.ReadFromJsonAsync<IoBuild.Api.IAM.Domain.Model.Commands.AuthenticatedUser>();
-        Assert.Equal("Owner", authenticated!.Role);
+        Assert.Equal("Builder", authenticated!.Role);
     }
 
     [Fact]

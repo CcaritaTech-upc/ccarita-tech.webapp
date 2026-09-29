@@ -14,6 +14,9 @@ proves feedback and interaction.
 ## Registration
 
 - Duplicate registration is idempotent: no second user, no duplicate side effects.
+- Owner registration requires an existing unit assigned to the normalized email, either through `Unit.OwnerEmail` or a matching client with a valid `UnitId`; a client record without a unit is not sufficient.
+- The backend enforces Owner unit assignment before creating the account; the frontend blocks progression and disables the gray Next button when assignment is absent or cannot be verified.
+- Builder registration does not require an assigned unit.
 - A registration failure rolls back all durable state.
 - Password confirmation must match (frontend feedback; exact, case-sensitive).
 - A new password must differ from the current one (frontend feedback).

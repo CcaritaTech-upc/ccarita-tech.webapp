@@ -34,8 +34,8 @@ public sealed class IamPersistenceMySqlTests
         var service = CreateIamService(db);
         try
         {
-            await service.RegisterAsync(new RegisterUser(email, "secret123", "Owner"));
-            await service.RegisterAsync(new RegisterUser(email, "secret123", "Owner"));
+            await service.RegisterAsync(new RegisterUser(email, "secret123", "Builder"));
+            await service.RegisterAsync(new RegisterUser(email, "secret123", "Builder"));
 
             Assert.Single(await db.IamUsers.Where(u => u.Email == email).ToListAsync());
             Assert.Single(await db.IntegrationDispatches
@@ -88,7 +88,7 @@ public sealed class IamPersistenceMySqlTests
         string token;
         try
         {
-            await service.RegisterAsync(new RegisterUser(email, "secret123", "Owner"));
+            await service.RegisterAsync(new RegisterUser(email, "secret123", "Builder"));
             token = (await service.SignInAsync(new SignIn(email, "secret123"))).Token;
             await service.RevokeAsync(token);
         }
@@ -135,8 +135,8 @@ public sealed class IamPersistenceMySqlTests
         await using var dbB = MySqlFixture.CreateIsolatedContext(connectionString);
 
         await Task.WhenAll(
-            Task.Run(() => CreateIamService(dbA).RegisterAsync(new RegisterUser(email, "secret123", "Owner"))),
-            Task.Run(() => CreateIamService(dbB).RegisterAsync(new RegisterUser(email, "secret123", "Owner"))));
+            Task.Run(() => CreateIamService(dbA).RegisterAsync(new RegisterUser(email, "secret123", "Builder"))),
+            Task.Run(() => CreateIamService(dbB).RegisterAsync(new RegisterUser(email, "secret123", "Builder"))));
 
         await using var reader = MySqlFixture.CreateIsolatedContext(connectionString);
         try
@@ -173,7 +173,7 @@ public sealed class IamPersistenceMySqlTests
             new RegisterUserWorkflow(db, passwordHasher, new ExplodingQueue(), new WorkflowExecutor(db)));
 
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            service.RegisterAsync(new RegisterUser(email, "secret123", "Owner")));
+            service.RegisterAsync(new RegisterUser(email, "secret123", "Builder")));
 
         // A fresh context proves nothing durable survived — the user row written
         // before the failure was rolled back with the transaction.
@@ -204,7 +204,7 @@ public sealed class IamPersistenceMySqlTests
             // Eight racers on eight contexts: every call must return (none may
             // throw or deadlock on the unique index) and exactly one account wins.
             await Task.WhenAll(contexts.Select(db =>
-                Task.Run(() => CreateIamService(db).RegisterAsync(new RegisterUser(email, "secret123", "Owner")))));
+                Task.Run(() => CreateIamService(db).RegisterAsync(new RegisterUser(email, "secret123", "Builder")))));
 
             await using var reader = MySqlFixture.CreateIsolatedContext(connectionString);
             Assert.Single(await reader.IamUsers.Where(u => u.Email == email).ToListAsync());

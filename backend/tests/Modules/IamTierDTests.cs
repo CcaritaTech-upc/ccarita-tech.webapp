@@ -40,7 +40,7 @@ public sealed class IamTierDTests
         await using var factory = new TierDApiFactory();
         using var client = factory.CreateClient();
         var big = new string('x', 20000);
-        using var content = new StringContent($"{{\"email\":\"{big}@example.test\",\"password\":\"secret123\",\"role\":\"Owner\"}}", Encoding.UTF8, "application/json");
+        using var content = new StringContent($"{{\"email\":\"{big}@example.test\",\"password\":\"secret123\",\"role\":\"Builder\"}}", Encoding.UTF8, "application/json");
         var response = await client.PostAsync("/api/v1/users", content);
         Assert.NotEqual(HttpStatusCode.Created, response.StatusCode);
     }
@@ -82,7 +82,7 @@ public sealed class IamTierDTests
         var service = CreateIamService(db);
         foreach (var raw in new[] { "  Mixed@Example.Test ", "MIXED@example.test", "mixed@EXAMPLE.test" })
         {
-            await service.RegisterAsync(new RegisterUser(raw, "secret123", "Owner"));
+            await service.RegisterAsync(new RegisterUser(raw, "secret123", "Builder"));
         }
         var users = await db.IamUsers.ToListAsync();
         Assert.Single(users);
@@ -123,7 +123,7 @@ public sealed class IamTierDTests
         foreach (var (email, password, expected) in partitions)
         {
             using var content = new StringContent(
-                JsonSerializer.Serialize(new { email, password, role = "Owner" }), Encoding.UTF8, "application/json");
+                JsonSerializer.Serialize(new { email, password, role = "Builder" }), Encoding.UTF8, "application/json");
             var response = await client.PostAsync("/api/v1/users", content);
             Assert.True(
                 response.StatusCode is HttpStatusCode.Created or HttpStatusCode.BadRequest,
@@ -147,13 +147,13 @@ public sealed class IamTierDTests
         var shared = $"burst.{Guid.NewGuid():N}@example.test";
 
         var sameEmail = await Task.WhenAll(Enumerable.Range(0, 12).Select(_ =>
-            client.PostAsync("/api/v1/users", JsonContent(new { email = shared, password = "secret123", role = "Owner" }))));
+            client.PostAsync("/api/v1/users", JsonContent(new { email = shared, password = "secret123", role = "Builder" }))));
         Assert.All(sameEmail, r => Assert.True(
             r.StatusCode is HttpStatusCode.Created or HttpStatusCode.BadRequest or HttpStatusCode.Conflict,
             $"Burst same-email returned {r.StatusCode}"));
 
         var distinct = await Task.WhenAll(Enumerable.Range(0, 12).Select(i =>
-            client.PostAsync("/api/v1/users", JsonContent(new { email = $"burst.{Guid.NewGuid():N}.{i}@example.test", password = "secret123", role = "Owner" }))));
+            client.PostAsync("/api/v1/users", JsonContent(new { email = $"burst.{Guid.NewGuid():N}.{i}@example.test", password = "secret123", role = "Builder" }))));
         Assert.All(distinct, r => Assert.Equal(HttpStatusCode.Created, r.StatusCode));
     }
 
@@ -167,7 +167,7 @@ public sealed class IamTierDTests
         using var client = factory.CreateClient();
         var email = $"loginfuzz.{Guid.NewGuid():N}@example.test";
         using (var setup = new StringContent(
-            JsonSerializer.Serialize(new { email, password = "secret123", role = "Owner" }), Encoding.UTF8, "application/json"))
+            JsonSerializer.Serialize(new { email, password = "secret123", role = "Builder" }), Encoding.UTF8, "application/json"))
         {
             Assert.Equal(HttpStatusCode.Created, (await client.PostAsync("/api/v1/users", setup)).StatusCode);
         }
@@ -231,7 +231,7 @@ public sealed class IamTierDTests
         using var client = factory.CreateClient();
         var stamp = Guid.NewGuid().ToString("N");
         var results = await Task.WhenAll(Enumerable.Range(0, 50).Select(i =>
-            client.PostAsync("/api/v1/users", JsonContent(new { email = $"burst{stamp}{i}@example.test", password = "secret123", role = "Owner" }))));
+            client.PostAsync("/api/v1/users", JsonContent(new { email = $"burst{stamp}{i}@example.test", password = "secret123", role = "Builder" }))));
         Assert.All(results, r => Assert.Equal(HttpStatusCode.Created, r.StatusCode));
         foreach (var r in results) r.Dispose();
 
@@ -279,7 +279,7 @@ public sealed class IamTierDTests
         using var client = factory.CreateClient();
         var bigLocal = new string('z', 1_000_000);
         using var response = await client.PostAsync("/api/v1/users",
-            JsonContent(new { email = bigLocal + "@example.test", password = "secret123", role = "Owner" }));
+            JsonContent(new { email = bigLocal + "@example.test", password = "secret123", role = "Builder" }));
         Assert.True(
             response.StatusCode is HttpStatusCode.BadRequest or HttpStatusCode.RequestEntityTooLarge,
             $"Megabyte payload returned {response.StatusCode}");
@@ -299,7 +299,7 @@ public sealed class IamTierDTests
         {
             using var client = factory.CreateClient();
             using var response = await client.PostAsync("/api/v1/users",
-                JsonContent(new { email = "dead@example.test", password = "secret123", role = "Owner" }), cts.Token);
+                JsonContent(new { email = "dead@example.test", password = "secret123", role = "Builder" }), cts.Token);
             Assert.True(
                 response.StatusCode is HttpStatusCode.InternalServerError or HttpStatusCode.ServiceUnavailable,
                 $"Dead database returned {response.StatusCode}");

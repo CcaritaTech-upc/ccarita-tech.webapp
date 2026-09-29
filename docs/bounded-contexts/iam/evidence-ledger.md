@@ -108,4 +108,56 @@ roles_covered:
     happy_path: frontend/tests/e2e/iam-happy-path.spec.js
   - role: Builder
     happy_path: frontend/tests/e2e/iam-builder.spec.js
+owner_unit_assignment_registration:
+  journey: An Owner registers only after a builder assigns an existing unit to their email.
+  actor_coverage:
+    - actor: Owner with assigned unit
+      outcome: Registration completes; existing auto-linking attaches the account to the unit.
+    - actor: Owner without assigned unit
+      outcome: Frontend disables Next and backend rejects direct registration with 403.
+    - actor: Builder
+      outcome: Registration remains available without a unit assignment.
+  scenarios:
+    - tier: A
+      scenario: Unassigned Owner registration is rejected before user/dispatch persistence.
+      owner: backend/tests/Modules/IamWorkflowTests.cs
+    - tier: A
+      scenario: Both public registration routes reject unassigned Owners; assigned-owner registration remains successful.
+      owner: backend/tests/Modules/IamWorkflowTests.cs
+    - tier: B
+      scenario: Invitation lookup failure disables Next and blocks the Owner form from progressing.
+      owner: frontend/tests/e2e/iam-form-feedback.spec.js
+  layer_ownership:
+    G0: RegisterUserWorkflow tests prove no user or dispatch is persisted without an assigned unit.
+    G1: IamApiContractTests prove both public signup routes return the explicit 403 contract.
+    G2: Playwright proves Owner rejection/assigned-unit success and Builder registration success against the running MySQL-backed stack.
+    G3: Direct API bypass and invitation-service outage are both covered as fail-closed scenarios.
+    G4: Final six-journey rerun passed against an isolated Docker Compose stack.
+  convergence_points:
+    - Invitation lookup assigned/unitId matches backend eligibility rule.
+    - Rejected backend signup leaves login unauthorized for that email.
+    - Existing Owner auto-linking succeeds when Unit.OwnerEmail or Client.UnitId associates a real unit.
+  gates:
+    G0: passed
+    G1: passed
+    G2: passed
+    G3: passed
+    G4: passed
+  commands:
+    - command: dotnet test backend/IoBuild.sln --no-restore --verbosity minimal
+      result: 233/233 passed (17 architecture + 20 contract + 42 integration + 154 modules).
+    - command: npm run test:unit
+      result: 56/56 passed.
+    - command: npm run build
+      result: passed; existing Vite warning reports a vendor chunk slightly over 1 MB.
+    - command: E2E_BASE_URL=http://localhost:8081 npm run test:e2e -- --grep "IAM Builder happy path|IAM happy path|ANALYTICS Owner|DEVICES Owner happy path|Owner registration requires an assigned unit|fails closed when unit assignment cannot be verified"
+      result: 6/6 passed against isolated Docker Compose with MySQL 8, API, frontend, and Nginx.
+    - command: E2E_BASE_URL=http://localhost:8081 npm run test:e2e -- --grep "IAM happy path|Owner registration requires an assigned unit|fails closed when unit assignment cannot be verified"
+      result: 3/3 passed; E2E asserts the Next button is disabled and gray (rgb(156, 163, 175)) for missing assignments, and enabled for an assigned Owner.
+  diagnostic_verdicts:
+    - failure: Initial E2E locator matched visible/inactive step panels strictly.
+      verdict: Test assertion issue; scoped visible-message assertion and hidden-step assertion fixed it; final five-test run passed.
+    - failure: E2E attempted clicking Next after email blur had already started assignment lookup and disabled the button.
+      verdict: Expected product behavior; tests now assert the lookup feedback and disabled state produced by blur.
+  open_risks: []
 ```

@@ -12,6 +12,6 @@ public static class IamBuilders
     public static RegisterUser RegisterRequest(
         string? email = null,
         string password = "secret123",
-        string role = "Owner") =>
+        string role = "Builder") =>
         new(email ?? UniqueEmail(), password, role);
 }

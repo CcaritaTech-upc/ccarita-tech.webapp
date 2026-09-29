@@ -29,6 +29,46 @@ test('IAM registration names each failing field', async ({ page }) => {
   await expect(page.getByText('El número de teléfono es obligatorio.')).toBeVisible();
 });
 
+test('IAM Owner registration requires an assigned unit in UI and backend', async ({ page }) => {
+  const email = `unassigned.${Date.now()}@example.test`;
+  await page.goto('/iam/register-owner');
+  await page.locator('#email').fill(email);
+  await page.locator('#password input').fill('secret123');
+  await page.locator('#confirmPassword input').fill('secret123');
+
+  await expect(page.getByText('Para registrarte como propietario, el constructor debe asignarte una unidad primero.').first()).toBeVisible();
+  const nextButton = page.getByRole('button', { name: /^next$/i });
+  await expect(nextButton).toBeDisabled();
+  await expect(nextButton).toHaveCSS('background-color', 'rgb(156, 163, 175)');
+  await expect(page.locator('#email')).toBeVisible();
+  await expect(page.locator('#name')).toBeHidden();
+
+  // Bypass the frontend and prove the backend is authoritative too.
+  const response = await page.request.post('/api/v1/users', {
+    data: { email, password: 'secret123', role: 'Owner' },
+  });
+  expect(response.status()).toBe(403);
+  expect(await response.json()).toMatchObject({ code: 'owner_unit_assignment_required' });
+
+  const login = await page.request.post('/api/v1/sessions', {
+    data: { email, password: 'secret123' },
+  });
+  expect(login.status()).toBe(401);
+});
+
+test('IAM Owner registration fails closed when unit assignment cannot be verified', async ({ page }) => {
+  await page.route('**/api/v1/authentication/invitation**', route => route.abort());
+  await page.goto('/iam/register-owner');
+  await page.locator('#email').fill(`verification-unavailable.${Date.now()}@example.test`);
+  await page.locator('#password input').fill('secret123');
+  await page.locator('#confirmPassword input').fill('secret123');
+
+  await expect(page.getByText('No se pudo verificar la unidad asignada. Inténtalo nuevamente.').first()).toBeVisible();
+  await expect(page.getByRole('button', { name: /^next$/i })).toBeDisabled();
+  await expect(page.locator('#email')).toBeVisible();
+  await expect(page.locator('#name')).toBeHidden();
+});
+
 test('IAM login failure is generic and reveals nothing', async ({ page }) => {
   await page.goto('/iam/login');
   await page.locator('#email').fill(`nobody.${Date.now()}@example.test`);

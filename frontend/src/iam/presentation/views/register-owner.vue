@@ -30,6 +30,7 @@
               :placeholder="$t('iam.registerOwner.emailPlaceholder')"
               :invalid="!!fieldErrors.email"
               class="w-full"
+              @input="onOwnerEmailInput"
               @blur="onEmailBlur"
             />
             <small v-if="fieldErrors.email" class="p-error block mt-1">
@@ -88,6 +89,8 @@
                     icon="pi pi-arrow-right"
                     iconPos="right"
                     :loading="checkingInvitation"
+                    :disabled="checkingInvitation || ownerUnitAssigned === false"
+                    :class="{ 'owner-next-button--unavailable': ownerUnitAssigned === false }"
                     @click="goToStep2"
                     class="flex-1"
                   />
@@ -356,20 +359,54 @@ const successMessage = ref('');
 const invitationInfo = ref(null);
 const checkingInvitation = ref(false);
 const isEmailAlreadyRegistered = ref(false);
+const ownerUnitAssigned = ref(null);
 
-async function checkBuilderAssignment(email) {
+function onOwnerEmailInput() {
+  ownerUnitAssigned.value = null;
+  invitationInfo.value = null;
+  isEmailAlreadyRegistered.value = false;
+
+  if (fieldErrors.value.email === 'Tu correo electrónico no tiene una unidad asignada.' ||
+      fieldErrors.value.email === 'Este correo electrónico ya está registrado. Por favor inicia sesión.') {
+    fieldErrors.value.email = null;
+  }
+  if (errorMessage.value === 'Para registrarte como propietario, el constructor debe asignarte una unidad primero.' ||
+      errorMessage.value === 'Este correo electrónico ya cuenta con una cuenta de usuario.' ||
+      errorMessage.value === 'No se pudo verificar la unidad asignada. Inténtalo nuevamente.') {
+    errorMessage.value = '';
+  }
+}
+
+async function checkOwnerUnitAssignment(email) {
   if (!email || !email.includes('@')) return false;
   try {
     checkingInvitation.value = true;
     const res = await iamApi.checkInvitation(email.trim());
     if (res?.data?.alreadyRegistered) {
       isEmailAlreadyRegistered.value = true;
+      ownerUnitAssigned.value = false;
       invitationInfo.value = null;
       fieldErrors.value.email = 'Este correo electrónico ya está registrado. Por favor inicia sesión.';
       errorMessage.value = 'Este correo electrónico ya cuenta con una cuenta de usuario.';
       return false;
     }
     isEmailAlreadyRegistered.value = false;
+    if (!res?.data?.assigned || !res?.data?.unitId) {
+      ownerUnitAssigned.value = false;
+      invitationInfo.value = null;
+      fieldErrors.value.email = 'Tu correo electrónico no tiene una unidad asignada.';
+      errorMessage.value = 'Para registrarte como propietario, el constructor debe asignarte una unidad primero.';
+      return false;
+    }
+    ownerUnitAssigned.value = true;
+    if (fieldErrors.value.email === 'Tu correo electrónico no tiene una unidad asignada.' ||
+        fieldErrors.value.email === 'Este correo electrónico ya está registrado. Por favor inicia sesión.') {
+      fieldErrors.value.email = null;
+    }
+    if (errorMessage.value === 'Para registrarte como propietario, el constructor debe asignarte una unidad primero.' ||
+        errorMessage.value === 'Este correo electrónico ya cuenta con una cuenta de usuario.') {
+      errorMessage.value = '';
+    }
     if (res?.data?.assigned) {
       invitationInfo.value = res.data;
       if (!registerForm.value.name && res.data.fullName) {
@@ -387,7 +424,10 @@ async function checkBuilderAssignment(email) {
     return true;
   } catch (err) {
     console.debug('Invitation lookup failed or error:', err);
-    return true;
+    ownerUnitAssigned.value = false;
+    invitationInfo.value = null;
+    errorMessage.value = 'No se pudo verificar la unidad asignada. Inténtalo nuevamente.';
+    return false;
   } finally {
     checkingInvitation.value = false;
   }
@@ -396,20 +436,7 @@ async function checkBuilderAssignment(email) {
 async function onEmailBlur() {
   const email = (registerForm.value.email || '').trim();
   if (email && isValidEmail(email)) {
-    try {
-      const res = await iamApi.checkInvitation(email);
-      if (res?.data?.alreadyRegistered) {
-        isEmailAlreadyRegistered.value = true;
-        fieldErrors.value.email = 'Este correo electrónico ya está registrado. Por favor inicia sesión.';
-        errorMessage.value = 'Este correo electrónico ya cuenta con una cuenta registrada.';
-      } else {
-        isEmailAlreadyRegistered.value = false;
-        if (fieldErrors.value.email === 'Este correo electrónico ya está registrado. Por favor inicia sesión.') {
-          fieldErrors.value.email = null;
-          errorMessage.value = '';
-        }
-      }
-    } catch (_) {}
+    await checkOwnerUnitAssignment(email);
   }
 }
 
@@ -445,7 +472,7 @@ async function goToStep2() {
   }
 
   // Check if email already registered before allowing step 2
-  const allowed = await checkBuilderAssignment(email);
+  const allowed = await checkOwnerUnitAssignment(email);
   if (!allowed || isEmailAlreadyRegistered.value) {
     return;
   }
@@ -562,7 +589,11 @@ async function handleRegister() {
     });
     
     // Provide more specific error messages
-    if (error.message.includes('user ID')) {
+    if (error.response?.data?.code === 'owner_unit_assignment_required') {
+      errorMessage.value = 'Para registrarte como propietario, el constructor debe asignarte una unidad primero.';
+      fieldErrors.value.email = 'Tu correo electrónico no tiene una unidad asignada.';
+      currentStep.value = 1;
+    } else if (error.message.includes('user ID')) {
       errorMessage.value = 'Failed to complete registration. Please try logging in manually.';
     } else if (error.response?.status === 409 || error.response?.data?.error?.includes('already exists')) {
       errorMessage.value = 'Este correo electrónico ya está registrado. Por favor inicie sesión.';
@@ -647,6 +678,14 @@ function goToLogin() {
 
 .step-content {
   padding: 1rem 0;
+}
+
+.owner-next-button--unavailable:disabled {
+  background-color: #9ca3af;
+  border-color: #9ca3af;
+  color: #ffffff;
+  cursor: not-allowed;
+  opacity: 1;
 }
 
 .mb-3 {

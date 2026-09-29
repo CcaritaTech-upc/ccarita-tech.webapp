@@ -21,7 +21,7 @@ public sealed class IamTierCTests
         var service = CreateIamService(db);
         // Epsilon variants: service normalizes case/whitespace; distinct Unicode
         // spellings remain distinct until MySQL collation decides equality.
-        await service.RegisterAsync(new RegisterUser("Usuario.Caso@Example.Test", "secret123", "Owner"));
+        await service.RegisterAsync(new RegisterUser("Usuario.Caso@Example.Test", "secret123", "Builder"));
         var session = await service.SignInAsync(new SignIn("usuario.caso@example.test", "secret123"));
         Assert.Equal("usuario.caso@example.test", session.Email);
     }
@@ -51,8 +51,8 @@ public sealed class IamTierCTests
         // InMemory cannot enforce the unique index or transactions like MySQL;
         // it proves orchestration idempotency. Concurrency is guarded by
         // IX_iam_users_Email on MySQL 8.0 (proven live) plus rollback tests.
-        await service.RegisterAsync(new RegisterUser("race@example.test", "secret123", "Owner"));
-        await service.RegisterAsync(new RegisterUser("race@example.test", "secret123", "Owner"));
+        await service.RegisterAsync(new RegisterUser("race@example.test", "secret123", "Builder"));
+        await service.RegisterAsync(new RegisterUser("race@example.test", "secret123", "Builder"));
         Assert.Single(await db.IamUsers.ToListAsync());
         Assert.Single(await db.IntegrationDispatches.ToListAsync());
     }

@@ -1,4 +1,5 @@
 using System.Net.Http.Json;
+using System.Text.Json;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -36,11 +37,47 @@ public sealed class IamWorkflowTests
         await using var db = CreateDb();
         var service = CreateIamService(db);
 
-        await service.RegisterAsync(new RegisterUser("ada@example.test", "secret", "Owner"));
-        await service.RegisterAsync(new RegisterUser("ada@example.test", "secret", "Owner"));
+        await service.RegisterAsync(new RegisterUser("ada@example.test", "secret", "Builder"));
+        await service.RegisterAsync(new RegisterUser("ada@example.test", "secret", "Builder"));
 
         Assert.Single(await db.IamUsers.ToListAsync());
         Assert.Single(await db.IntegrationDispatches.ToListAsync());
+    }
+
+    [Fact]
+    [Trait("Category", "IAM")]
+    [Trait("Flow", "IAM.REGISTRATION")]
+    [Trait("Layer", "Application")]
+    [Trait("Risk", "A")]
+    public async Task Owner_registration_without_an_assigned_unit_is_rejected_without_side_effects()
+    {
+        await using var db = CreateDb();
+        var service = CreateIamService(db);
+
+        await Assert.ThrowsAsync<OwnerUnitAssignmentRequiredException>(() =>
+            service.RegisterAsync(new RegisterUser("unassigned@example.test", "secret123", "Owner")));
+
+        Assert.Empty(await db.IamUsers.ToListAsync());
+        Assert.Empty(await db.IntegrationDispatches.ToListAsync());
+    }
+
+    [Fact]
+    [Trait("Category", "IAM")]
+    [Trait("Flow", "IAM.REGISTRATION")]
+    [Trait("Layer", "Application")]
+    [Trait("Risk", "A")]
+    public async Task Owner_registration_requires_a_unit_not_only_a_client_record()
+    {
+        await using var db = CreateDb();
+        db.Clients.Add(new IoBuild.Api.Publishing.Domain.Model.Aggregates.Client(
+            "Unassigned Client", "Project", "Pending", 1, 1, "client-only@example.test", "999888777", "Somewhere", null, null));
+        await db.SaveChangesAsync();
+        var service = CreateIamService(db);
+
+        await Assert.ThrowsAsync<OwnerUnitAssignmentRequiredException>(() =>
+            service.RegisterAsync(new RegisterUser("client-only@example.test", "secret123", "Owner")));
+
+        Assert.Empty(await db.IamUsers.ToListAsync());
     }
 
     [Fact]
@@ -269,7 +306,7 @@ public sealed class IamWorkflowTests
     {
         await using var db = CreateDb();
         var service = CreateIamService(db);
-        await service.RegisterAsync(new RegisterUser("lin@example.test", "secret", "Owner"));
+        await service.RegisterAsync(new RegisterUser("lin@example.test", "secret", "Builder"));
         var session = await service.SignInAsync(new SignIn("lin@example.test", "secret"));
 
         await service.RevokeAsync(session.Token);
@@ -300,7 +337,7 @@ public sealed class IamApiContractTests
     {
         await using var factory = new IamApiFactory();
         using var client = factory.CreateClient();
-        var registration = await client.PostAsync("/api/v1/users", Json("{\"email\":\"api@example.test\",\"password\":\"secret\",\"role\":\"Owner\"}"));
+        var registration = await client.PostAsync("/api/v1/users", Json("{\"email\":\"api@example.test\",\"password\":\"secret\",\"role\":\"Builder\"}"));
         Assert.Equal(System.Net.HttpStatusCode.Created, registration.StatusCode);
         var session = await client.PostAsync("/api/v1/sessions", Json("{\"email\":\"api@example.test\",\"password\":\"secret\"}"));
         Assert.Equal(System.Net.HttpStatusCode.Created, session.StatusCode);
@@ -310,6 +347,27 @@ public sealed class IamApiContractTests
         Assert.Equal(System.Net.HttpStatusCode.NoContent, (await client.SendAsync(logout)).StatusCode);
         client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
         Assert.Equal(System.Net.HttpStatusCode.Unauthorized, (await client.GetAsync("/api/v1/users")).StatusCode);
+    }
+
+    [Theory]
+    [InlineData("/api/v1/users")]
+    [InlineData("/api/v1/authentication/sign-up")]
+    [Trait("Category", "IAM")]
+    [Trait("Flow", "IAM.REGISTRATION")]
+    [Trait("Layer", "Api")]
+    [Trait("Risk", "A")]
+    public async Task Owner_registration_routes_reject_an_email_without_an_assigned_unit(string route)
+    {
+        await using var factory = new IamApiFactory();
+        using var client = factory.CreateClient();
+
+        var response = await client.PostAsync(route, Json("{\"email\":\"unassigned-api@example.test\",\"password\":\"secret123\",\"role\":\"Owner\"}"));
+
+        Assert.Equal(System.Net.HttpStatusCode.Forbidden, response.StatusCode);
+        var body = await response.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal("owner_unit_assignment_required", body.GetProperty("code").GetString());
+        var login = await client.PostAsync("/api/v1/sessions", Json("{\"email\":\"unassigned-api@example.test\",\"password\":\"secret123\"}"));
+        Assert.Equal(System.Net.HttpStatusCode.Unauthorized, login.StatusCode);
     }
 
     private static StringContent Json(string body) => new(body, System.Text.Encoding.UTF8, "application/json");

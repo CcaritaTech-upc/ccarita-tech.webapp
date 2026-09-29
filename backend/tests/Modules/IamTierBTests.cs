@@ -28,7 +28,7 @@ public sealed class IamTierBTests
         await using var factory = new TierBApiFactory();
         using var client = factory.CreateClient();
         var email = $"logout-{Guid.NewGuid():N}@example.test";
-        await client.PostAsync("/api/v1/users", Json($"{{\"email\":\"{email}\",\"password\":\"secret123\",\"role\":\"Owner\"}}"));
+        await client.PostAsync("/api/v1/users", Json($"{{\"email\":\"{email}\",\"password\":\"secret123\",\"role\":\"Builder\"}}"));
         var session = await client.PostAsync("/api/v1/sessions", Json($"{{\"email\":\"{email}\",\"password\":\"secret123\"}}"));
         var token = (await session.Content.ReadFromJsonAsync<AuthenticatedUser>())!.Token;
 
@@ -72,7 +72,7 @@ public sealed class IamTierBTests
     {
         await using var db = CreateDb();
         var service = CreateIamService(db);
-        await service.RegisterAsync(new RegisterUser("  ADA-NORM@Example.Test ", "secret123", "Owner"));
+        await service.RegisterAsync(new RegisterUser("  ADA-NORM@Example.Test ", "secret123", "Builder"));
         var session = await service.SignInAsync(new SignIn("ada-norm@example.test", "secret123"));
         Assert.Equal("ada-norm@example.test", session.Email);
         Assert.Single(await db.IamUsers.ToListAsync());
@@ -86,7 +86,7 @@ public sealed class IamTierBTests
     {
         await using var db = CreateDb();
         var service = CreateIamService(db);
-        await service.RegisterAsync(new RegisterUser("expiry@example.test", "secret123", "Owner"));
+        await service.RegisterAsync(new RegisterUser("expiry@example.test", "secret123", "Builder"));
         var session = await service.SignInAsync(new SignIn("expiry@example.test", "secret123"));
 
         // Simulate an expired revocation row (cleanup boundary).

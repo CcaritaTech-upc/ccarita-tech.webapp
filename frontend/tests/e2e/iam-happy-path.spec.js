@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { provisionAssignedOwner } from './owner-assignment.fixture.js';
 
 // IAM.REGISTRATION.HAPPY_PATH + IAM.LOGIN.HAPPY_PATH
 // Convergent Testing: system/E2E proves the user-visible outcome only.
@@ -9,11 +10,14 @@ test('IAM happy path: register, login, authorized access, logout, revoked token'
   const email = `e2e.${stamp}@example.test`;
   const password = 'secret123';
 
+  await provisionAssignedOwner(page, email, stamp);
+
   // Step 1: account — register-owner is a 2-step stepper under /iam.
   await page.goto('/iam/register-owner');
   await page.locator('#email').fill(email);
   await page.locator('#password input').fill(password);
   await page.locator('#confirmPassword input').fill(password);
+  await expect(page.getByRole('button', { name: /^next$/i })).toBeEnabled();
   await page.getByRole('button', { name: /^next$/i }).click();
 
   // Step 2: profile — representative valid data only.
