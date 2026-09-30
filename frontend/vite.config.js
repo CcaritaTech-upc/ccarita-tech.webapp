@@ -2,6 +2,16 @@ import { defineConfig, loadEnv } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import { fileURLToPath, URL } from 'node:url'
 
+export function vendorChunk(id) {
+  const path = id.replaceAll('\\', '/');
+  if (!path.includes('/node_modules/')) return;
+  if (/\/node_modules\/(chart\.js|vue-chartjs|@kurkle\/color)\//.test(path)) return 'charts';
+  if (path.includes('/node_modules/@stripe/')) return 'stripe';
+  // Match package boundaries: primevue and vue-chartjs are not Vue core.
+  if (/\/node_modules\/(primevue|@primevue\/[^/]+|@primeuix\/[^/]+)\//.test(path)) return 'primevue';
+  return 'vendor';
+}
+
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
   return {
@@ -14,17 +24,8 @@ export default defineConfig(({ mode }) => {
     build: {
       rollupOptions: {
         output: {
-          manualChunks: (id) => {
-            if (id.includes('node_modules')) {
-              if (id.includes('vue') || id.includes('pinia') || id.includes('@vue')) {
-                return 'vendor';
-              }
-              if (id.includes('primevue') || id.includes('@primeuix')) {
-                return 'primevue';
-              }
-              return 'vendor';
-            }
-          },
+          onlyExplicitManualChunks: true,
+          manualChunks: vendorChunk,
         },
       },
       chunkSizeWarningLimit: 1000,

@@ -29,6 +29,7 @@ watch(locale, (newLang) => {
       option-value="value"
       class="language-select custom-green-select"
       placeholder="Idioma"
+      :aria-label="t('profile.appLanguage')"
     />
   </div>
 </template>

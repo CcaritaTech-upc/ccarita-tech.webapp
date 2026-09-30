@@ -5,6 +5,10 @@ import { test, expect } from '@playwright/test';
 // system. Simulated Stripe never leaves the app: checkout returns a same-origin
 // success URL, the view confirms, and the plan activates.
 test('SUBSCRIPTIONS Builder happy path: browse plans, pay, active subscription', async ({ page }) => {
+  const stripeRequests = [];
+  page.on('request', request => {
+    if (/js\.stripe\.com|\/stripe-[^/]+\.js/.test(request.url())) stripeRequests.push(request.url());
+  });
   const stamp = Date.now();
   const email = `e2e.subs.${stamp}@example.test`;
   const password = 'secret123';
@@ -38,6 +42,9 @@ test('SUBSCRIPTIONS Builder happy path: browse plans, pay, active subscription',
   await expect(page).not.toHaveURL(/session_id=/, { timeout: 30_000 });
   await expect(page.locator('.hero-plan-title')).toHaveText('Starter', { timeout: 20_000 });
   await expect(page.locator('.status-active').first()).toBeVisible();
+  if (process.env.E2E_SIMULATED_PAYMENTS === '1') {
+    expect(stripeRequests, 'URL checkout must not initialize Stripe.js').toEqual([]);
+  }
 });
 
 // If checkout redirected to real Stripe, pay with the test card and come back.

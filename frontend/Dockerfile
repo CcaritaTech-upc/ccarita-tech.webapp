@@ -29,6 +29,6 @@ RUN npm run build
 FROM nginx:alpine
 RUN apk add --no-cache curl
 COPY --from=build /app/dist /usr/share/nginx/html
-# SPA fallback; API is proxied by cutover nginx (iobuild-api:8080)
-RUN printf 'server {\n  listen 80;\n  root /usr/share/nginx/html;\n  index index.html;\n  location / {\n    try_files $uri $uri/ /index.html;\n  }\n}\n' > /etc/nginx/conf.d/default.conf
+# API is proxied by the outer nginx (iobuild-api:8080).
+COPY nginx.conf /etc/nginx/conf.d/default.conf
 EXPOSE 80

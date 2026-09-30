@@ -21,7 +21,7 @@ import {
 } from "../../../shared/infrastructure/constants.js";
 
 // Stripe
-import { loadStripe } from "@stripe/stripe-js";
+import { getStripeClient } from "../../infrastructure/stripe-client.js";
 
 const { t } = useI18n();
 const confirm = useConfirm();
@@ -30,7 +30,6 @@ const store = useSubscriptionStore();
 const analyticsStore = useAnalyticsStore();
 const subscriptionApi = new SubscriptionApi();
 
-const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
 const isProcessing = ref(false);
 
 // Invoices modal
@@ -218,7 +217,7 @@ const handlePayPlan = async (plan) => {
 
     const sessionId = data.sessionId || data.SessionId || data.id || data.Id;
     if (sessionId) {
-      const stripe = await stripePromise;
+      const stripe = await getStripeClient();
       if (!stripe) throw new Error("Stripe no se pudo inicializar");
 
       const { error } = await stripe.redirectToCheckout({ sessionId });

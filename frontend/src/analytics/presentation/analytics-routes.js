@@ -4,7 +4,7 @@ const ownerDeviceControl = () => import("./views/analytics-dashboard.view.vue");
 const analyticsRoutes = [
     {
         path: '',
-        redirect: 'dashboard'
+        redirect: '/analytics/dashboard'
     },
     {
         path: 'dashboard',

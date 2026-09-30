@@ -1,7 +1,7 @@
 const subscriptionsRoutes = [
     {
         path: "",
-        redirect: "my-subscription"
+        redirect: "/subscriptions/my-subscription"
     },
     {
         path: "my-subscription",

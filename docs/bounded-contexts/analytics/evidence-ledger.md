@@ -1,5 +1,15 @@
 # Analytics evidence ledger
 
+See the [crosscutting frontend performance report](../../performance/evidence-ledger.md)
+for shared gzip/cache/chunks, functional E2E evidence and the new local
+mobile/desktop Lighthouse audit of `/analytics/dashboard` for Builder and Owner.
+The original two-route IAM comparison is preserved separately. Local observations
+do not establish CI acceptance or all-state performance coverage.
+
+The central round-two entry records canonical `/analytics` redirect regression
+tests, shared header accessibility and baseline CPU noise. Polling/freshness is
+unchanged; vendor/CPU optimization is deferred with owner/date there.
+
 ```yaml
 context: analytics
 status: piloted

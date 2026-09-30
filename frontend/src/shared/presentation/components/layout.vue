@@ -117,6 +117,8 @@ const filteredItems = computed(() => {
           <div class="header-start">
             <pv-button
                 class="menu-button"
+                :aria-label="drawer ? 'Close navigation' : 'Open navigation'"
+                :aria-expanded="drawer"
                 icon="pi pi-bars"
                 text
                 rounded
@@ -142,6 +144,7 @@ const filteredItems = computed(() => {
 
             <pv-button
               class="notification-button"
+              aria-label="Notifications"
               icon="pi pi-bell"
               text
               rounded
@@ -318,7 +321,7 @@ const filteredItems = computed(() => {
 }
 
 .logout-button {
-  color: #ef4444 !important;
+  color: #dc2626 !important;
   font-weight: 500;
 }
 

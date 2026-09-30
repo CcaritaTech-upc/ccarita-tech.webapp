@@ -5,12 +5,23 @@
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="color-scheme" content="light" />
+    <meta name="description" content="IoBuilt helps builders and property owners manage building projects, connected devices, and energy insights in one place." />
     <title>IoBuilt - Smart Building Management</title>
-    
-    <!-- Chart.js CDN -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <script>
+      // Discover the unchanged CSS hero early, only on direct auth entries.
+      if (/^\/iam\/(login|register-builder|register-owner)\/?$/.test(window.location.pathname)) {
+        const hero = document.createElement('link');
+        hero.rel = 'preload';
+        hero.as = 'image';
+        hero.fetchPriority = 'high';
+        hero.href = 'https://img.freepik.com/free-photo/modern-business-building-with-glass-wall-from-empty-floor_1127-3091.jpg?semt=ais_hybrid&w=740&q=80';
+        document.head.appendChild(hero);
+      }
+    </script>
     
     <!-- Google Fonts for better typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   </head>
   <body>

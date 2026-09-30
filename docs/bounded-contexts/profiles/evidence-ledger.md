@@ -1,5 +1,15 @@
 # Profiles evidence ledger
 
+See the [crosscutting frontend performance report](../../performance/evidence-ledger.md)
+for shared gzip/cache/chunks, functional E2E evidence and the new local
+mobile/desktop Lighthouse audit of `/profiles/profile` for Builder and Owner.
+The original two-route IAM comparison is preserved separately. Local observations
+do not establish CI acceptance or all-state performance coverage.
+
+Surgical round two links both-role fields/language controls and improves shared
+action contrast: A100 for both measured profile views, with save/reload/locale
+regressions in the repeated full E2E suite. Details and CI limits are central.
+
 ```yaml
 context: profiles
 status: piloted

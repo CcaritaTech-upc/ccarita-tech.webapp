@@ -1,5 +1,15 @@
 # Devices evidence ledger
 
+See the [crosscutting frontend performance report](../../performance/evidence-ledger.md)
+for shared gzip/cache/chunks, functional E2E evidence and the new local
+mobile/desktop Lighthouse audit of `/devices/device-management` for Builder and
+Owner. The small fixture has no live telemetry samples. Local observations do
+not establish CI acceptance or all-state performance coverage.
+
+The central round-two entry records named Owner controls and shared contrasts
+(Owner measured A100), plus repeated command/power-lock E2E. CPU reduction is
+deferred; shadow refresh and all device widgets remain intact.
+
 ```yaml
 context: devices
 status: piloted

@@ -1,5 +1,19 @@
 # IAM evidence ledger
 
+See the [crosscutting frontend performance report](../../performance/evidence-ledger.md)
+for the verbatim 2026-09-29 evidence, shared gzip/cache/chunks, deferred
+Cloudinary and auth hero preload. The original `/iam/login` and
+`/iam/register-owner` comparison is preserved; a new mobile/desktop audit adds
+`/iam/register-builder` and scoped authenticated routes across contexts, not all
+IAM or application states. Broad E2E evidence remains functional regression
+coverage. Performance results remain
+local-only with CI acceptance pending; the historical IAM gates and Owner
+registration evidence below are separate and preserved.
+
+The central report also records surgical round-two stepper semantics, shared
+contrast/font scheduling, real clipboard diagnosis and repeated local full-suite
+evidence; both registration forms measure A100 in their initial audited state.
+
 ```yaml
 context: iam
 status: piloted

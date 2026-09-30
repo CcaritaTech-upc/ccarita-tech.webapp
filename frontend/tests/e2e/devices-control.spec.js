@@ -80,6 +80,7 @@ test('DEVICES Owner happy path: provision, register, command, reflected status',
   await page.goto('/devices/device-management');
   await expect(page.locator('.unit-devices-table')).toContainText('E2E Hall Light', { timeout: 20_000 });
   const slider = page.locator('.control-panel input.native-slider').first();
+  await expect(slider).toHaveAccessibleName(/brightness$/);
   await slider.fill('80');
   await page.locator('.send-btn').first().click();
   await expect(page.getByText('Command sent').first()).toBeVisible({ timeout: 20_000 });

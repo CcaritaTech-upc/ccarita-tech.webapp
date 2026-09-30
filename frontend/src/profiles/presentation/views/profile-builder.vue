@@ -29,6 +29,7 @@
               rounded
               @click="triggerPhotoUpload"
               title="Cambiar foto"
+              aria-label="Cambiar foto"
             />
           </div>
         </div>
@@ -65,8 +66,9 @@
         <h3 class="card-title">{{ $t('profile.accountInformation') }}</h3>
 
         <div class="info-group">
-          <label>{{ $t('profile.fullName') }}</label>
+          <label for="builder-profile-name">{{ $t('profile.fullName') }}</label>
           <input
+            id="builder-profile-name"
             type="text"
             v-model="profile.name"
             :readonly="!isEditing"
@@ -77,13 +79,14 @@
         </div>
 
         <div class="info-group">
-          <label>{{ $t('profile.email') }}</label>
-          <input type="text" v-model="profile.email" readonly class="info-input" />
+          <label for="builder-profile-email">{{ $t('profile.email') }}</label>
+          <input id="builder-profile-email" type="text" v-model="profile.email" readonly class="info-input" />
         </div>
 
         <div class="info-group">
-          <label>{{ $t('profile.phoneNumber') }}</label>
+          <label for="builder-profile-phone">{{ $t('profile.phoneNumber') }}</label>
           <input
+            id="builder-profile-phone"
             type="text"
             v-model="profile.phoneNumber"
             :readonly="!isEditing"
@@ -94,8 +97,9 @@
         </div>
 
         <div class="info-group">
-          <label>{{ $t('profile.address') }}</label>
+          <label for="builder-profile-address">{{ $t('profile.address') }}</label>
           <input
+            id="builder-profile-address"
             type="text"
             v-model="profile.address"
             :readonly="!isEditing"
@@ -106,8 +110,9 @@
         </div>
 
         <div class="info-group">
-          <label>{{ $t('profile.secondEmail') }}</label>
+          <label for="builder-profile-second-email">{{ $t('profile.secondEmail') }}</label>
           <input
+            id="builder-profile-second-email"
             type="email"
             v-model="profile.secondEmail"
             :readonly="!isEditing"
@@ -117,8 +122,8 @@
           <small v-if="isEditing && errors.secondEmail" class="p-error">{{ errors.secondEmail }}</small>
         </div>
 
-        <h3 class="card-title">{{ $t('profile.appLanguage') }}</h3>
-        <select v-model="$i18n.locale" class="language-select">
+        <h3 id="builder-profile-language-label" class="card-title">{{ $t('profile.appLanguage') }}</h3>
+        <select aria-labelledby="builder-profile-language-label" v-model="$i18n.locale" class="language-select">
           <option value="es">Español</option>
           <option value="en">English</option>
         </select>
@@ -308,7 +313,7 @@ function cancelEdit() {
   right: 0;
 }
 .change-photo-btn {
-  background-color: #059669 !important;
+  background-color: #047857 !important;
   color: white !important;
   border: 2px solid white !important;
   width: 36px !important;
@@ -333,13 +338,13 @@ function cancelEdit() {
   gap: 10px;
 }
 .edit-button {
-  background-color: #10b981;
+  background-color: #047857;
   color: white;
   border: none;
   font-weight: bold;
 }
 .cancel-button {
-  background-color: #ef4444;
+  background-color: #b91c1c;
   color: white;
   border: none;
   font-weight: bold;

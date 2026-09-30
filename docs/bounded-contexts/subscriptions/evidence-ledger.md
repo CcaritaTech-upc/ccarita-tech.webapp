@@ -1,5 +1,15 @@
 # Subscriptions evidence ledger
 
+See the [crosscutting frontend performance report](../../performance/evidence-ledger.md)
+for shared gzip/cache/chunks, deferred Stripe initialization and the new local
+mobile/desktop Lighthouse audit of Builder `/subscriptions/my-subscription`
+with its embedded plans catalog. Payments are simulated; these observations do
+not establish CI or real-provider acceptance. Historical evidence is preserved.
+
+Surgical round two fixes `/subscriptions` to its canonical nested destination;
+unit/direct-entry/real-menu and repeated purchase evidence are in the central
+report. Providers remain simulated locally and CI is pending.
+
 ```yaml
 context: subscriptions
 status: piloted

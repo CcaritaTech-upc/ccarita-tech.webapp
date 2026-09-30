@@ -10,10 +10,10 @@
           <h2 class="form-title">{{ $t('iam.registerOwner.title') }}</h2>
           <p class="form-subtitle">{{ $t('iam.registerOwner.subtitle') || 'Create your owner account to manage your properties.' }}</p>
 
-          <pv-stepper v-model:value="currentStep" linear>
-            <pv-step-list>
-              <pv-step :value="1">{{ $t('iam.registerOwner.userInfoSection') }}</pv-step>
-              <pv-step :value="2">{{ $t('iam.registerOwner.profileInfoSection') }}</pv-step>
+          <pv-stepper v-model:value="currentStep" linear role="group">
+            <pv-step-list role="tablist" :aria-label="$t('iam.registerOwner.title')">
+              <pv-step :value="1" :pt="{ root: { 'aria-current': null }, header: { 'aria-selected': currentStep === 1 } }">{{ $t('iam.registerOwner.userInfoSection') }}</pv-step>
+              <pv-step :value="2" :pt="{ root: { 'aria-current': null }, header: { 'aria-selected': currentStep === 2 } }">{{ $t('iam.registerOwner.profileInfoSection') }}</pv-step>
             </pv-step-list>
 
             <pv-step-panels>
@@ -258,7 +258,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { useIamStore } from '../../application/iam.store.js';
 import { useProfileStore } from '../../../profiles/application/profile.store.js';
@@ -280,29 +280,13 @@ const iamApi = new IamApi();
 const currentStep = ref(1);
 const fieldErrors = ref({});
 
-import { CLOUDINARY_WIDGET_URL } from "../../../shared/infrastructure/constants.js";
+import { loadCloudinaryWidget } from "../../../shared/infrastructure/cloudinary-loader.js";
 import { getAvatarUploadConfig } from "../../../shared/infrastructure/cloudinary-config.js";
 
 // Cloudinary configuration
 const cloudinaryName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
 const cloudinaryPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
-const cloudinaryReady = ref(false);
-
-onMounted(() => {
-  loadCloudinaryScript();
-});
-
-const loadCloudinaryScript = () => {
-  if (window.cloudinary) {
-    cloudinaryReady.value = true;
-    return;
-  }
-  const script = document.createElement('script');
-  script.src = CLOUDINARY_WIDGET_URL;
-  script.type = 'text/javascript';
-  script.onload = () => { cloudinaryReady.value = true; };
-  document.head.appendChild(script);
-};
+let openingUpload = false;
 
 const fileInput = ref(null);
 
@@ -316,12 +300,15 @@ const handleLocalFileUpload = (event) => {
   reader.readAsDataURL(file);
 };
 
-const openUploadModal = () => {
+const openUploadModal = async () => {
+  if (openingUpload) return;
   const hasCloudinary = cloudinaryName && cloudinaryName.trim() !== '' && cloudinaryPreset && cloudinaryPreset.trim() !== '';
-  if (hasCloudinary && cloudinaryReady.value && window.cloudinary) {
+  if (hasCloudinary) {
+    openingUpload = true;
     try {
+      const cloudinary = await loadCloudinaryWidget();
       const widgetConfig = getAvatarUploadConfig(cloudinaryName, cloudinaryPreset);
-      window.cloudinary.openUploadWidget(
+      cloudinary.openUploadWidget(
         widgetConfig,
         (error, result) => {
           if (!error && result && result.event === "success") {
@@ -332,6 +319,8 @@ const openUploadModal = () => {
       return;
     } catch (err) {
       console.warn('Cloudinary widget failed, using local file picker:', err);
+    } finally {
+      openingUpload = false;
     }
   }
 

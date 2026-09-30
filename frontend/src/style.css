@@ -208,8 +208,8 @@ input:-webkit-autofill:active {
 .language-select-wrapper .language-select .p-select,
 .language-select-wrapper .custom-green-select .p-select,
 .custom-green-select.p-select {
-  background: #10B981 !important;
-  border: 1px solid #10B981 !important;
+  background: #047857 !important;
+  border: 1px solid #047857 !important;
   color: white !important;
   min-width: 80px !important;
   border-radius: 6px !important;
@@ -218,8 +218,8 @@ input:-webkit-autofill:active {
 .language-select-wrapper .language-select .p-select:hover,
 .language-select-wrapper .custom-green-select .p-select:hover,
 .custom-green-select.p-select:hover {
-  background: #059669 !important;
-  border-color: #059669 !important;
+  background: #065f46 !important;
+  border-color: #065f46 !important;
 }
 
 .language-select-wrapper .language-select .p-select .p-select-label,
@@ -256,12 +256,12 @@ input:-webkit-autofill:active {
 
 .p-select-option:hover,
 .p-select-option.p-focus {
-  background: #10B981 !important;
+  background: #047857 !important;
   color: white !important;
 }
 
 .p-select-option.p-selected {
-  background: #10B981 !important;
+  background: #047857 !important;
   color: white !important;
 }
 

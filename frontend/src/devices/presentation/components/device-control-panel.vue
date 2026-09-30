@@ -236,6 +236,7 @@ async function onSend(attr) {
         <div class="slider-group">
           <input
             type="range"
+            :aria-label="`${device.deviceName || 'Device'} ${attr.name}`"
             :min="attr.min"
             :max="attr.max"
             :step="1"
@@ -250,6 +251,7 @@ async function onSend(attr) {
       <!-- Enum / Boolean: dropdown -->
       <template v-else-if="kind(attr) === 'enum' || kind(attr) === 'boolean'">
         <pv-select
+          :aria-label="`${device.deviceName || 'Device'} ${attr.name}`"
           v-model="localValues[attr.name]"
           :options="enumOptions(attr)"
           option-label="label"

@@ -1,5 +1,15 @@
 # Publishing evidence ledger
 
+See the [crosscutting frontend performance report](../../performance/evidence-ledger.md)
+for shared gzip/cache/chunks, functional E2E evidence and the new local
+mobile/desktop Lighthouse audit of Builder project list/create/detail and client
+list/detail. Exact routes and fixture scope are in the central report. Local
+observations do not establish CI acceptance or all-state performance coverage.
+
+The central round-two matrix remeasures these routes after shared header/theme
+changes and runs the complete publishing journey twice. No Publishing business
+behavior or context-specific CPU optimization changed.
+
 ```yaml
 context: publishing
 status: piloted

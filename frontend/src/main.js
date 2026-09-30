@@ -5,7 +5,7 @@ import i18n from "./i18n.js";
 import 'primeflex/primeflex.css';
 import 'primeicons/primeicons.css';
 import PrimeVue from 'primevue/config';
-import Aura from '@primeuix/themes/aura';
+import { iobuildPreset } from './shared/presentation/theme.js';
 import {
     Button,
     Card,
@@ -25,7 +25,7 @@ createApp(App)
     .use(i18n)
     .use(PrimeVue, { 
         theme: { 
-            preset: Aura,
+            preset: iobuildPreset,
             options: {
                 darkModeSelector: 'none'
             }

@@ -12,6 +12,7 @@
     "preview": "vite preview",
     "server": "json-server --watch server/db.json --route server/routes.json",
     "test:unit": "vitest run",
+    "test:nginx": "node tests/nginx-config.mjs",
     "test:e2e": "playwright test"
   },
   "dependencies": {
