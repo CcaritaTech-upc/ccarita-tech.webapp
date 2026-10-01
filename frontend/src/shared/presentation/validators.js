@@ -43,6 +43,13 @@ export function isValidAge(age, min = 18, max = 120) {
   return !isNaN(num) && Number.isInteger(num) && num >= min && num <= max;
 }
 
+/** Validates company years in business, where a new company may have zero years. */
+export function isValidYearsInBusiness(years, max = 120) {
+  if (years === null || years === undefined || years === '') return false;
+  const num = Number(years);
+  return Number.isInteger(num) && num >= 0 && num <= max;
+}
+
 /**
  * Validates a person's or entity's full name.
  */
@@ -61,9 +68,9 @@ export function isValidUsername(username) {
 }
 
 /**
- * Validates password strength (min length).
+ * Validates the account password minimum length.
  */
-export function isValidPassword(password, minLength = 6) {
+export function isValidPassword(password, minLength = 8) {
   if (!password || typeof password !== 'string') return false;
   return password.length >= minLength;
 }

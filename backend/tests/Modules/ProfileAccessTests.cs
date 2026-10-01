@@ -40,6 +40,60 @@ public sealed class ProfileAccessTests
     [Fact]
     [Trait("Flow", "PROFILES.MANAGE")]
     [Trait("Layer", "Api")]
+    [Trait("Risk", "B")]
+    public async Task YEARS_IN_BUSINESS_is_separate_from_owner_age_and_range_checked()
+    {
+        await using var factory = new ProfileApiFactory();
+        using var client = factory.CreateClient();
+
+        using var builderCreate = await SendAsync(client, HttpMethod.Post, "/api/v1/profiles", Token(41, "builder41@example.test", "Builder"),
+            "{\"userId\":41,\"name\":\"Builder\",\"username\":\"builder41\",\"yearsInBusiness\":0}");
+        Assert.Equal(HttpStatusCode.Created, builderCreate.StatusCode);
+        var builderProfile = await builderCreate.Content.ReadFromJsonAsync<JsonElement>();
+        AssertNoNumericProfileValue(builderProfile, "age");
+        Assert.Equal(0, builderProfile.GetProperty("yearsInBusiness").GetInt32());
+
+        using var ownerCreate = await SendAsync(client, HttpMethod.Post, "/api/v1/profiles", Token(42, "owner42@example.test", "Owner"),
+            "{\"userId\":42,\"name\":\"Owner\",\"username\":\"owner42\",\"age\":30}");
+        Assert.Equal(HttpStatusCode.Created, ownerCreate.StatusCode);
+        var ownerProfile = await ownerCreate.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(30, ownerProfile.GetProperty("age").GetInt32());
+        AssertNoNumericProfileValue(ownerProfile, "yearsInBusiness");
+
+        using var invalidLow = await SendAsync(client, HttpMethod.Post, "/api/v1/profiles", Token(43, "builder43@example.test", "Builder"),
+            "{\"userId\":43,\"name\":\"Builder\",\"username\":\"builder43\",\"yearsInBusiness\":-1}");
+        Assert.Equal(HttpStatusCode.BadRequest, invalidLow.StatusCode);
+        using var invalidHigh = await SendAsync(client, HttpMethod.Post, "/api/v1/profiles", Token(44, "builder44@example.test", "Builder"),
+            "{\"userId\":44,\"name\":\"Builder\",\"username\":\"builder44\",\"yearsInBusiness\":121}");
+        Assert.Equal(HttpStatusCode.BadRequest, invalidHigh.StatusCode);
+    }
+
+    [Fact]
+    [Trait("Flow", "PROFILES.MANAGE")]
+    [Trait("Layer", "Api")]
+    [Trait("Risk", "B")]
+    public async Task UPDATE_preserves_legacy_age_when_updating_years_in_business()
+    {
+        await using var factory = new ProfileApiFactory();
+        using var client = factory.CreateClient();
+        var builder = Token(45, "builder45@example.test", "Builder");
+
+        using var created = await SendAsync(client, HttpMethod.Post, "/api/v1/profiles", builder,
+            "{\"userId\":45,\"name\":\"Builder\",\"username\":\"builder45\",\"age\":35,\"yearsInBusiness\":5}");
+        Assert.Equal(HttpStatusCode.Created, created.StatusCode);
+        var profileId = (await created.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetInt32();
+
+        using var updated = await SendAsync(client, HttpMethod.Put, $"/api/v1/profiles/{profileId}", builder,
+            "{\"userId\":45,\"name\":\"Builder\",\"username\":\"builder45\",\"yearsInBusiness\":0}");
+        Assert.Equal(HttpStatusCode.OK, updated.StatusCode);
+        var profile = await updated.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(35, profile.GetProperty("age").GetInt32());
+        Assert.Equal(0, profile.GetProperty("yearsInBusiness").GetInt32());
+    }
+
+    [Fact]
+    [Trait("Flow", "PROFILES.MANAGE")]
+    [Trait("Layer", "Api")]
     [Trait("Risk", "A")]
     public async Task READ_is_scoped_to_self_without_oracle()
     {
@@ -221,6 +275,12 @@ public sealed class ProfileAccessTests
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
         if (json is not null) request.Content = new StringContent(json, Encoding.UTF8, "application/json");
         return client.SendAsync(request);
+    }
+
+    private static void AssertNoNumericProfileValue(JsonElement profile, string propertyName)
+    {
+        Assert.True(!profile.TryGetProperty(propertyName, out var value) || value.ValueKind == JsonValueKind.Null,
+            $"Expected {propertyName} to be omitted or null, not a value from the other role-specific field.");
     }
 
     private static IoBuildDbContext CreateDb() => new(

@@ -36,13 +36,16 @@ public static class ProfilesEndpoints
         {
             var item = await db.Profiles.FindAsync([id], ct);
             if (item is null || !OwnsUser(user, item.UserId)) return Results.NotFound();
+            if (request.YearsInBusiness is < 0 or > 120)
+                return Results.BadRequest(new { code = "invalid_years_in_business", message = "Years in business must be between 0 and 120." });
 
             if (!string.IsNullOrWhiteSpace(request.Name)) item.Name = request.Name;
             if (!string.IsNullOrWhiteSpace(request.Username)) item.Username = request.Username;
             item.PhoneNumber = request.PhoneNumber;
             item.Address = request.Address;
             item.SecondEmail = request.SecondEmail;
-            item.Age = request.Age;
+            if (request.Age.HasValue) item.Age = request.Age;
+            if (request.YearsInBusiness.HasValue) item.YearsInBusiness = request.YearsInBusiness;
             if (!string.IsNullOrWhiteSpace(request.PhotoUrl))
             {
                 item.PhotoUrl = request.PhotoUrl;
@@ -59,6 +62,8 @@ public static class ProfilesEndpoints
         group.MapPost("", async (CreateProfileRequest request, System.Security.Claims.ClaimsPrincipal user, CoreBusinessService service, CancellationToken ct) =>
         {
             if (!OwnsUser(user, request.UserId)) return Results.Forbid();
+            if (request.YearsInBusiness is < 0 or > 120)
+                return Results.BadRequest(new { code = "invalid_years_in_business", message = "Years in business must be between 0 and 120." });
             try
             {
                 var profile = await service.CreateProfileAsync(
@@ -70,7 +75,8 @@ public static class ProfilesEndpoints
                     request.SecondEmail,
                     request.Age,
                     request.PhotoUrl,
-                    ct);
+                    ct,
+                    request.YearsInBusiness);
                 return Results.Created($"/api/v1/profiles/{profile.Id}", profile);
             }
             catch (DbUpdateException ex) when (ex.InnerException is MySqlConnector.MySqlException mysql && mysql.Number == 1062)

@@ -34,7 +34,7 @@
             />
             <small v-if="fieldErrors.email" class="p-error block mt-1">
               {{ fieldErrors.email }}
-              <a v-if="isEmailAlreadyRegistered" href="#" @click.prevent="goToLogin" class="text-green-500 font-semibold underline ml-1">Iniciar sesión</a>
+              <a v-if="isEmailAlreadyRegistered" href="#" @click.prevent="goToLogin" class="text-green-500 font-semibold underline ml-1">{{ $t('iam.login.submitButton') }}</a>
             </small>
           </div>
 
@@ -42,7 +42,7 @@
           <div class="mb-3">
             <label for="password" class="block mb-2">{{ $t('iam.registerBuilder.password') }} *</label>
             <pv-password
-              id="password"
+              inputId="password"
               v-model="registerForm.password"
               :placeholder="$t('iam.registerBuilder.passwordPlaceholder')"
               :invalid="!!fieldErrors.password"
@@ -57,7 +57,7 @@
           <div class="mb-3">
             <label for="confirmPassword" class="block mb-2">{{ $t('iam.registerBuilder.confirmPassword') }} *</label>
             <pv-password
-              id="confirmPassword"
+              inputId="confirmPassword"
               v-model="registerForm.confirmPassword"
               :placeholder="$t('iam.registerBuilder.confirmPasswordPlaceholder')"
               :invalid="!!fieldErrors.confirmPassword"
@@ -84,7 +84,7 @@
                     class="flex-1"
                   />
                   <pv-button
-                    :label="'Next'"
+                    :label="$t('iam.actions.next')"
                     icon="pi pi-arrow-right"
                     iconPos="right"
                     :loading="checkingEmail"
@@ -110,7 +110,7 @@
             />
             <pv-button
               type="button"
-              :label="registerForm.photoUrl ? 'Cambiar Foto' : $t('iam.registerBuilder.uploadPhoto')"
+              :label="registerForm.photoUrl ? $t('iam.actions.changePhoto') : $t('iam.registerBuilder.uploadPhoto')"
               icon="pi pi-cloud-upload"
               @click="openUploadModal"
               severity="secondary"
@@ -120,11 +120,11 @@
             <div v-if="registerForm.photoUrl" class="mt-2 text-center">
               <img
                 :src="registerForm.photoUrl"
-                alt="Profile photo preview"
+                :alt="$t('iam.actions.photoPreviewAlt')"
                 class="uploaded-image"
               />
               <div class="flex justify-content-center align-items-center gap-2 mt-2">
-                <span class="text-sm text-green-600 font-medium">✓ Imagen seleccionada</span>
+                <span class="text-sm text-green-600 font-medium">✓ {{ $t('iam.actions.photoSelected') }}</span>
                 <pv-button
                   type="button"
                   icon="pi pi-trash"
@@ -133,7 +133,7 @@
                   severity="danger"
                   size="small"
                   @click="registerForm.photoUrl = ''"
-                  title="Eliminar foto"
+                  :title="$t('iam.actions.removePhoto')"
                 />
               </div>
             </div>
@@ -178,19 +178,19 @@
             <small v-if="fieldErrors.address" class="p-error block mt-1">{{ fieldErrors.address }}</small>
           </div>
 
-          <!-- Age -->
+          <!-- Years in business -->
           <div class="mb-3">
-            <label for="age" class="block mb-2">{{ $t('iam.registerBuilder.age') }} *</label>
+            <label for="yearsInBusiness" class="block mb-2">{{ $t('iam.registerBuilder.yearsInBusiness') }} *</label>
             <pv-input-number
-              id="age"
-              v-model="registerForm.age"
-              :min="18"
+              inputId="yearsInBusiness"
+              v-model="registerForm.yearsInBusiness"
+              :min="0"
               :max="120"
-              :placeholder="$t('iam.registerBuilder.agePlaceholder')"
-              :invalid="!!fieldErrors.age"
+              :placeholder="$t('iam.registerBuilder.yearsInBusinessPlaceholder')"
+              :invalid="!!fieldErrors.yearsInBusiness"
               class="w-full"
             />
-            <small v-if="fieldErrors.age" class="p-error block mt-1">{{ fieldErrors.age }}</small>
+            <small v-if="fieldErrors.yearsInBusiness" class="p-error block mt-1">{{ fieldErrors.yearsInBusiness }}</small>
           </div>
 
           <!-- Phone Number -->
@@ -217,7 +217,7 @@
 
                 <div class="flex gap-2 pt-4">
                   <pv-button
-                    :label="'Back'"
+                    :label="$t('iam.actions.back')"
                     severity="secondary"
                     icon="pi pi-arrow-left"
                     @click="currentStep = 1"
@@ -246,6 +246,7 @@
 
 <script setup>
 import { ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 import { useIamStore } from '../../application/iam.store.js';
 import { useProfileStore } from '../../../profiles/application/profile.store.js';
@@ -253,13 +254,14 @@ import { IamApi } from '../../infrastructure/iam-api.js';
 import {
   isValidEmail,
   isValidPhone,
-  isValidAge,
   isValidName,
   isValidUsername,
-  isValidPassword
+  isValidPassword,
+  isValidYearsInBusiness
 } from '../../../shared/presentation/validators.js';
 
 const router = useRouter();
+const { t } = useI18n();
 const iamStore = useIamStore();
 const profileStore = useProfileStore();
 const iamApi = new IamApi();
@@ -325,7 +327,7 @@ const registerForm = ref({
   name: '',
   username: '',
   address: '',
-  age: null,
+  yearsInBusiness: null,
   phoneNumber: ''
 });
 
@@ -342,11 +344,11 @@ async function onEmailBlur() {
       const res = await iamApi.checkInvitation(email);
       if (res?.data?.alreadyRegistered) {
         isEmailAlreadyRegistered.value = true;
-        fieldErrors.value.email = 'Este correo electrónico ya está registrado. Por favor inicia sesión.';
-        errorMessage.value = 'Este correo electrónico ya cuenta con una cuenta registrada.';
+        fieldErrors.value.email = t('iam.validation.emailAlreadyRegistered');
+        errorMessage.value = t('iam.validation.emailAlreadyRegistered');
       } else {
         isEmailAlreadyRegistered.value = false;
-        if (fieldErrors.value.email === 'Este correo electrónico ya está registrado. Por favor inicia sesión.') {
+        if (fieldErrors.value.email === t('iam.validation.emailAlreadyRegistered')) {
           fieldErrors.value.email = null;
           errorMessage.value = '';
         }
@@ -364,25 +366,25 @@ async function goToStep2() {
   const confirmPassword = registerForm.value.confirmPassword || '';
 
   if (!email) {
-    fieldErrors.value.email = 'El correo electrónico es obligatorio.';
+    fieldErrors.value.email = t('iam.validation.emailRequired');
   } else if (!isValidEmail(email)) {
-    fieldErrors.value.email = 'Ingrese un correo electrónico válido (ejemplo: usuario@empresa.com).';
+    fieldErrors.value.email = t('iam.validation.emailInvalid');
   }
 
   if (!password) {
-    fieldErrors.value.password = 'La contraseña es obligatoria.';
-  } else if (!isValidPassword(password, 6)) {
-    fieldErrors.value.password = 'La contraseña debe tener al menos 6 caracteres.';
+    fieldErrors.value.password = t('iam.validation.passwordRequired');
+  } else if (!isValidPassword(password, 8)) {
+    fieldErrors.value.password = t('iam.validation.passwordMinLength');
   }
 
   if (!confirmPassword) {
-    fieldErrors.value.confirmPassword = 'Debe confirmar su contraseña.';
+    fieldErrors.value.confirmPassword = t('iam.validation.confirmPasswordRequired');
   } else if (password !== confirmPassword) {
-    fieldErrors.value.confirmPassword = 'Las contraseñas no coinciden.';
+    fieldErrors.value.confirmPassword = t('iam.validation.passwordMismatch');
   }
 
   if (Object.keys(fieldErrors.value).length > 0) {
-    errorMessage.value = 'Por favor complete correctamente los campos requeridos.';
+    errorMessage.value = t('iam.validation.completeAccountInfo');
     return;
   }
 
@@ -391,8 +393,8 @@ async function goToStep2() {
     const res = await iamApi.checkInvitation(email);
     if (res?.data?.alreadyRegistered) {
       isEmailAlreadyRegistered.value = true;
-      fieldErrors.value.email = 'Este correo electrónico ya está registrado. Por favor inicia sesión.';
-      errorMessage.value = 'Este correo electrónico ya cuenta con una cuenta de usuario. Inicia sesión para acceder.';
+      fieldErrors.value.email = t('iam.validation.emailAlreadyRegistered');
+      errorMessage.value = t('iam.validation.emailAlreadyRegistered');
       return;
     }
     isEmailAlreadyRegistered.value = false;
@@ -414,41 +416,41 @@ async function handleRegister() {
   const name = (registerForm.value.name || '').trim();
   const username = (registerForm.value.username || '').trim();
   const address = (registerForm.value.address || '').trim();
-  const age = registerForm.value.age;
+  const yearsInBusiness = registerForm.value.yearsInBusiness;
   const phoneNumber = (registerForm.value.phoneNumber || '').trim();
 
   if (!name) {
-    fieldErrors.value.name = 'El nombre completo es obligatorio.';
+    fieldErrors.value.name = t('iam.validation.companyNameRequired');
   } else if (!isValidName(name, 2)) {
-    fieldErrors.value.name = 'El nombre debe tener al menos 2 caracteres.';
+    fieldErrors.value.name = t('iam.validation.companyNameMinLength');
   }
 
   if (!username) {
-    fieldErrors.value.username = 'El nombre de usuario es obligatorio.';
+    fieldErrors.value.username = t('iam.validation.usernameRequired');
   } else if (!isValidUsername(username)) {
-    fieldErrors.value.username = 'El usuario debe tener entre 3 y 30 caracteres alfanuméricos (sin espacios).';
+    fieldErrors.value.username = t('iam.validation.usernameInvalid');
   }
 
   if (!address) {
-    fieldErrors.value.address = 'La dirección es obligatoria.';
+    fieldErrors.value.address = t('iam.validation.addressRequired');
   } else if (address.length < 4) {
-    fieldErrors.value.address = 'La dirección debe tener al menos 4 caracteres.';
+    fieldErrors.value.address = t('iam.validation.addressMinLength');
   }
 
-  if (age === null || age === undefined || age === '') {
-    fieldErrors.value.age = 'La edad es obligatoria.';
-  } else if (!isValidAge(age, 18, 120)) {
-    fieldErrors.value.age = 'Debe ingresar una edad válida entre 18 y 120 años.';
+  if (yearsInBusiness === null || yearsInBusiness === undefined || yearsInBusiness === '') {
+    fieldErrors.value.yearsInBusiness = t('iam.validation.yearsBusinessRequired');
+  } else if (!isValidYearsInBusiness(yearsInBusiness)) {
+    fieldErrors.value.yearsInBusiness = t('iam.validation.yearsBusinessInvalid');
   }
 
   if (!phoneNumber) {
-    fieldErrors.value.phoneNumber = 'El número de teléfono es obligatorio.';
+    fieldErrors.value.phoneNumber = t('iam.validation.phoneRequired');
   } else if (!isValidPhone(phoneNumber)) {
-    fieldErrors.value.phoneNumber = 'Ingrese un número telefónico válido (de 7 a 15 dígitos numéricos).';
+    fieldErrors.value.phoneNumber = t('iam.validation.phoneInvalid');
   }
 
   if (Object.keys(fieldErrors.value).length > 0) {
-    errorMessage.value = 'Por favor corrija los campos marcados antes de continuar.';
+    errorMessage.value = t('iam.validation.completeProfileInfo');
     isLoading.value = false;
     return;
   }
@@ -481,7 +483,7 @@ async function handleRegister() {
       name: registerForm.value.name,
       username: registerForm.value.username,
       address: registerForm.value.address,
-      age: registerForm.value.age ? parseInt(registerForm.value.age) : null,
+      yearsInBusiness: Number(yearsInBusiness),
       phoneNumber: registerForm.value.phoneNumber,
       secondEmail: registerForm.value.secondEmail || ''
     };
@@ -497,7 +499,7 @@ async function handleRegister() {
       photoUrl: profileData.photoUrl
     });
 
-    successMessage.value = 'Registration successful! Redirecting...';
+    successMessage.value = t('iam.messages.registrationSuccess');
     
     // Redirect to home after 2 seconds
     setTimeout(() => {
@@ -514,14 +516,17 @@ async function handleRegister() {
     
     // Provide more specific error messages
     if (error.message.includes('user ID')) {
-      errorMessage.value = 'Failed to complete registration. Please try logging in manually.';
+      errorMessage.value = t('iam.messages.profileCreationFailed');
     } else if (error.response?.status === 409 || error.response?.data?.error?.includes('already exists')) {
-      errorMessage.value = 'Este correo electrónico ya está registrado. Por favor inicie sesión.';
-      fieldErrors.value.email = 'Este correo electrónico ya cuenta con una cuenta registrada.';
+      errorMessage.value = t('iam.validation.emailAlreadyRegistered');
+      fieldErrors.value.email = t('iam.validation.emailAlreadyRegistered');
       isEmailAlreadyRegistered.value = true;
       currentStep.value = 1;
     } else {
-      errorMessage.value = error.response?.data?.message || error.response?.data?.error || error.message || 'Registration failed. Please try again.';
+      const apiMessage = error.response?.data?.message || error.response?.data?.error;
+      errorMessage.value = apiMessage === 'Invalid registration data.'
+        ? t('iam.validation.registrationDataInvalid')
+        : t('iam.validation.registrationFailed');
     }
   } finally {
     isLoading.value = false;

@@ -1,8 +1,9 @@
 <script setup>
 import { computed } from "vue";
 import { useI18n } from "vue-i18n";
+import { translatePlanDescription, translatePlanFeature } from '../plan-copy.js';
 
-const { t } = useI18n();
+const { t, te } = useI18n();
 
 const props = defineProps({
   plan: { type: Object, required: true },
@@ -25,17 +26,23 @@ const isUpgrade = computed(() => {
 const planFeatures = computed(() => {
   const p = props.plan;
   if (!p) return [];
-  if (Array.isArray(p.features) && p.features.length > 0) return p.features;
+  if (Array.isArray(p.features) && p.features.length > 0) {
+    return p.features.map(feature => translatePlanFeature(p.name, feature, t, te));
+  }
   if (typeof p.featuresJson === "string" && p.featuresJson.trim()) {
     try {
       const parsed = JSON.parse(p.featuresJson);
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return parsed.map(feature => translatePlanFeature(p.name, feature, t, te));
+      }
     } catch (_) {}
   }
   if (typeof p.features === "string" && p.features.trim()) {
     try {
       const parsed = JSON.parse(p.features);
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return parsed.map(feature => translatePlanFeature(p.name, feature, t, te));
+      }
     } catch (_) {}
   }
   return [];
@@ -43,7 +50,7 @@ const planFeatures = computed(() => {
 
 const buttonLabel = computed(() => {
   if (isCurrent.value) return t("subscriptions.current-plan-badge");
-  if (!props.currentPlan) return "Elegir " + props.plan.name;
+  if (!props.currentPlan) return t('subscriptions.choose-plan', { planName: props.plan.name });
   if (isUpgrade.value) return t("subscriptions.upgrade");
   return t("subscriptions.downgrade");
 });
@@ -72,7 +79,7 @@ const buttonLabel = computed(() => {
     <div class="card-content-top">
       <div class="card-header">
         <h3 class="plan-name">{{ plan.name }}</h3>
-        <p class="plan-desc">{{ plan.description }}</p>
+        <p class="plan-desc">{{ translatePlanDescription(plan, t, te) }}</p>
       </div>
 
       <div class="pricing-block">
@@ -85,7 +92,7 @@ const buttonLabel = computed(() => {
       </div>
 
       <div class="features-block">
-        <span class="features-title">Características incluidas</span>
+        <span class="features-title">{{ t('subscriptions.features-included') }}</span>
         <ul class="features-list">
           <li v-for="(feature, i) in planFeatures" :key="i" class="feature-item">
             <span class="check-icon">

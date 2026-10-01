@@ -159,6 +159,10 @@ owner_unit_assignment_registration:
     G4: passed
   commands:
     - command: dotnet test backend/IoBuild.sln --no-restore --verbosity minimal
+      result: 236/236 passed (17 architecture + 20 contract + 42 integration + 157 modules); opt-in MySQL tests skip when no dedicated connection is supplied.
+    - command: E2E_BASE_URL=http://127.0.0.1:18081 E2E_NGINX=1 E2E_CLOUDINARY_DUMMY=1 E2E_SIMULATED_PAYMENTS=1 npx playwright test --workers=2
+      result: 29/29 passed against an isolated full stack with MySQL 8, including Builder/Owner registration, tenant isolation and invitation PII minimization.
+    - command: dotnet test backend/IoBuild.sln --no-restore --verbosity minimal
       result: 233/233 passed (17 architecture + 20 contract + 42 integration + 154 modules).
     - command: npm run test:unit
       result: 56/56 passed.
@@ -174,4 +178,114 @@ owner_unit_assignment_registration:
     - failure: E2E attempted clicking Next after email blur had already started assignment lookup and disabled the button.
       verdict: Expected product behavior; tests now assert the lookup feedback and disabled state produced by blur.
   open_risks: []
+backend_security_hardening:
+  journey: Registration validates identity input, non-admin roles cannot enumerate users, and invitation checks disclose no owner PII.
+  actor_coverage:
+    - actor: Builder / Owner registrant
+      outcome: Only syntactically valid email and password length >= 8 create an account; duplicate and role guards remain active.
+    - actor: Builder / Owner authenticated user
+      outcome: GET /users is forbidden; no directory entries are exposed.
+    - actor: Operational Admin
+      outcome: Admin-provisioned account may use the directory endpoint; public sign-up cannot create Admin.
+    - actor: Anonymous invitee lookup
+      outcome: Receives only assignment/account-status booleans, not personal or unit/project details.
+  scenarios:
+    - tier: A
+      scenario: Malformed email and password under 8 characters fail before persistence.
+      owner: backend/tests/Modules/IamTierDTests.cs
+    - tier: A
+      scenario: Regular Builder is forbidden from global user listing; Admin-only access preserves the response contract.
+      owner: backend/tests/Modules/IamWorkflowTests.cs
+    - tier: A
+      scenario: Anonymous invitation lookup returns no owner PII.
+      owner: backend/tests/Modules/IamWorkflowTests.cs
+    - tier: A
+      scenario: Invalid email and password below 8 characters are rejected without creating a sign-in-capable account.
+      owner: backend/tests/Modules/IamWorkflowTests.cs
+  gates:
+    G0: passed
+    G1: passed
+    G2: passed
+    G3: passed
+    G4: skipped — local deterministic suites passed; CI is not run from this workspace.
+  commands:
+    - command: dotnet test backend/IoBuild.sln --no-restore --verbosity minimal
+      result: 236/236 passed (17 architecture + 20 contract + 42 integration + 157 modules); opt-in MySQL tests skip by environment where not configured.
+    - command: E2E_BASE_URL=http://127.0.0.1:18081 E2E_NGINX=1 E2E_CLOUDINARY_DUMMY=1 E2E_SIMULATED_PAYMENTS=1 npx playwright test --workers=2
+      result: 29/29 passed against an isolated MySQL 8 production-stack fixture; includes tenant list isolation, foreign project/unit assignment rejection, Owner denial, and invite response minimization.
+    - command: npm run test:unit
+      result: 72/72 passed.
+    - command: npm run build
+      result: passed.
+  diagnostic_verdicts:
+    - failure: First compile reported duplicate User_directory_is_admin_only and Public_invitation_lookup_returns_assignment_only_not_owner_PII test members.
+      evidence: Two equivalent API test blocks existed in IamWorkflowTests.cs after adding coverage.
+      verdict: Removed the duplicate blocks without changing assertions; focused IAM/Publishing tests and the full solution reran green.
+  open_risks:
+    - risk: The invitation endpoint still returns an alreadyRegistered boolean, and duplicate POST returns 409; account-existence enumeration remains possible though PII is removed.
+      owner: ccarita-tech
+      review_by: 2026-10-06
+  - risk: Admin accounts have no public provisioning flow and must be provisioned operationally.
+    owner: ccarita-tech
+    review_by: 2026-10-06
+```
+
+## Confirmed registration and login UI fixes
+
+```yaml
+context: iam
+feature: localized-registration-feedback-and-password-labels
+journey: Builder and Owner enter account details, receive field-specific feedback, and can identify password fields accessibly.
+actor_coverage:
+  - actor: Builder
+    outcome: Valid registration accepts zero years in business; each invalid field is identified in the selected language.
+  - actor: Owner
+    outcome: Age validation remains separate from Builder company-years validation; registration and login password labels are programmatically associated.
+  - actor: Builder and Owner
+    outcome: Sidebar logout remains readable and returns to the public login route.
+scenarios:
+  - tier: B
+    scenario: Builder years-in-business validation accepts 0 and rejects negative, fractional, and out-of-range values.
+    owner: frontend/tests/unit/validators.test.js
+  - tier: B
+    scenario: Registration errors, form actions, and photo controls use localized copy; password inputs expose their associated labels.
+    owner: frontend/tests/e2e/iam-form-feedback.spec.js
+  - tier: B
+    scenario: Builder and Owner registration/login happy paths remain available after inputId changes.
+    owner: frontend/tests/e2e/iam-builder.spec.js, frontend/tests/e2e/iam-happy-path.spec.js
+layer_ownership:
+  G0: `npm run test:unit` covers year-range validation and plan-copy helpers.
+  G1: Backend contracts are unchanged; `dotnet test backend/IoBuild.sln --no-restore --verbosity minimal` passed.
+  G2: Playwright proves separate Builder and Owner journeys and label associations on the isolated MySQL 8 stack.
+  G3: Existing direct registration bypass, Owner assignment, and generic login-error campaigns remain in the full suite.
+  G4: Full clean-stack E2E passed with both one and two workers; no assertions were relaxed.
+gates:
+  G0: passed
+  G1: passed
+  G2: skipped — local Playwright evidence is green; CI has not run on this worktree.
+  G3: skipped — local risk campaigns passed; CI acceptance is pending.
+  G4: skipped — clean local reruns passed; CI delivery evidence is pending.
+commands:
+  - command: npm run test:unit
+    result: 76/76 passed.
+  - command: npm run build
+    result: passed.
+  - command: dotnet test backend/IoBuild.sln --no-restore --verbosity minimal
+    result: 236/236 passed; MySQL opt-in tests retain their configured skip behavior.
+  - command: E2E_BASE_URL=http://127.0.0.1:18081 E2E_NGINX=1 E2E_CLOUDINARY_DUMMY=1 E2E_SIMULATED_PAYMENTS=1 npm run test:e2e -- --workers=2
+    result: 30/30 passed against a clean isolated MySQL 8 Compose stack; repeat clean-stack run also passed 30/30 with one worker.
+diagnostic_verdicts:
+  - failure: Initial registration label assertions requested an exact name without the required-field marker.
+    evidence: The visible Builder/Owner labels include a trailing `*` and the associated PrimeVue inputs expose it in their accessible names.
+    verdict: Assertions now verify the exact accessible names `Password *` and `Confirm Password *`; Builder and Owner paths passed.
+  - failure: One full two-worker run redirected the ROUND2 Builder route check to `/iam/login`.
+    evidence: A standalone rerun, three repeated focused runs, a clean 30/30 single-worker run, and a subsequent clean 30/30 two-worker run passed.
+    verdict: Non-reproducible test/session redirect; no product assertion was weakened. Keep under observation on the next full CI run.
+open_risks:
+  - what: One non-reproducible parallel E2E redirect to login was observed.
+    why: The failing run had no source-level diagnosis; later focused and full clean-stack reruns passed.
+    owner: ccarita-tech
+    who: ccarita-tech
+    when: 2026-10-07
+    review_by: 2026-10-07
 ```

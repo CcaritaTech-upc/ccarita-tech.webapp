@@ -207,11 +207,11 @@ const filteredItems = computed(() => {
             </router-link>
             
             <!-- Botón de Logout en el sidebar -->
-            <div class="menu-item logout-item" @click="handleLogout">
+            <button type="button" class="menu-item logout-item" @click="handleLogout">
               <i class="pi pi-sign-out menu-icon"></i>
               <span class="menu-label">{{ t('iam.logout') }}</span>
               <i class="pi pi-chevron-right menu-arrow"></i>
-            </div>
+            </button>
           </nav>
         </div>
       </div>
@@ -532,17 +532,30 @@ const filteredItems = computed(() => {
 .logout-item {
   cursor: pointer;
   margin-top: auto;
+  width: calc(100% - 2rem);
+  box-sizing: border-box;
   border-top: 1px solid rgba(0, 0, 0, 0.1);
-  color: #ef4444;
+  border-right: 0;
+  border-bottom: 0;
+  border-left: 0;
+  background: transparent;
+  color: #111827;
+  font: inherit;
+  text-align: left;
 }
 
 .logout-item:hover {
-  background: rgba(239, 68, 68, 0.1);
-  color: #dc2626;
+  background: rgba(0, 0, 0, 0.1);
+  color: #111827;
 }
 
 .logout-item::before {
-  background: #ef4444;
+  background: #111827;
+}
+
+.logout-item:focus-visible {
+  outline: 3px solid #ffffff;
+  outline-offset: 2px;
 }
 
 

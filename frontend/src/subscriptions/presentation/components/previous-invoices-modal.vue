@@ -27,7 +27,7 @@ const openReceipt = (url) => {
   >
     <div v-if="props.loading" class="invoices-loading">
       <pv-progress-spinner style="width: 40px; height: 40px" />
-      <span class="loading-label">Cargando comprobantes de Stripe...</span>
+      <span class="loading-label">{{ t('subscriptions.invoicesLoading') }}</span>
     </div>
 
     <div v-else class="invoices-container">
@@ -41,9 +41,7 @@ const openReceipt = (url) => {
           <i class="pi pi-receipt"></i>
         </div>
         <h4 class="empty-title">{{ t('subscriptions.no-invoices-found') }}</h4>
-        <p class="empty-subtitle">
-          Tus facturas y recibos de pagos aparecerán aquí automáticamente para su consulta y descarga.
-        </p>
+        <p class="empty-subtitle">{{ t('subscriptions.invoicesEmptyDescription') }}</p>
       </div>
 
       <div v-else-if="props.invoices.length" class="table-container">
@@ -60,7 +58,7 @@ const openReceipt = (url) => {
           <tbody>
             <tr v-for="(inv, idx) in props.invoices" :key="idx" class="invoice-row">
               <td class="td-date">{{ inv.date }}</td>
-              <td class="td-desc">{{ inv.description || 'Suscripción IoBuild' }}</td>
+              <td class="td-desc">{{ inv.description || t('subscriptions.invoice-description-default') }}</td>
               <td class="td-amount">
                 ${{ Number(inv.amount).toFixed(2) }}
                 <span class="currency-tag">{{ inv.currency || 'USD' }}</span>
@@ -94,7 +92,7 @@ const openReceipt = (url) => {
 
       <div class="modal-footer">
         <button type="button" class="btn-close" @click="emit('close')">
-          Cerrar
+          {{ t('subscriptions.close') }}
         </button>
       </div>
     </div>

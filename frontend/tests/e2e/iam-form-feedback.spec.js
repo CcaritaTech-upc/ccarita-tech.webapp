@@ -9,34 +9,34 @@ test('IAM registration names each failing field', async ({ page }) => {
 
   // Step 1 empty: every account field complains by name.
   await page.getByRole('button', { name: /^next$/i }).click();
-  await expect(page.getByText('El correo electrónico es obligatorio.')).toBeVisible();
-  await expect(page.getByText('La contraseña es obligatoria.')).toBeVisible();
-  await expect(page.getByText('Debe confirmar su contraseña.')).toBeVisible();
+  await expect(page.getByText('Email is required.')).toBeVisible();
+  await expect(page.getByText('Password is required.')).toBeVisible();
+  await expect(page.getByText('Please confirm your password.')).toBeVisible();
 
   // Step 1 filled: reach step 2, submit it empty.
   const stamp = Date.now();
   await page.locator('#email').fill(`feedback.${stamp}@example.test`);
-  await page.locator('#password input').fill('secret123');
-  await page.locator('#confirmPassword input').fill('secret123');
+  await page.locator('#password').fill('secret123');
+  await page.locator('#confirmPassword').fill('secret123');
   await page.getByRole('button', { name: /^next$/i }).click();
   await page.getByRole('button', { name: /register|create|save|submit/i }).click();
 
   // Step 2 empty: every profile field complains by name.
-  await expect(page.getByText('El nombre completo es obligatorio.')).toBeVisible();
-  await expect(page.getByText('El nombre de usuario es obligatorio.')).toBeVisible();
-  await expect(page.getByText('La dirección es obligatoria.')).toBeVisible();
-  await expect(page.getByText('La edad es obligatoria.')).toBeVisible();
-  await expect(page.getByText('El número de teléfono es obligatorio.')).toBeVisible();
+  await expect(page.getByText('Company name is required.')).toBeVisible();
+  await expect(page.getByText('Username is required.')).toBeVisible();
+  await expect(page.getByText('Address is required.')).toBeVisible();
+  await expect(page.getByText('Years in business is required.')).toBeVisible();
+  await expect(page.getByText('Phone number is required.')).toBeVisible();
 });
 
 test('IAM Owner registration requires an assigned unit in UI and backend', async ({ page }) => {
   const email = `unassigned.${Date.now()}@example.test`;
   await page.goto('/iam/register-owner');
   await page.locator('#email').fill(email);
-  await page.locator('#password input').fill('secret123');
-  await page.locator('#confirmPassword input').fill('secret123');
+  await page.locator('#password').fill('secret123');
+  await page.locator('#confirmPassword').fill('secret123');
 
-  await expect(page.getByText('Para registrarte como propietario, el constructor debe asignarte una unidad primero.').first()).toBeVisible();
+  await expect(page.getByText('The builder must assign a unit to your email before you can register as an owner.').first()).toBeVisible();
   const nextButton = page.getByRole('button', { name: /^next$/i });
   await expect(nextButton).toBeDisabled();
   await expect(nextButton).toHaveCSS('background-color', 'rgb(156, 163, 175)');
@@ -60,10 +60,10 @@ test('IAM Owner registration fails closed when unit assignment cannot be verifie
   await page.route('**/api/v1/authentication/invitation**', route => route.abort());
   await page.goto('/iam/register-owner');
   await page.locator('#email').fill(`verification-unavailable.${Date.now()}@example.test`);
-  await page.locator('#password input').fill('secret123');
-  await page.locator('#confirmPassword input').fill('secret123');
+  await page.locator('#password').fill('secret123');
+  await page.locator('#confirmPassword').fill('secret123');
 
-  await expect(page.getByText('No se pudo verificar la unidad asignada. Inténtalo nuevamente.').first()).toBeVisible();
+  await expect(page.getByText('Could not verify the assigned unit. Please try again.').first()).toBeVisible();
   await expect(page.getByRole('button', { name: /^next$/i })).toBeDisabled();
   await expect(page.locator('#email')).toBeVisible();
   await expect(page.locator('#name')).toBeHidden();
@@ -71,12 +71,13 @@ test('IAM Owner registration fails closed when unit assignment cannot be verifie
 
 test('IAM login failure is generic and reveals nothing', async ({ page }) => {
   await page.goto('/iam/login');
+  await expect(page.getByLabel('Password', { exact: true })).toBeVisible();
   await page.locator('#email').fill(`nobody.${Date.now()}@example.test`);
-  await page.locator('#password input').fill('wrong-password');
+  await page.locator('#password').fill('wrong-password');
   await page.locator('button[type="submit"]').click();
 
   // Generic message, still on the login route, no field blamed.
-  await expect(page.getByText('Correo o contraseña incorrectos.')).toBeVisible();
+  await expect(page.getByText('Invalid email or password.')).toBeVisible();
   await expect(page).toHaveURL(/login/);
   await expect(page.locator('.p-error')).toHaveCount(0);
 });

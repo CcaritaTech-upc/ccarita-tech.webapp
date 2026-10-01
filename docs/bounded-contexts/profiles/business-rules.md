@@ -23,6 +23,19 @@ Journey: PROFILES.MANAGE (Builder and Owner variants).
   reference conflicts (409) instead of silently overwriting; a failed upload
   aborts without touching the stored photo.
 
+## Role-specific profile facts
+
+- `Age` is the person's age; it remains the Owner profile field.
+- `YearsInBusiness` is a separate nullable integer for Builder profiles. New
+  Builder registration requires a whole number from 0 through 120; zero is a
+  valid value for a newly established business.
+- The API rejects provided `YearsInBusiness` values outside 0–120. An omitted
+  value in a profile update preserves the stored value.
+- Existing Builder rows are upgraded additively: when the new nullable column
+  is introduced, the migration runner copies an in-range legacy Builder `Age`
+  value to `YearsInBusiness` while retaining the source value. Owner ages are
+  not changed, and no legacy data is discarded by the schema upgrade.
+
 ## Photo transport
 
 - Uploads go through `ICloudinaryUploader`; without Cloudinary configuration

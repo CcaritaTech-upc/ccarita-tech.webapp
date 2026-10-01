@@ -363,7 +363,8 @@ public sealed record CreateProfileRequest(
     string? Address = null,
     string? SecondEmail = null,
     int? Age = null,
-    string? PhotoUrl = null);
+    string? PhotoUrl = null,
+    int? YearsInBusiness = null);
 public sealed record CreateSubscriptionRequest(int BuilderId, int PlanId, DateTimeOffset StartDate, DateTimeOffset? EndDate);
 public sealed record ReplaceProfilePhotoRequest(string ExpectedReference, string Content);
 public sealed record ProjectStructureRequest(int Floors, int UnitsPerFloor, List<int>? FloorNumbers);

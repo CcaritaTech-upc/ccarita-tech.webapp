@@ -89,3 +89,62 @@ owner_assignment_regression:
       result: 13/13 passed against isolated MySQL 8 Compose stack.
   delivery_note: CI rerun remains pending; local evidence is not CI evidence.
 ```
+
+## Builder years-in-business profile field
+
+```yaml
+context: profiles
+feature: builder-years-in-business-profile-field
+journey: Builder registers, retrieves, and edits years in business independently from personal age; Owner age data remains unchanged.
+actor_coverage:
+  - actor: Builder
+    outcome: Integer years 0–120 persist in `Profile.YearsInBusiness`, are returned by the profile API, and survive profile edit/reload.
+  - actor: Owner
+    outcome: `Profile.Age` continues to store Owner age; `YearsInBusiness` remains null.
+scenarios:
+  - tier: A
+    scenario: Profile API rejects supplied years below 0 or above 120 and does not map Builder years into Age.
+    owner: backend/tests/Modules/ProfileAccessTests.cs
+  - tier: A
+    scenario: Existing MySQL profiles schema gains the nullable column and moves valid legacy Builder Age values into YearsInBusiness.
+    owner: backend/tests/Modules/ProfilePersistenceMySqlTests.cs
+  - tier: B
+    scenario: Builder registration with zero persists age=null and yearsInBusiness=0; profile view edit and reload preserve the updated value.
+    owner: frontend/tests/e2e/iam-builder.spec.js, frontend/tests/e2e/profiles-manage.spec.js
+layer_ownership:
+  G0: Validator, ProfileAssembler, service-range, and API-range checks run in Vitest/xUnit.
+  G1: MySQL 8 proves profile creation/update durability and the legacy-column upgrade/backfill.
+  G2: Playwright covers Builder registration, Profile GET, profile edit/reload, and Owner age regression.
+  G3: Boundary values and legacy schema upgrade have explicit API/persistence assertions.
+  G4: The focused Builder registration/profile journeys repeat cleanly; full suite reruns are recorded below.
+gates:
+  G0: passed
+  G1: skipped — local MySQL 8 persistence/migration tests pass; CI has not run on this worktree.
+  G2: skipped — local full-stack E2E evidence is green; CI has not run on this worktree.
+  G3: skipped — local Tier A and MySQL proofs passed; CI acceptance is pending.
+  G4: skipped — deterministic local reruns passed; CI delivery evidence is pending.
+commands:
+  - command: npm run test:unit
+    result: 77/77 passed, including ProfileAssembler mapping and the 0-years boundary.
+  - command: npm run build
+    result: passed.
+  - command: dotnet test backend/IoBuild.sln --no-restore --verbosity minimal
+    result: 241/241 passed; opt-in MySQL tests skip when no dedicated connection is configured.
+  - command: IOBUILD_TEST_MYSQL_CONNECTION=... dotnet test backend/tests/Modules/IoBuild.Modules.Tests.csproj --no-restore --filter FullyQualifiedName~ProfilePersistenceMySqlTests --verbosity minimal
+    result: 4/4 passed against MySQL 8, including schema upgrade/backfill and age/years roundtrip.
+  - command: E2E_BASE_URL=http://127.0.0.1:18081 E2E_NGINX=1 E2E_CLOUDINARY_DUMMY=1 E2E_SIMULATED_PAYMENTS=1 npm run test:e2e -- --workers=2
+    result: 30/30 passed against a clean isolated MySQL 8 stack.
+  - command: same E2E base/flags with `--workers=1 --repeat-each=2 --grep "IAM Builder happy path|PROFILES Builder:|PROFILES Owner:"`
+    result: 6/6 passed across repeated Builder registration, Builder profile edit/reload, and Owner profile journeys.
+diagnostic_verdicts:
+  - failure: An initial backend test compile found the migration-upgrade test method duplicated in ProfilePersistenceMySqlTests.
+    evidence: The compiler reported CS0111 for `Migration_adds_years_in_business_and_backfills_legacy_builder_values`.
+    verdict: Removed the duplicate test body; targeted suite, full solution, and MySQL persistence suite then passed.
+open_risks:
+  - what: Legacy Builder Age values outside 0–120 are not copied into YearsInBusiness by the upgrade; the old Age value remains for review.
+    why: Values outside the business-years domain must not be migrated into the new field or discarded automatically.
+    owner: ccarita-tech
+    who: ccarita-tech
+    when: 2026-10-08
+    review_by: 2026-10-08
+```

@@ -63,10 +63,95 @@ failures:
     evidence_against: [project list already scoped to caller]
     verdict: token-builder ownership on every mutating and item route (403 on explicit mismatch, 404 on foreign ids, creation bound to caller); unfiltered unit and client lists stay visible by design, recorded as scheduled risks
 open_risks:
-  - risk: unit and client lists have no per-role visibility scoping (frontend depends on unfiltered reads)
+  - risk: unfiltered unit listing has no per-role visibility scoping
     owner: ccarita-tech
-    review_by: 2026-10-01
+    review_by: 2026-10-06
 roles_covered:
   - role: Builder
     happy_path: frontend/tests/e2e/publishing-manage.spec.js
+client_tenant_read_and_assignment_isolation:
+  journey: Each authenticated Builder lists and manages only clients associated with its owned projects and units.
+  actor_coverage:
+    - actor: Builder A
+      outcome: Sees only own clients; cannot query Builder B by id or move a client/unit association across projects.
+    - actor: Builder B
+      outcome: Retains access to its own client list and assignments.
+    - actor: Owner
+      outcome: Cannot use Builder client-list endpoints.
+  scenarios:
+    - tier: A
+      scenario: List filters by token BuilderId; spoofed builder/project filters are denied.
+      owner: backend/tests/Modules/PublishingAccessTests.cs
+    - tier: A
+      scenario: Create/update reject foreign project or unit references and cannot reassign BuilderId.
+      owner: backend/tests/Modules/PublishingAccessTests.cs
+    - tier: A
+      scenario: Invitation lookup does not reveal client or unit PII.
+      owner: backend/tests/Modules/IamWorkflowTests.cs
+    - tier: A
+      scenario: Admin-only user directory denies Builder tokens.
+      owner: backend/tests/Modules/IamWorkflowTests.cs
+  gates:
+    G0: passed
+    G1: passed
+    G2: passed
+    G3: passed
+    G4: skipped — deterministic local repeat passed; CI not run from this workspace.
+  commands:
+    - command: dotnet test backend/tests/Modules/IoBuild.Modules.Tests.csproj --no-restore --filter FullyQualifiedName~PublishingAccessTests --verbosity minimal
+      result: 3/3 passed after adding Builder-role guards to client item reads and delete.
+    - command: dotnet test backend/IoBuild.sln --no-restore --verbosity minimal
+      result: 236/236 passed (17 architecture + 20 contract + 42 integration + 157 modules); opt-in MySQL tests skip when not configured.
+    - command: E2E_BASE_URL=http://127.0.0.1:18081 E2E_NGINX=1 E2E_CLOUDINARY_DUMMY=1 E2E_SIMULATED_PAYMENTS=1 npx playwright test --workers=2
+      result: 29/29 passed against the isolated full stack with MySQL 8; tenant-list separation, foreign project/unit attempts, Owner denial, and invitation PII minimization.
+    - command: E2E_BASE_URL=http://127.0.0.1:18081 E2E_NGINX=1 E2E_CLOUDINARY_DUMMY=1 E2E_SIMULATED_PAYMENTS=1 npx playwright test tests/e2e/tenant-security.spec.js --workers=1 --repeat-each=2
+      result: 2/2 deterministic repeat against isolated MySQL 8.
+  convergence_points:
+    - Builder A list response excludes Builder B client PII.
+    - Cross-builder/project/unit reads and writes are rejected by the API.
+    - Public invitation response contains no client or unit PII.
+  open_risks:
+    - risk: Unit collection endpoints still allow broad authenticated reads and need a separate role/ownership contract.
+      owner: ccarita-tech
+      review_by: 2026-10-06
+ ```
+
+## Confirmed Builder client UI localization
+
+```yaml
+context: publishing
+feature: builder-client-list-and-profile-localization
+journey: Builder reviews assigned clients, opens add/edit forms, and reads unit-device status in the selected language.
+actor_coverage:
+  - actor: Builder
+    outcome: Client fields, add/edit dialogs, paginator report, unit labels, and linked-device counts remain localized across English and Spanish.
+scenarios:
+  - tier: B
+    scenario: PrimeVue paginator placeholders render as localized values instead of untranslated tokens.
+    owner: frontend/tests/e2e/builder-ui-localization.spec.js
+  - tier: B
+    scenario: Client list, add/edit dialogs, unit/profile copy, and device-count copy update after language switching.
+    owner: frontend/tests/e2e/builder-ui-localization.spec.js
+layer_ownership:
+  G0: Frontend unit suite and production build validate the localized copy helper and assets.
+  G1: Client API contract is unchanged; the system journey uses the existing MySQL-backed client endpoints.
+  G2: Playwright asserts client visibility, paginator report, both dialogs, and unit-device count for a Builder.
+  G3: Tenant isolation and role guards remain covered by `tenant-security.spec.js` and backend access tests.
+  G4: The full clean-stack E2E suite passed with one and two workers.
+gates:
+  G0: passed
+  G1: passed
+  G2: skipped — local Playwright evidence is green; CI has not run on this worktree.
+  G3: skipped — local risk campaigns passed; CI acceptance is pending.
+  G4: skipped — clean local reruns passed; CI delivery evidence is pending.
+commands:
+  - command: npm run test:unit
+    result: 76/76 passed.
+  - command: npm run build
+    result: passed.
+  - command: E2E_BASE_URL=http://127.0.0.1:18081 E2E_NGINX=1 E2E_CLOUDINARY_DUMMY=1 E2E_SIMULATED_PAYMENTS=1 npm run test:e2e -- --workers=2
+    result: 30/30 passed against an isolated MySQL 8 stack on the final clean-stack rerun.
+artifacts:
+  - Playwright traces/screenshots/videos remain under the authorized temporary E2E output folder on failure.
+open_risks: []
 ```

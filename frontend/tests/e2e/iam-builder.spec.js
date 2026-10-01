@@ -12,21 +12,32 @@ test('IAM Builder happy path: register, login, authorized access', async ({ page
 
   // Step 1: account — register-builder stepper under /iam.
   await page.goto('/iam/register-builder');
+  await expect(page.locator('#password')).toHaveAccessibleName('Password *');
+  await expect(page.locator('#confirmPassword')).toHaveAccessibleName('Confirm Password *');
   await page.locator('#email').fill(email);
-  await page.locator('#password input').fill(password);
-  await page.locator('#confirmPassword input').fill(password);
+  await page.locator('#password').fill(password);
+  await page.locator('#confirmPassword').fill(password);
   await page.getByRole('button', { name: /^next$/i }).click();
 
   // Step 2: company — representative valid data only.
   await page.locator('#name').fill('E2E Builder');
   await page.locator('#username').fill(`e2ebuilder${String(stamp).slice(-6)}`);
   await page.locator('#address').fill('Av. E2E 456');
-  await page.locator('#age input').fill('35');
+  await page.locator('#yearsInBusiness').fill('0');
   await page.locator('#phoneNumber').fill('+51987654322');
   await page.getByRole('button', { name: /register|create|save|submit/i }).click();
 
   // Registration signs the user in and leaves the registration route.
   await expect(page).not.toHaveURL(/register-builder/, { timeout: 20_000 });
+
+  const builder = await page.evaluate(() => JSON.parse(localStorage.getItem('currentUser')));
+  const token = await page.evaluate(() => localStorage.getItem('token'));
+  const profiles = await (await page.request.get('/api/v1/profiles', {
+    headers: { Authorization: `Bearer ${token}` },
+  })).json();
+  const profile = profiles.find(item => item.userId === builder.id);
+  expect(profile.yearsInBusiness).toBe(0);
+  expect(profile.age ?? null).toBeNull();
 
   // Reset to an anonymous state to prove login from a clean session.
   await page.evaluate(() => localStorage.clear());
@@ -35,7 +46,7 @@ test('IAM Builder happy path: register, login, authorized access', async ({ page
   // Login with the created Builder account.
   await page.goto('/iam/login');
   await page.locator('#email').fill(email);
-  await page.locator('#password input').fill(password);
+  await page.locator('#password').fill(password);
   await page.locator('button[type="submit"]').click();
 
   // Authorized access: login leaves the public login route.

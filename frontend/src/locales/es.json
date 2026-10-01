@@ -129,6 +129,7 @@
     "phoneNumber": "Número de teléfono",
     "address": "Dirección",
     "secondEmail": "Correo alternativo",
+    "yearsInBusiness": "Años en el negocio",
     "appLanguage": "Idioma de la aplicación",
     "languageEnglish": "Inglés",
     "languageSpanish": "Español",
@@ -223,6 +224,7 @@
   },
   "clients": {
     "title": "Mis Clientes",
+    "addDialogTitle": "Agregar un cliente",
     "profile": {
       "title": "Perfil del Cliente",
       "personalInfo": "Información Personal",
@@ -236,9 +238,28 @@
       "email": "Correo Electrónico",
       "phoneNumber": "Número de Teléfono",
       "address": "Dirección",
+      "notAvailable": "No disponible",
       "unit": "Unidad / Departamento",
+      "assignedUnit": "Unidad / Departamento asignado",
+      "unassigned": "Sin asignar",
       "iotDevices": "Dispositivos IoT",
       "devicesCount": "{count} dispositivos vinculados"
+    },
+    "placeholders": {
+      "fullName": "Ingrese el nombre completo",
+      "email": "Ingrese el correo electrónico",
+      "phoneNumber": "Ingrese el número de teléfono",
+      "address": "Ingrese la dirección",
+      "project": "Seleccione un proyecto",
+      "unitOptional": "Seleccione una unidad (opcional)"
+    },
+    "validation": {
+      "fullNameRequired": "El nombre completo es obligatorio.",
+      "fullNameMinLength": "El nombre completo debe tener al menos 2 caracteres.",
+      "emailRequired": "El correo electrónico es obligatorio.",
+      "emailInvalid": "Ingrese un correo electrónico válido (por ejemplo, usuario@empresa.com).",
+      "phoneInvalid": "Ingrese un número telefónico válido (de 7 a 15 dígitos).",
+      "projectRequired": "Seleccione un proyecto para este cliente."
     },
     "status": {
       "active": "Activo",
@@ -271,13 +292,38 @@
       "deleteError": "Error al eliminar cliente",
       "deleteConfirmTitle": "Confirmar Eliminación",
       "deleteConfirmMessage": "¿Estás seguro de que deseas eliminar a {name}?",
-      "paginationSummary": "{first} a {last} de {totalRecords}",
       "noDevicesInUnit": "No hay dispositivos IoT registrados en esta unidad",
-      "assignUnitForDevices": "Debe asignar una unidad para consultar dispositivos IoT"
+      "loadingDevices": "Cargando...",
+      "queryingDevices": "Cargando los dispositivos IoT asignados a esta unidad...",
+      "assignUnitForDevices": "Debe asignar una unidad para consultar dispositivos IoT",
+      "noUnitsConfigured": "Este proyecto todavía no tiene unidades configuradas."
     }
   },
   "subscriptions": {
     "title": "Mi Suscripción",
+    "pageDescription": "Administra el plan de tu empresa, supervisa las cuotas de dispositivos IoT y descarga tus comprobantes de facturación.",
+    "loading": "Cargando información de suscripción...",
+    "startUsingIoBuild": "Comienza a operar en IoBuild",
+    "noSubscriptionDescription": "Elige un plan de infraestructura para conectar tus dispositivos IoT, gestionar proyectos inmobiliarios y brindar acceso a los propietarios de tus unidades.",
+    "allPlansDescription": "Escala tu infraestructura según la cantidad de dispositivos y unidades de tus proyectos inmobiliarios.",
+    "invoicesLoading": "Cargando comprobantes de Stripe...",
+    "invoicesEmptyDescription": "Tus facturas y recibos de pagos aparecerán aquí automáticamente para su consulta y descarga.",
+    "invoice-description-default": "Suscripción a IoBuild",
+    "invoice-plan-description": "Suscripción al plan {planName} de IoBuild",
+    "close": "Cerrar",
+    "connectingToStripe": "Conectando con Stripe...",
+    "warning": "Advertencia",
+    "errors": {
+      "authentication": "No se pudo verificar la cuenta. Inicia sesión nuevamente.",
+      "stripeNotConfigured": "El procesamiento de pagos no está configurado.",
+      "stripeInitializationFailed": "No se pudo inicializar Stripe.",
+      "paymentRedirectFailed": "No se pudo redirigir al pago.",
+      "checkoutSessionMissing": "El servidor no devolvió una URL de pago ni un identificador de sesión.",
+      "paymentStartFailed": "No se pudo iniciar el pago. Inténtalo de nuevo."
+    },
+    "messages": {
+      "paymentProcessedRefresh": "El pago se procesó. Actualiza la página si no aparece tu nuevo plan."
+    },
     "current-plan": "Plan Actual",
     "change-plan": "Cambiar Plan",
     "month": "mes",
@@ -318,6 +364,8 @@
     "usage-title": "Consumo y Cuotas del Plan",
     "usage-devices": "Dispositivos IoT",
     "usage-projects": "Proyectos Activos",
+    "activeProjectsCount": "{count} proyectos activos",
+    "validThrough": "Vigente hasta {date}",
     "usage-unlimited": "Ilimitados",
     "usage-warning": "Estás cerca del límite de dispositivos de tu plan. Mejora tu plan para conectar más dispositivos.",
     "next-billing": "Próxima renovación",
@@ -353,7 +401,71 @@
     "proceed-stripe": "Continuar al Pago Seguro con Stripe",
     "cancelled-notice": "Tu suscripción se encuentra cancelada. Mantendrás acceso a las funciones hasta el término del periodo.",
     "reactivate-plan": "Reactivar Plan",
-    "unlocked-benefits": "Beneficios que desbloquearás"
+    "unlocked-benefits": "Beneficios que desbloquearás",
+    "choose-plan": "Elegir {planName}",
+    "features-included": "Características incluidas",
+    "comparison": {
+      "feature": "Característica",
+      "close": "Cerrar",
+      "features": {
+        "devices": "Dispositivos IoT compatibles",
+        "projects": "Proyectos simultáneos",
+        "administrators": "Cuentas de administrador",
+        "reporting": "Frecuencia de telemetría e informes",
+        "support": "Nivel de soporte técnico",
+        "sla": "Garantía de SLA",
+        "api": "Acceso a la API de telemetría"
+      },
+      "values": {
+        "devices": { "starter": "Hasta 50 dispositivos", "professional": "Hasta 200 dispositivos", "enterprise": "Ilimitados" },
+        "projects": { "starter": "Hasta 5 proyectos", "professional": "Hasta 15 proyectos", "enterprise": "Ilimitados" },
+        "administrators": { "starter": "1 administrador", "professional": "3 administradores", "enterprise": "Ilimitados" },
+        "reporting": { "starter": "Informes mensuales básicos", "professional": "Tiempo real y analítica avanzada", "enterprise": "Suite empresarial completa" },
+        "support": { "starter": "Soporte estándar por correo", "professional": "Prioritario 24/7 (chat y tickets)", "enterprise": "Ingeniero dedicado 24/7" },
+        "sla": { "starter": "Estándar", "professional": "99,5 % de disponibilidad garantizada", "enterprise": "99,9 % contractual" },
+        "api": { "starter": "No disponible", "professional": "API personalizada", "enterprise": "API completa y consultoría" }
+      }
+    },
+    "planCatalog": {
+      "starter": {
+        "description": "Perfecto para proyectos pequeños",
+        "features": {
+          "devices": "Hasta 50 dispositivos IoT",
+          "dashboard": "Panel básico",
+          "support": "Soporte por correo electrónico",
+          "updates": "Actualizaciones incluidas",
+          "administrators": "1 administrador",
+          "reports": "Reportes mensuales"
+        }
+      },
+      "professional": {
+        "description": "Ideal para proyectos medianos",
+        "features": {
+          "devices": "Hasta 200 dispositivos IoT",
+          "dashboard": "Panel avanzado",
+          "support": "Soporte prioritario 24/7",
+          "updates": "Actualizaciones y nuevas funciones",
+          "administrators": "3 administradores",
+          "reports": "Reportes en tiempo real",
+          "api": "API personalizada",
+          "training": "Capacitación incluida"
+        }
+      },
+      "enterprise": {
+        "description": "Para grandes desarrollos",
+        "features": {
+          "devices": "Dispositivos IoT ilimitados",
+          "dashboard": "Panel empresarial",
+          "support": "Soporte dedicado 24/7",
+          "customDevelopment": "Desarrollo de funciones personalizadas",
+          "administrators": "Administradores ilimitados",
+          "analytics": "Analítica avanzada",
+          "api": "API completa",
+          "consulting": "Consultoría especializada",
+          "sla": "Acuerdo de nivel de servicio garantizado"
+        }
+      }
+    }
   },
   "devices": {
     "title": "Gestión de dispositivos",
@@ -418,6 +530,19 @@
   },
   "iam": {
     "logout": "Cerrar Sesión",
+    "actions": {
+      "next": "Siguiente",
+      "back": "Atrás",
+      "changePhoto": "Cambiar foto",
+      "photoSelected": "Foto seleccionada",
+      "removePhoto": "Eliminar foto",
+      "photoPreviewAlt": "Vista previa de la foto de perfil"
+    },
+    "messages": {
+      "registrationSuccess": "Registro completado correctamente.",
+      "profileCreationFailed": "No se pudo completar la configuración del perfil. Inicie sesión manualmente.",
+      "ownerAssignmentDetected": "¡Asignación detectada! El constructor vinculó una unidad a tu correo."
+    },
     "login": {
       "title": "Iniciar Sesión",
       "subtitle": "¡Bienvenido de nuevo! Ingrese a su cuenta.",
@@ -450,8 +575,8 @@
       "usernamePlaceholder": "Ingrese nombre de usuario",
       "address": "Dirección",
       "addressPlaceholder": "Ingrese la dirección de la empresa",
-      "age": "Años en el Negocio",
-      "agePlaceholder": "Ingrese años en el negocio",
+      "yearsInBusiness": "Años en el negocio",
+      "yearsInBusinessPlaceholder": "Ingrese años en el negocio",
       "phoneNumber": "Número de Teléfono",
       "phoneNumberPlaceholder": "Ingrese número de teléfono",
       "submitButton": "Registrarse",
@@ -483,6 +608,36 @@
       "phoneNumberPlaceholder": "Ingrese número de teléfono",
       "submitButton": "Registrarse",
       "cancelButton": "Cancelar"
+    },
+    "validation": {
+      "emailRequired": "El correo electrónico es obligatorio.",
+      "emailInvalid": "Ingrese un formato de correo electrónico válido.",
+      "passwordRequired": "La contraseña es obligatoria.",
+      "passwordMinLength": "La contraseña debe tener al menos 8 caracteres.",
+      "confirmPasswordRequired": "Debe confirmar su contraseña.",
+      "passwordMismatch": "Las contraseñas no coinciden.",
+      "completeAccountInfo": "Complete los campos obligatorios de la cuenta.",
+      "completeProfileInfo": "Corrija los campos marcados antes de continuar.",
+      "companyNameRequired": "El nombre de la empresa es obligatorio.",
+      "companyNameMinLength": "El nombre de la empresa debe tener al menos 2 caracteres.",
+      "fullNameRequired": "El nombre completo es obligatorio.",
+      "fullNameMinLength": "El nombre completo debe tener al menos 2 caracteres.",
+      "usernameRequired": "El nombre de usuario es obligatorio.",
+      "usernameInvalid": "El nombre de usuario debe tener entre 3 y 30 caracteres. Use letras, números, puntos, guiones o guiones bajos.",
+      "addressRequired": "La dirección es obligatoria.",
+      "addressMinLength": "La dirección debe tener al menos 4 caracteres.",
+      "yearsBusinessRequired": "Los años en el negocio son obligatorios.",
+      "yearsBusinessInvalid": "Ingrese un número entero de años entre 0 y 120.",
+      "ageRequired": "La edad es obligatoria.",
+      "ageInvalid": "Ingrese una edad válida entre 18 y 120 años.",
+      "phoneRequired": "El número de teléfono es obligatorio.",
+      "phoneInvalid": "Ingrese un número telefónico válido (de 7 a 15 dígitos).",
+      "emailAlreadyRegistered": "Este correo electrónico ya está registrado. Inicie sesión.",
+      "ownerUnitRequired": "El constructor debe asignar una unidad a su correo antes de que pueda registrarse como propietario.",
+      "ownerUnitLookupFailed": "No se pudo verificar la unidad asignada. Inténtelo de nuevo.",
+      "credentialsInvalid": "Correo o contraseña incorrectos.",
+      "registrationDataInvalid": "Los datos de registro no son válidos. Revise el formulario e inténtelo de nuevo.",
+      "registrationFailed": "No se pudo completar el registro. Inténtelo de nuevo."
     }
   },
   "analytics": {

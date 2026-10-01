@@ -36,12 +36,14 @@ public sealed class EfMigrationRunner(IoBuildDbContext dbContext) : IMigrationRu
                 if (shouldClose) await connection.CloseAsync();
             }
 
+            var needsBuilderYearsBackfill = !existingColumns.Contains("YearsInBusiness");
             var columnsToAdd = new (string Name, string Type)[]
             {
                 ("PhoneNumber", "VARCHAR(50) NULL"),
                 ("Address", "VARCHAR(255) NULL"),
                 ("SecondEmail", "VARCHAR(150) NULL"),
-                ("PhotoUrl", "LONGTEXT NULL")
+                ("PhotoUrl", "LONGTEXT NULL"),
+                ("YearsInBusiness", "INT NULL")
             };
 
             foreach (var (colName, colType) in columnsToAdd)
@@ -50,6 +52,16 @@ public sealed class EfMigrationRunner(IoBuildDbContext dbContext) : IMigrationRu
                 {
                     await dbContext.Database.ExecuteSqlRawAsync($"ALTER TABLE profiles ADD COLUMN {colName} {colType};", cancellationToken);
                 }
+            }
+
+            if (needsBuilderYearsBackfill)
+            {
+                // Builder registration historically sent this value through Age.
+                // Copy it into the dedicated column without deleting the legacy
+                // value, so the upgrade remains non-destructive and recoverable.
+                await dbContext.Database.ExecuteSqlRawAsync(
+                    "UPDATE profiles p INNER JOIN iam_users u ON u.Id = p.UserId SET p.YearsInBusiness = p.Age WHERE LOWER(u.`Role`) = 'builder' AND p.YearsInBusiness IS NULL AND p.Age BETWEEN 0 AND 120;",
+                    cancellationToken);
             }
 
             if (existingColumns.Contains("PhotoUrl"))

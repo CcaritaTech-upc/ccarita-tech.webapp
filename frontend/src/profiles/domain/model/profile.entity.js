@@ -7,6 +7,7 @@ export class Profile {
     username = '',
     address = '',
     age = 0,
+    yearsInBusiness = null,
     phoneNumber = '',
     secondEmail = '',
     photoUrl = '',
@@ -19,6 +20,7 @@ export class Profile {
     this.username = username;
     this.address = address;
     this.age = age;
+    this.yearsInBusiness = yearsInBusiness;
     this.phoneNumber = phoneNumber;
     this.secondEmail = secondEmail;
     this.photoUrl = photoUrl;

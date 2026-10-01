@@ -26,6 +26,7 @@ public sealed class CoreBusinessService(IoBuildDbContext dbContext)
         string? secondEmail = null,
         int? age = null,
         string? photoUrl = null,
-        CancellationToken cancellationToken = default)
-        => _profiles.CreateProfileAsync(userId, name, username, phoneNumber, address, secondEmail, age, photoUrl, cancellationToken);
+        CancellationToken cancellationToken = default,
+        int? yearsInBusiness = null)
+        => _profiles.CreateProfileAsync(userId, name, username, phoneNumber, address, secondEmail, age, photoUrl, cancellationToken, yearsInBusiness);
 }

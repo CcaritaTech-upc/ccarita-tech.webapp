@@ -2,6 +2,7 @@ using IoBuild.Api.IAM.Application.Internal.CommandServices;
 using IoBuild.Api.IAM.Domain.Model.Commands;
 using IoBuild.Api.Persistence;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 
 namespace IoBuild.Api.IAM.Interfaces.REST;
 
@@ -10,6 +11,9 @@ namespace IoBuild.Api.IAM.Interfaces.REST;
 /// </summary>
 public static class IamEndpoints
 {
+    private static bool HasRole(ClaimsPrincipal user, string role) =>
+        string.Equals(user.FindFirst(ClaimTypes.Role)?.Value ?? user.FindFirst("role")?.Value, role, StringComparison.OrdinalIgnoreCase);
+
     public static void MapIamEndpoints(this WebApplication app)
     {
         var group = app.MapGroup("/api/v1").WithTags("IAM");
@@ -55,31 +59,16 @@ public static class IamEndpoints
                 return Results.Ok(new { assigned = false, alreadyRegistered = true });
             }
 
-            var client = await db.Clients
-                .FirstOrDefaultAsync(c => !string.IsNullOrEmpty(c.Email) && c.Email.ToLower() == normalized, ct);
-
-            var unit = await db.Units
-                .FirstOrDefaultAsync(u => (!string.IsNullOrEmpty(u.OwnerEmail) && u.OwnerEmail.ToLower() == normalized) || (client != null && client.UnitId == u.Id), ct);
-
-            if (unit is null)
-            {
-                return Results.Ok(new { assigned = false, alreadyRegistered = false });
-            }
-
-            var project = unit is not null
-                ? await db.Projects.FindAsync([unit.ProjectId], ct)
-                : client is not null ? await db.Projects.FindAsync([client.ProjectId], ct) : null;
+            var matchingClientUnitIds = db.Clients
+                .Where(c => !string.IsNullOrEmpty(c.Email) && c.Email.ToLower() == normalized && c.UnitId.HasValue)
+                .Select(c => c.UnitId!.Value);
+            var hasAssignedUnit = await db.Units.AnyAsync(u =>
+                (!string.IsNullOrEmpty(u.OwnerEmail) && u.OwnerEmail.ToLower() == normalized) || matchingClientUnitIds.Contains(u.Id), ct);
 
             return Results.Ok(new
             {
-                assigned = true,
+                assigned = hasAssignedUnit,
                 alreadyRegistered = false,
-                fullName = client?.FullName ?? string.Empty,
-                phoneNumber = client?.PhoneNumber ?? string.Empty,
-                address = client?.Address ?? string.Empty,
-                unitNumber = unit?.UnitNumber ?? client?.UnitNumber ?? string.Empty,
-                projectName = project?.Name ?? client?.ProjectName ?? string.Empty,
-                unitId = unit?.Id ?? client?.UnitId
             });
         }).AllowAnonymous();
 
@@ -109,6 +98,11 @@ public static class IamEndpoints
             return Results.Ok(new { message = "Signed out successfully." });
         }).RequireAuthorization();
 
-        group.MapGet("/users", async (IoBuildDbContext db, CancellationToken ct) => Results.Ok(await db.IamUsers.OrderBy(user => user.Id).Select(user => new { user.Id, user.Email, user.Role }).ToListAsync(ct))).RequireAuthorization();
+        group.MapGet("/users", async (ClaimsPrincipal user, IoBuildDbContext db, CancellationToken ct) =>
+        {
+            // Public registration serves Builder and Owner only. The global user directory is administrative.
+            if (!HasRole(user, "Admin")) return Results.Forbid();
+            return Results.Ok(await db.IamUsers.OrderBy(item => item.Id).Select(item => new { item.Id, item.Email, item.Role }).ToListAsync(ct));
+        }).RequireAuthorization();
     }
 }

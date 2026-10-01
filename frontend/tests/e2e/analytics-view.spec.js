@@ -10,13 +10,13 @@ test('ANALYTICS Builder: dashboard renders with own project metrics', async ({ p
   const stamp = Date.now();
   await page.goto('/iam/register-builder');
   await page.locator('#email').fill(`e2e.an.b.${stamp}@example.test`);
-  await page.locator('#password input').fill('secret123');
-  await page.locator('#confirmPassword input').fill('secret123');
+  await page.locator('#password').fill('secret123');
+  await page.locator('#confirmPassword').fill('secret123');
   await page.getByRole('button', { name: /^next$/i }).click();
   await page.locator('#name').fill('E2E An Builder');
   await page.locator('#username').fill(`e2eanb${String(stamp).slice(-6)}`);
   await page.locator('#address').fill('Av. E2E 300');
-  await page.locator('#age input').fill('30');
+  await page.locator('#yearsInBusiness').fill('30');
   await page.locator('#phoneNumber').fill('+51987654314');
   await page.getByRole('button', { name: /register|create|save|submit/i }).click();
   await expect(page).not.toHaveURL(/register-builder/, { timeout: 20_000 });
@@ -51,8 +51,8 @@ test('ANALYTICS Owner: dashboard renders the owner view', async ({ page }) => {
   await provisionAssignedOwner(page, email, stamp);
   await page.goto('/iam/register-owner');
   await page.locator('#email').fill(email);
-  await page.locator('#password input').fill('secret123');
-  await page.locator('#confirmPassword input').fill('secret123');
+  await page.locator('#password').fill('secret123');
+  await page.locator('#confirmPassword').fill('secret123');
   await page.getByRole('button', { name: /^next$/i }).click();
   await page.locator('#name').fill('E2E An Owner');
   await page.locator('#username').fill(`e2eano${String(stamp).slice(-6)}`);

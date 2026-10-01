@@ -23,7 +23,7 @@ import {
 // Stripe
 import { getStripeClient } from "../../infrastructure/stripe-client.js";
 
-const { t } = useI18n();
+const { t, locale } = useI18n();
 const confirm = useConfirm();
 const toast = useToast();
 const store = useSubscriptionStore();
@@ -45,6 +45,15 @@ const targetPlanForChange = ref(null);
 // Comparison matrix modal
 const comparisonVisible = ref(false);
 
+function formatInvoiceDate(value) {
+  const dateLocale = locale.value === 'es' ? 'es-ES' : 'en-US';
+  return new Date(value || Date.now()).toLocaleDateString(dateLocale, {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric'
+  });
+}
+
 const getBuilderId = () => {
   try {
     return IamFacade.getCurrentUserId();
@@ -52,8 +61,8 @@ const getBuilderId = () => {
     console.error("[Subscriptions] Error getting user ID:", error);
     toast.add({
       severity: "error",
-      summary: "Error de autenticación",
-      detail: error.message,
+      summary: t('subscriptions.error'),
+      detail: t('subscriptions.errors.authentication'),
       life: TOAST_AUTH_ERROR_DURATION_MS
     });
     throw error;
@@ -74,26 +83,18 @@ const openInvoicesDialog = async () => {
       amount: r.amount ?? (r.amountInCents ? (r.amountInCents / 100) : 0),
       currency: r.currency || 'USD',
       downloadUrl: r.receiptUrl ?? r.downloadUrl ?? null,
-      date: r.date ? new Date(r.date).toLocaleDateString("es-ES", {
-        year: "numeric",
-        month: "short",
-        day: "numeric"
-      }) : new Date().toLocaleDateString("es-ES", { year: "numeric", month: "short", day: "numeric" })
+      date: formatInvoiceDate(r.date)
     }));
   } catch (error) {
     console.warn("Could not fetch remote Stripe invoices, falling back to local subscription data:", error);
     if (store.currentSubscription && store.currentPlan) {
       invoices.value = [{
         id: `in_sub_${store.currentSubscription.id}`,
-        description: `Suscripción Plan ${store.currentPlan.name}`,
+        description: t('subscriptions.invoice-plan-description', { planName: store.currentPlan.name }),
         amount: store.currentPlan.price,
         currency: 'USD',
         status: store.currentSubscription.status === 'active' ? 'paid' : store.currentSubscription.status,
-        date: new Date(store.currentSubscription.startDate || Date.now()).toLocaleDateString("es-ES", {
-          year: "numeric",
-          month: "short",
-          day: "numeric"
-        }),
+        date: formatInvoiceDate(store.currentSubscription.startDate),
         downloadUrl: null
       }];
     } else {
@@ -130,7 +131,7 @@ onMounted(async () => {
       toast.add({
         severity: "success",
         summary: t("subscriptions.success"),
-        detail: t("subscriptions.payment-success") || "Pago procesado exitosamente.",
+        detail: t("subscriptions.payment-success"),
         life: TOAST_SUCCESS_DURATION_MS
       });
 
@@ -139,8 +140,8 @@ onMounted(async () => {
       console.error("Error confirming payment:", error);
       toast.add({
         severity: "warn",
-        summary: t("subscriptions.warning") || "Advertencia",
-        detail: "El pago fue procesado. Recarga la página si no ves tu nuevo plan actualizado.",
+        summary: t("subscriptions.warning"),
+        detail: t('subscriptions.messages.paymentProcessedRefresh'),
         life: TOAST_AUTH_ERROR_DURATION_MS
       });
     } finally {
@@ -201,7 +202,7 @@ const confirmPlanChange = async () => {
 const handlePayPlan = async (plan) => {
   try {
     if (!import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY) {
-      throw new Error("Falta configurar VITE_STRIPE_PUBLISHABLE_KEY en .env");
+      throw new Error(t('subscriptions.errors.stripeNotConfigured'));
     }
 
     isProcessing.value = true;
@@ -218,7 +219,7 @@ const handlePayPlan = async (plan) => {
     const sessionId = data.sessionId || data.SessionId || data.id || data.Id;
     if (sessionId) {
       const stripe = await getStripeClient();
-      if (!stripe) throw new Error("Stripe no se pudo inicializar");
+      if (!stripe) throw new Error(t('subscriptions.errors.stripeInitializationFailed'));
 
       const { error } = await stripe.redirectToCheckout({ sessionId });
       if (error) {
@@ -226,21 +227,20 @@ const handlePayPlan = async (plan) => {
         toast.add({
           severity: "error",
           summary: t("subscriptions.error"),
-          detail: "No se pudo redirigir al pago.",
+          detail: t('subscriptions.errors.paymentRedirectFailed'),
           life: TOAST_ERROR_DURATION_MS
         });
       }
       return;
     }
 
-    throw new Error("No se recibió URL ni sessionId del servidor");
+    throw new Error(t('subscriptions.errors.checkoutSessionMissing'));
   } catch (err) {
     console.error("Payment error:", err);
-    const message = err?.response?.data?.message || err?.message || "No se pudo iniciar el pago";
     toast.add({
       severity: "error",
       summary: t("subscriptions.error"),
-      detail: message,
+      detail: t('subscriptions.errors.paymentStartFailed'),
       life: TOAST_ERROR_DURATION_MS
     });
   } finally {
@@ -257,7 +257,7 @@ const handlePayPlan = async (plan) => {
         <div class="header-left">
           <h1 class="page-title">{{ t("subscriptions.title") }}</h1>
           <p class="page-subtitle">
-            Administra el plan de tu empresa, supervisa cuotas de dispositivos IoT y descarga tus comprobantes de facturación.
+            {{ t('subscriptions.pageDescription') }}
           </p>
         </div>
 
@@ -285,7 +285,7 @@ const handlePayPlan = async (plan) => {
       <!-- Spinner -->
       <div v-if="store.isLoading && !store.availablePlans.length" class="loading-state">
         <pv-progress-spinner style="width: 48px; height: 48px" />
-        <span class="loading-text">Cargando información de suscripción...</span>
+        <span class="loading-text">{{ t('subscriptions.loading') }}</span>
       </div>
 
       <div v-else>
@@ -308,11 +308,11 @@ const handlePayPlan = async (plan) => {
           <div class="banner-content">
             <div class="banner-pill">
               <i class="pi pi-sparkles"></i>
-              <span>Comienza a operar en IoBuild</span>
+              <span>{{ t('subscriptions.startUsingIoBuild') }}</span>
             </div>
             <h2 class="banner-title">{{ t("subscriptions.no-subscription") }}</h2>
             <p class="banner-desc">
-              Elige un plan de infraestructura para conectar tus dispositivos IoT, gestionar proyectos inmobiliarios y brindar acceso a los propietarios de tus unidades.
+              {{ t('subscriptions.noSubscriptionDescription') }}
             </p>
           </div>
           <button
@@ -320,7 +320,7 @@ const handlePayPlan = async (plan) => {
             class="banner-cta"
             @click="comparisonVisible = true"
           >
-            <span>Ver Tabla Comparativa</span>
+            <span>{{ t('subscriptions.compare-plans') }}</span>
             <i class="pi pi-arrow-right"></i>
           </button>
         </div>
@@ -330,7 +330,7 @@ const handlePayPlan = async (plan) => {
           <div class="plans-section-header">
             <h2 class="section-title">{{ t("subscriptions.all-plans") }}</h2>
             <p class="section-subtitle">
-              Escala tu infraestructura según la cantidad de dispositivos y unidades de tus proyectos inmobiliarios.
+              {{ t('subscriptions.allPlansDescription') }}
             </p>
           </div>
 

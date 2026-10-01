@@ -1,8 +1,9 @@
 <script setup>
 import { computed } from "vue";
 import { useI18n } from "vue-i18n";
+import { translatePlanDescription } from '../plan-copy.js';
 
-const { t } = useI18n();
+const { t, te, locale } = useI18n();
 
 const props = defineProps({
   plan: { type: Object, required: true },
@@ -26,7 +27,8 @@ const isCancelled = computed(() => {
 const renewalDateFormatted = computed(() => {
   const start = props.subscription?.startDate ? new Date(props.subscription.startDate) : new Date();
   const next = props.subscription?.endDate ? new Date(props.subscription.endDate) : new Date(start.getTime() + 30 * 24 * 60 * 60 * 1000);
-  return next.toLocaleDateString("es-ES", { year: "numeric", month: "long", day: "numeric" });
+  const dateLocale = locale.value === "es" ? "es-ES" : "en-US";
+  return next.toLocaleDateString(dateLocale, { year: "numeric", month: "long", day: "numeric" });
 });
 
 const planLimits = computed(() => {
@@ -37,7 +39,7 @@ const planLimits = computed(() => {
   if (name.includes("pro")) {
     return { maxDevices: 200, maxProjects: 15, label: "200" };
   }
-  return { maxDevices: Infinity, maxProjects: Infinity, label: "Ilimitados" };
+  return { maxDevices: Infinity, maxProjects: Infinity, label: t("subscriptions.usage-unlimited") };
 });
 
 const devicePercentage = computed(() => {
@@ -59,7 +61,7 @@ const isNearLimit = computed(() => {
         <i class="pi pi-exclamation-triangle"></i>
         <span>{{ t('subscriptions.cancelled-notice') }}</span>
       </div>
-      <span class="alert-date">Vigente hasta {{ renewalDateFormatted }}</span>
+      <span class="alert-date">{{ t('subscriptions.validThrough', { date: renewalDateFormatted }) }}</span>
     </div>
 
     <div class="hero-grid">
@@ -74,7 +76,7 @@ const isNearLimit = computed(() => {
         </div>
 
         <h2 class="hero-plan-title">{{ plan.name }}</h2>
-        <p class="hero-plan-desc">{{ plan.description }}</p>
+        <p class="hero-plan-desc">{{ translatePlanDescription(plan, t, te) }}</p>
 
         <div class="hero-price-row">
           <span class="hero-price-amount">${{ plan.price }}</span>
@@ -118,7 +120,7 @@ const isNearLimit = computed(() => {
         <div class="quota-submeta">
           <div class="submeta-item">
             <span class="submeta-label">{{ t('subscriptions.usage-projects') }}</span>
-            <span class="submeta-val">{{ props.activeProjects }} proyectos activos</span>
+            <span class="submeta-val">{{ t('subscriptions.activeProjectsCount', { count: props.activeProjects }) }}</span>
           </div>
           <div class="stripe-badge">
             <i class="pi pi-shield"></i>

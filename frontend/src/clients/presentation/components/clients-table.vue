@@ -4,8 +4,11 @@ import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 import { ClientStatus } from '../../domain/model/client-status.enum.js';
 
-const { t } = useI18n();
+const { t, locale } = useI18n();
 const router = useRouter();
+const currentPageReportTemplate = computed(() => locale.value.startsWith('es')
+  ? '{first} a {last} de {totalRecords}'
+  : '{first} to {last} of {totalRecords}');
 
 defineProps({
   clients: {
@@ -92,7 +95,7 @@ const toggleMenu = (event, client) => {
       :rowsPerPageOptions="[5, 10, 20, 50]"
       tableStyle="min-width: 50rem"
       paginatorTemplate="RowsPerPageDropdown FirstPageLink PrevPageLink CurrentPageReport NextPageLink LastPageLink"
-      :currentPageReportTemplate="t('clients.messages.paginationSummary')"
+      :currentPageReportTemplate="currentPageReportTemplate"
       class="clients-table"
     >
       <template #empty>
@@ -124,7 +127,7 @@ const toggleMenu = (event, client) => {
             severity="info"
             class="font-mono text-xs"
           />
-          <span v-else class="text-xs text-gray-400 italic">Sin asignar</span>
+          <span v-else class="text-xs text-gray-400 italic">{{ t('clients.fields.unassigned') }}</span>
         </template>
       </pv-column>
 

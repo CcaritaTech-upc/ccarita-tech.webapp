@@ -18,10 +18,10 @@ public class ClientRepository : IClientRepository
         return await _dbContext.Clients.FindAsync([id], ct);
     }
 
-    public async Task<IEnumerable<Client>> FindByBuilderIdAsync(int builderId, CancellationToken ct = default)
+    public async Task<IEnumerable<Client>> FindByBuilderIdAsync(int builderId, int? projectId = null, CancellationToken ct = default)
     {
         return await _dbContext.Clients
-            .Where(c => c.BuilderId == builderId)
+            .Where(c => c.BuilderId == builderId && (!projectId.HasValue || c.ProjectId == projectId.Value))
             .OrderBy(c => c.Id)
             .ToListAsync(ct);
     }

@@ -68,11 +68,11 @@ describe('Profiles frontend/API contract (Convergent Testing G0/G1)', () => {
     const api = new ProfileApi();
     const { instance, baseURL } = await lastInstance();
 
-    await api.createProfile({ userId: 31, name: 'N', username: 'n31' });
+    await api.createProfile({ userId: 31, name: 'N', username: 'n31', yearsInBusiness: 0 });
 
     const [url, payload] = instance.post.mock.calls[0];
     expect(`${baseURL}${url}`).toBe('/api/v1/profiles');
-    expect(payload).toMatchObject({ userId: 31 });
+    expect(payload).toMatchObject({ userId: 31, yearsInBusiness: 0 });
   });
 
   it('PROFILES.MANAGE updates via PUT /api/v1/profiles/{id}', async () => {
@@ -80,11 +80,11 @@ describe('Profiles frontend/API contract (Convergent Testing G0/G1)', () => {
     const api = new ProfileApi();
     const { instance, baseURL } = await lastInstance();
 
-    await api.updateProfile(9, { name: 'New' });
+    await api.updateProfile(9, { name: 'New', yearsInBusiness: 12 });
 
     const [url, payload] = instance.put.mock.calls[0];
     expect(`${baseURL}${url}`).toBe('/api/v1/profiles/9');
-    expect(payload).toMatchObject({ name: 'New' });
+    expect(payload).toMatchObject({ name: 'New', yearsInBusiness: 12 });
   });
 
   it('ProfileAssembler takes email and role from IAM, profile fields from the resource', async () => {
@@ -99,6 +99,18 @@ describe('Profiles frontend/API contract (Convergent Testing G0/G1)', () => {
     expect(profileEntity.role).toBe('Owner');
     expect(profileEntity.name).toBe('Name');
     expect(profileEntity.photoUrl).toBe('https://img.test/a');
+  });
+
+  it('ProfileAssembler maps years in business separately and preserves zero', async () => {
+    stubLocalStorage({ id: 31, email: 'builder31@example.test', role: 'Builder' });
+    const { ProfileAssembler } = await import('../../src/profiles/infrastructure/profile.assembler.js');
+
+    const { profileEntity } = ProfileAssembler.toDomainFromResponse({
+      id: 10, userId: 31, name: 'Builder', age: null, yearsInBusiness: 0,
+    });
+
+    expect(profileEntity.age).toBe(0);
+    expect(profileEntity.yearsInBusiness).toBe(0);
   });
 
   it('ProfileAssembler falls back to builder role without a session', async () => {

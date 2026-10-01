@@ -95,8 +95,8 @@ public sealed class IamTierDTests
     [Trait("Risk", "D")]
     public async Task IAM_REGISTRATION_INPUT_PARTITIONS_never_server_error()
     {
-        // Deterministic fuzz partitions: boundary lengths around the 320 rule,
-        // empty/whitespace, unicode, control chars, malformed shapes, huge input.
+        // Deterministic fuzz partitions: email syntax and 320-char boundary,
+        // empty/whitespace, unicode, control chars, malformed shapes, and password length.
         // Every partition must resolve to 201 (valid) or 400 (fail-closed):
         // a 500 means an unhandled path survived the frontend.
         await using var factory = new TierDApiFactory();
@@ -108,15 +108,16 @@ public sealed class IamTierDTests
         {
             ("", "secret123", HttpStatusCode.BadRequest),
             ("   ", "secret123", HttpStatusCode.BadRequest),
-            ("no-at-sign", "secret123", HttpStatusCode.Created), // backend has no charset policy: characterized
-            ("a@@b@example.test", "secret123", HttpStatusCode.Created), // characterized: accepted, normalized
-            ("usuário@example.test", "secret123", HttpStatusCode.Created),
-            ("a\nb@example.test", "secret123", HttpStatusCode.Created), // characterized: accepted
+            ("no-at-sign", "secret123", HttpStatusCode.BadRequest),
+            ("a@@b@example.test", "secret123", HttpStatusCode.BadRequest),
+            ("usuário@example.test", "secret123", HttpStatusCode.BadRequest),
+            ("a\nb@example.test", "secret123", HttpStatusCode.BadRequest),
             (local319, "secret123", HttpStatusCode.Created),
             (local320, "secret123", HttpStatusCode.Created),
             (local321, "secret123", HttpStatusCode.BadRequest),
             ($"fuzz.{Guid.NewGuid():N}@example.test", "", HttpStatusCode.BadRequest),
-            ($"fuzz.{Guid.NewGuid():N}@example.test", "x", HttpStatusCode.Created), // characterized: no min length server-side
+            ($"fuzz.{Guid.NewGuid():N}@example.test", "1234567", HttpStatusCode.BadRequest),
+            ($"fuzz.{Guid.NewGuid():N}@example.test", "12345678", HttpStatusCode.Created),
             ($"fuzz.{Guid.NewGuid():N}@example.test", new string('p', 5000), HttpStatusCode.Created), // characterized
         };
 

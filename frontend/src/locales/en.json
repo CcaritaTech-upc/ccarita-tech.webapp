@@ -129,6 +129,7 @@
     "phoneNumber": "Phone Number",
     "address": "Address",
     "secondEmail": "Alternate Email",
+    "yearsInBusiness": "Years in Business",
     "appLanguage": "App Language",
     "languageEnglish": "English",
     "languageSpanish": "Spanish",
@@ -223,6 +224,7 @@
   },
   "clients": {
     "title": "My Clients",
+    "addDialogTitle": "Add a client",
     "profile": {
       "title": "Client Profile",
       "personalInfo": "Personal Information",
@@ -236,9 +238,28 @@
       "email": "Email",
       "phoneNumber": "Phone Number",
       "address": "Address",
+      "notAvailable": "Not available",
       "unit": "Unit / Apartment",
+      "assignedUnit": "Assigned Unit / Apartment",
+      "unassigned": "Unassigned",
       "iotDevices": "IoT Devices",
       "devicesCount": "{count} linked devices"
+    },
+    "placeholders": {
+      "fullName": "Enter full name",
+      "email": "Enter email address",
+      "phoneNumber": "Enter phone number",
+      "address": "Enter address",
+      "project": "Select a project",
+      "unitOptional": "Select a unit (optional)"
+    },
+    "validation": {
+      "fullNameRequired": "Full name is required.",
+      "fullNameMinLength": "Full name must have at least 2 characters.",
+      "emailRequired": "Email is required.",
+      "emailInvalid": "Enter a valid email address (for example, user@company.com).",
+      "phoneInvalid": "Enter a valid phone number (7 to 15 digits).",
+      "projectRequired": "Select a project for this client."
     },
     "status": {
       "active": "Active",
@@ -271,13 +292,38 @@
       "deleteError": "Failed to delete client",
       "deleteConfirmTitle": "Delete Confirmation",
       "deleteConfirmMessage": "Are you sure you want to delete {name}?",
-      "paginationSummary": "{first} to {last} of {totalRecords}",
       "noDevicesInUnit": "No IoT devices registered in this unit",
-      "assignUnitForDevices": "A unit must be assigned to view IoT devices"
+      "loadingDevices": "Loading...",
+      "queryingDevices": "Loading IoT devices assigned to this unit...",
+      "assignUnitForDevices": "A unit must be assigned to view IoT devices",
+      "noUnitsConfigured": "This project does not have any units configured yet."
     }
   },
   "subscriptions": {
     "title": "My Subscription",
+    "pageDescription": "Manage your company's plan, monitor IoT device quotas, and download billing receipts.",
+    "loading": "Loading subscription information...",
+    "startUsingIoBuild": "Start operating with IoBuild",
+    "noSubscriptionDescription": "Choose an infrastructure plan to connect your IoT devices, manage real estate projects, and give unit owners access.",
+    "allPlansDescription": "Scale your infrastructure to fit the number of devices and units across your real estate projects.",
+    "invoicesLoading": "Loading Stripe invoices...",
+    "invoicesEmptyDescription": "Your payment invoices and receipts will appear here automatically for viewing and download.",
+    "invoice-description-default": "IoBuild subscription",
+    "invoice-plan-description": "IoBuild {planName} subscription",
+    "close": "Close",
+    "connectingToStripe": "Connecting to Stripe...",
+    "warning": "Warning",
+    "errors": {
+      "authentication": "Could not verify your account. Please sign in again.",
+      "stripeNotConfigured": "Payment processing is not configured.",
+      "stripeInitializationFailed": "Stripe could not be initialized.",
+      "paymentRedirectFailed": "Could not redirect to payment.",
+      "checkoutSessionMissing": "The server did not return a checkout URL or session ID.",
+      "paymentStartFailed": "Could not start the payment. Please try again."
+    },
+    "messages": {
+      "paymentProcessedRefresh": "Your payment was processed. Refresh the page if your new plan is not visible."
+    },
     "current-plan": "Current Plan",
     "change-plan": "Change Plan",
     "month": "month",
@@ -318,6 +364,8 @@
     "usage-title": "Plan Usage & Quotas",
     "usage-devices": "IoT Devices",
     "usage-projects": "Active Projects",
+    "activeProjectsCount": "{count} active projects",
+    "validThrough": "Valid through {date}",
     "usage-unlimited": "Unlimited",
     "usage-warning": "You are nearing your plan's device limit. Upgrade to connect more devices.",
     "next-billing": "Next renewal",
@@ -353,7 +401,71 @@
     "proceed-stripe": "Proceed to Secure Stripe Checkout",
     "cancelled-notice": "Your subscription is cancelled. You will retain access until the end of your billing cycle.",
     "reactivate-plan": "Reactivate Plan",
-    "unlocked-benefits": "Benefits you'll unlock"
+    "unlocked-benefits": "Benefits you'll unlock",
+    "choose-plan": "Choose {planName}",
+    "features-included": "Included features",
+    "comparison": {
+      "feature": "Feature",
+      "close": "Close",
+      "features": {
+        "devices": "Supported IoT devices",
+        "projects": "Concurrent projects",
+        "administrators": "Administrator accounts",
+        "reporting": "Telemetry and reporting frequency",
+        "support": "Technical support level",
+        "sla": "SLA guarantee",
+        "api": "Telemetry API access"
+      },
+      "values": {
+        "devices": { "starter": "Up to 50 devices", "professional": "Up to 200 devices", "enterprise": "Unlimited" },
+        "projects": { "starter": "Up to 5 projects", "professional": "Up to 15 projects", "enterprise": "Unlimited" },
+        "administrators": { "starter": "1 administrator", "professional": "3 administrators", "enterprise": "Unlimited" },
+        "reporting": { "starter": "Basic monthly reports", "professional": "Real-time and advanced analytics", "enterprise": "Full enterprise suite" },
+        "support": { "starter": "Standard email support", "professional": "24/7 priority (chat and tickets)", "enterprise": "Dedicated 24/7 engineer" },
+        "sla": { "starter": "Standard", "professional": "99.5% uptime guaranteed", "enterprise": "99.9% contractual" },
+        "api": { "starter": "Not available", "professional": "Custom API", "enterprise": "Full API and consulting" }
+      }
+    },
+    "planCatalog": {
+      "starter": {
+        "description": "Perfect for small projects",
+        "features": {
+          "devices": "Up to 50 IoT devices",
+          "dashboard": "Basic dashboard",
+          "support": "Email support",
+          "updates": "Updates included",
+          "administrators": "1 administrator",
+          "reports": "Monthly reports"
+        }
+      },
+      "professional": {
+        "description": "Ideal for medium-sized projects",
+        "features": {
+          "devices": "Up to 200 IoT devices",
+          "dashboard": "Advanced dashboard",
+          "support": "24/7 priority support",
+          "updates": "Updates and new features",
+          "administrators": "3 administrators",
+          "reports": "Real-time reports",
+          "api": "Custom API",
+          "training": "Training included"
+        }
+      },
+      "enterprise": {
+        "description": "For big developments",
+        "features": {
+          "devices": "Unlimited IoT devices",
+          "dashboard": "Enterprise dashboard",
+          "support": "Dedicated 24/7 support",
+          "customDevelopment": "Development of custom features",
+          "administrators": "Unlimited administrators",
+          "analytics": "Advanced analytics",
+          "api": "Complete API",
+          "consulting": "Specialized consulting",
+          "sla": "Guaranteed SLA"
+        }
+      }
+    }
   },
   "devices": {
     "title": "Device Management",
@@ -420,6 +532,19 @@
   },
   "iam": {
     "logout": "Log Out",
+    "actions": {
+      "next": "Next",
+      "back": "Back",
+      "changePhoto": "Change photo",
+      "photoSelected": "Photo selected",
+      "removePhoto": "Remove photo",
+      "photoPreviewAlt": "Profile photo preview"
+    },
+    "messages": {
+      "registrationSuccess": "Registration completed successfully.",
+      "profileCreationFailed": "Could not complete your profile setup. Please sign in manually.",
+      "ownerAssignmentDetected": "Assignment detected! The builder linked a unit to your email."
+    },
     "login": {
       "title": "Sign In",
       "subtitle": "Welcome back! Please login to your account.",
@@ -452,8 +577,8 @@
       "usernamePlaceholder": "Enter username",
       "address": "Address",
       "addressPlaceholder": "Enter company address",
-      "age": "Years in Business",
-      "agePlaceholder": "Enter years in business",
+      "yearsInBusiness": "Years in Business",
+      "yearsInBusinessPlaceholder": "Enter years in business",
       "phoneNumber": "Phone Number",
       "phoneNumberPlaceholder": "Enter phone number",
       "submitButton": "Register",
@@ -485,6 +610,36 @@
       "phoneNumberPlaceholder": "Enter phone number",
       "submitButton": "Register",
       "cancelButton": "Cancel"
+    },
+    "validation": {
+      "emailRequired": "Email is required.",
+      "emailInvalid": "Enter a valid email address.",
+      "passwordRequired": "Password is required.",
+      "passwordMinLength": "Password must be at least 8 characters.",
+      "confirmPasswordRequired": "Please confirm your password.",
+      "passwordMismatch": "Passwords do not match.",
+      "completeAccountInfo": "Please complete the required account fields.",
+      "completeProfileInfo": "Please correct the highlighted fields before continuing.",
+      "companyNameRequired": "Company name is required.",
+      "companyNameMinLength": "Company name must have at least 2 characters.",
+      "fullNameRequired": "Full name is required.",
+      "fullNameMinLength": "Full name must have at least 2 characters.",
+      "usernameRequired": "Username is required.",
+      "usernameInvalid": "Username must be 3 to 30 characters, using letters, numbers, dots, underscores, or hyphens.",
+      "addressRequired": "Address is required.",
+      "addressMinLength": "Address must have at least 4 characters.",
+      "yearsBusinessRequired": "Years in business is required.",
+      "yearsBusinessInvalid": "Enter a whole number of years between 0 and 120.",
+      "ageRequired": "Age is required.",
+      "ageInvalid": "Enter a valid age between 18 and 120.",
+      "phoneRequired": "Phone number is required.",
+      "phoneInvalid": "Enter a valid phone number (7 to 15 digits).",
+      "emailAlreadyRegistered": "This email is already registered. Please sign in.",
+      "ownerUnitRequired": "The builder must assign a unit to your email before you can register as an owner.",
+      "ownerUnitLookupFailed": "Could not verify the assigned unit. Please try again.",
+      "credentialsInvalid": "Invalid email or password.",
+      "registrationDataInvalid": "Registration details are invalid. Please review the form and try again.",
+      "registrationFailed": "Registration failed. Please try again."
     }
   },
   "analytics": {

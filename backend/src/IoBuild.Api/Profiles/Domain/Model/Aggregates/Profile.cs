@@ -15,6 +15,7 @@ public sealed class Profile
     public string? Address { get; set; }
     public string? SecondEmail { get; set; }
     public int? Age { get; set; }
+    public int? YearsInBusiness { get; set; }
     public string? PhotoReference { get; set; }
     public string? CloudinaryReference { get; set; }
     public string? PhotoUrl { get; set; }

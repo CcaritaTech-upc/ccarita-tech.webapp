@@ -95,11 +95,11 @@ for (const role of ['builder', 'owner']) test(`ROUND2 registration ${role}: sema
   await expect(tabs.getByRole('tab').first()).toHaveAttribute('aria-selected', 'true');
   await expect(tabs.getByRole('tab').last()).toHaveAttribute('aria-selected', 'false');
   await page.locator('#email').fill(email);
-  await page.locator('#password input').fill('secret123');
-  await page.locator('#confirmPassword input').fill('secret123');
+  await page.locator('#password').fill('secret123');
+  await page.locator('#confirmPassword').fill('secret123');
   await page.getByRole('button', { name: /^next$/i }).click();
   await expect(tabs.getByRole('tab').last()).toHaveAttribute('aria-selected', 'true');
-  const age = page.locator('#age input');
+  const age = page.locator(role === 'builder' ? '#yearsInBusiness' : '#age input');
   await age.evaluate(input => { const data = new DataTransfer(); data.setData('text', '30'); input.dispatchEvent(new ClipboardEvent('paste', { bubbles: true, cancelable: true, clipboardData: data })); });
   await expect(age).toHaveValue('30');
   await page.locator('#name').fill('Clipboard Builder');

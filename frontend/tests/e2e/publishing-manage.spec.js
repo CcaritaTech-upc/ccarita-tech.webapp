@@ -12,13 +12,13 @@ test('PUBLISHING Builder happy path: create project, define structure, see units
   // Builder account via UI.
   await page.goto('/iam/register-builder');
   await page.locator('#email').fill(`e2e.pub.${stamp}@example.test`);
-  await page.locator('#password input').fill('secret123');
-  await page.locator('#confirmPassword input').fill('secret123');
+  await page.locator('#password').fill('secret123');
+  await page.locator('#confirmPassword').fill('secret123');
   await page.getByRole('button', { name: /^next$/i }).click();
   await page.locator('#name').fill('E2E Pub Builder');
   await page.locator('#username').fill(`e2epubb${String(stamp).slice(-6)}`);
   await page.locator('#address').fill('Av. E2E 200');
-  await page.locator('#age input').fill('30');
+  await page.locator('#yearsInBusiness').fill('30');
   await page.locator('#phoneNumber').fill('+51987654313');
   await page.getByRole('button', { name: /register|create|save|submit/i }).click();
   await expect(page).not.toHaveURL(/register-builder/, { timeout: 20_000 });

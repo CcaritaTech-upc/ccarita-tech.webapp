@@ -8,6 +8,7 @@ using IoBuild.Api.Persistence;
 using IoBuild.Api.Publishing.Domain.Model.Aggregates;
 using IoBuild.Api.Workflows;
 using Microsoft.EntityFrameworkCore;
+using System.Text.RegularExpressions;
 
 namespace IoBuild.Api.IAM.Application.Internal.CommandServices;
 
@@ -26,15 +27,20 @@ public sealed class RegisterUserWorkflow(
     IIntegrationDispatchQueue queue,
     WorkflowExecutor workflowExecutor) : IWorkflow<RegisterUser, int>
 {
+    private const int MinimumPasswordLength = 8;
+    private static readonly Regex RegistrationEmailPattern = new(
+        @"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}\z",
+        RegexOptions.Compiled | RegexOptions.CultureInvariant);
+
     public Task<int> ExecuteAsync(RegisterUser request, CancellationToken cancellationToken = default) =>
         workflowExecutor.ExecuteAsync(async cancellationToken =>
         {
             // Fail-closed input guard: backend is authoritative (Tier D discovery:
             // InMemory ignores column limits, so oversized input must be rejected here).
             var rawEmail = request.Email?.Trim() ?? string.Empty;
-            if (string.IsNullOrWhiteSpace(rawEmail) || rawEmail.Length > 320)
+            if (string.IsNullOrWhiteSpace(rawEmail) || rawEmail.Length > 320 || !RegistrationEmailPattern.IsMatch(rawEmail))
                 throw new InvalidOperationException("Invalid registration data.");
-            if (string.IsNullOrWhiteSpace(request.Password))
+            if (string.IsNullOrWhiteSpace(request.Password) || request.Password.Length < MinimumPasswordLength)
                 throw new InvalidOperationException("Invalid registration data.");
             // Fail-closed role whitelist: only served roles are accepted and they are
             // stored canonicalized, so a client-provided role can never escalate

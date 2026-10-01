@@ -14,8 +14,12 @@ public sealed class ProfileCommandService(IoBuildDbContext dbContext)
         string? secondEmail = null,
         int? age = null,
         string? photoUrl = null,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        int? yearsInBusiness = null)
     {
+        if (yearsInBusiness is < 0 or > 120)
+            throw new ArgumentOutOfRangeException(nameof(yearsInBusiness), "Years in business must be between 0 and 120.");
+
         var profile = new Profile
         {
             UserId = userId,
@@ -25,6 +29,7 @@ public sealed class ProfileCommandService(IoBuildDbContext dbContext)
             Address = address,
             SecondEmail = secondEmail,
             Age = age,
+            YearsInBusiness = yearsInBusiness,
             PhotoUrl = photoUrl,
             CloudinaryReference = photoUrl
         };

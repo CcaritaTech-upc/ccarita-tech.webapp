@@ -26,7 +26,7 @@ public class ClientQueryService : IClientQueryService
 
     public async Task<IEnumerable<Client>> Handle(GetClientsByBuilderIdQuery query, CancellationToken ct = default)
     {
-        return await _clientRepository.FindByBuilderIdAsync(query.BuilderId, ct);
+        return await _clientRepository.FindByBuilderIdAsync(query.BuilderId, query.ProjectId, ct);
     }
 
     public async Task<IEnumerable<Client>> Handle(GetClientsByProjectIdQuery query, CancellationToken ct = default)

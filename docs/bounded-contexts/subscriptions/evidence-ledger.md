@@ -102,3 +102,53 @@ roles_covered:
   - role: Builder
     happy_path: frontend/tests/e2e/subscriptions-purchase.spec.js
 ```
+
+## Confirmed subscription UI localization
+
+```yaml
+context: subscriptions
+feature: localized-plan-catalog-and-subscription-screen
+journey: Builder opens the subscription screen, compares plans, and completes the simulated Starter purchase in the selected language.
+actor_coverage:
+  - actor: Builder without a subscription
+    outcome: Page header, no-subscription banner, available-plan descriptions, and purchase action use English by default.
+  - actor: Builder with an active subscription
+    outcome: Current-plan summary, usage count, renewal date, plan catalog, and comparison matrix switch between English and Spanish.
+scenarios:
+  - tier: B
+    scenario: Seeded plan descriptions/features translate while unknown plan copy falls back to API text.
+    owner: frontend/tests/unit/plan-copy.test.js
+  - tier: B
+    scenario: Subscription header, empty state, current-plan card, and comparison matrix switch locales without mixed-language hard-coded labels.
+    owner: frontend/tests/e2e/builder-ui-localization.spec.js
+  - tier: B
+    scenario: No-subscription Builder sees English page copy and completes simulated Starter checkout.
+    owner: frontend/tests/e2e/subscriptions-purchase.spec.js
+layer_ownership:
+  G0: Plan-copy fallback/mapping tests and validator tests run in Vitest.
+  G1: Plan and subscription API contracts are unchanged; end-to-end purchase uses the seeded catalog on MySQL 8.
+  G2: Playwright covers localized plan cards/comparison and Builder purchase happy path.
+  G3: Payment provider behavior is explicitly simulated; no real Stripe acceptance is claimed by this UI change.
+  G4: Two clean full-suite reruns passed (30/30 serial and 30/30 with two workers).
+gates:
+  G0: passed
+  G1: passed
+  G2: skipped — local Playwright evidence is green; CI has not run on this worktree.
+  G3: skipped — payment was simulated locally; CI/real-provider acceptance is pending.
+  G4: skipped — clean local reruns passed; CI delivery evidence is pending.
+commands:
+  - command: npm run test:unit
+    result: 76/76 passed, including plan-copy tests.
+  - command: npm run build
+    result: passed.
+  - command: E2E_BASE_URL=http://127.0.0.1:18081 E2E_NGINX=1 E2E_CLOUDINARY_DUMMY=1 E2E_SIMULATED_PAYMENTS=1 npm run test:e2e -- --workers=2
+    result: 30/30 passed on the final clean isolated MySQL 8 run; a preceding clean single-worker full run also passed 30/30.
+diagnostic_verdicts:
+  - failure: Initial comparison-modal close locator matched both the PrimeVue header close icon and the content close button.
+    evidence: Playwright strict mode reported two matching “Close” buttons after the translated comparison assertions passed.
+    verdict: Scoped the locator to `.p-dialog-content .btn-close`; the locale-switching Builder journey passed on clean reruns.
+  - failure: The initial purchase E2E expected Spanish “Elegir Starter” while the app's default locale is English.
+    evidence: Playwright snapshot showed the plan button as “Choose Starter” and also surfaced Spanish static copy in the subscription page.
+    verdict: Test expectation was updated to English; the confirmed mixed-language page copy was localized in both dictionaries and asserted in E2E.
+open_risks: []
+```

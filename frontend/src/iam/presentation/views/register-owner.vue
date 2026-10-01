@@ -35,7 +35,7 @@
             />
             <small v-if="fieldErrors.email" class="p-error block mt-1">
               {{ fieldErrors.email }}
-              <a v-if="isEmailAlreadyRegistered" href="#" @click.prevent="goToLogin" class="text-green-500 font-semibold underline ml-1">Iniciar sesión</a>
+              <a v-if="isEmailAlreadyRegistered" href="#" @click.prevent="goToLogin" class="text-green-500 font-semibold underline ml-1">{{ $t('iam.login.submitButton') }}</a>
             </small>
           </div>
 
@@ -43,7 +43,7 @@
           <div class="mb-3">
             <label for="password" class="block mb-2">{{ $t('iam.registerOwner.password') }} *</label>
             <pv-password
-              id="password"
+              inputId="password"
               v-model="registerForm.password"
               :placeholder="$t('iam.registerOwner.passwordPlaceholder')"
               :invalid="!!fieldErrors.password"
@@ -58,7 +58,7 @@
           <div class="mb-3">
             <label for="confirmPassword" class="block mb-2">{{ $t('iam.registerOwner.confirmPassword') }} *</label>
             <pv-password
-              id="confirmPassword"
+              inputId="confirmPassword"
               v-model="registerForm.confirmPassword"
               :placeholder="$t('iam.registerOwner.confirmPasswordPlaceholder')"
               :invalid="!!fieldErrors.confirmPassword"
@@ -85,7 +85,7 @@
                     class="flex-1"
                   />
                   <pv-button
-                    :label="'Next'"
+                    :label="$t('iam.actions.next')"
                     icon="pi pi-arrow-right"
                     iconPos="right"
                     :loading="checkingInvitation"
@@ -106,7 +106,7 @@
                   <div class="flex items-center gap-2">
                     <i class="pi pi-check-circle" style="font-size: 1.1rem;"></i>
                     <span>
-                      ¡Asignación detectada! Tu cuenta se vinculará a la unidad <strong>{{ invitationInfo.unitNumber }}</strong> en <strong>{{ invitationInfo.projectName }}</strong>.
+                      {{ $t('iam.messages.ownerAssignmentDetected') }}
                     </span>
                   </div>
                 </pv-message>
@@ -123,7 +123,7 @@
             />
             <pv-button
               type="button"
-              :label="registerForm.photoUrl ? 'Cambiar Foto' : $t('iam.registerOwner.uploadPhoto')"
+              :label="registerForm.photoUrl ? $t('iam.actions.changePhoto') : $t('iam.registerOwner.uploadPhoto')"
               icon="pi pi-cloud-upload"
               @click="openUploadModal"
               severity="secondary"
@@ -133,11 +133,11 @@
             <div v-if="registerForm.photoUrl" class="mt-2 text-center">
               <img
                 :src="registerForm.photoUrl"
-                alt="Profile photo preview"
+                :alt="$t('iam.actions.photoPreviewAlt')"
                 class="uploaded-image"
               />
               <div class="flex justify-content-center align-items-center gap-2 mt-2">
-                <span class="text-sm text-green-600 font-medium">✓ Imagen seleccionada</span>
+                <span class="text-sm text-green-600 font-medium">✓ {{ $t('iam.actions.photoSelected') }}</span>
                 <pv-button
                   type="button"
                   icon="pi pi-trash"
@@ -146,7 +146,7 @@
                   severity="danger"
                   size="small"
                   @click="registerForm.photoUrl = ''"
-                  title="Eliminar foto"
+                  :title="$t('iam.actions.removePhoto')"
                 />
               </div>
             </div>
@@ -230,7 +230,7 @@
 
                 <div class="flex gap-2 pt-4">
                   <pv-button
-                    :label="'Back'"
+                    :label="$t('iam.actions.back')"
                     severity="secondary"
                     icon="pi pi-arrow-left"
                     @click="currentStep = 1"
@@ -259,6 +259,7 @@
 
 <script setup>
 import { ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 import { useIamStore } from '../../application/iam.store.js';
 import { useProfileStore } from '../../../profiles/application/profile.store.js';
@@ -273,6 +274,7 @@ import {
 } from '../../../shared/presentation/validators.js';
 
 const router = useRouter();
+const { t } = useI18n();
 const iamStore = useIamStore();
 const profileStore = useProfileStore();
 const iamApi = new IamApi();
@@ -355,13 +357,13 @@ function onOwnerEmailInput() {
   invitationInfo.value = null;
   isEmailAlreadyRegistered.value = false;
 
-  if (fieldErrors.value.email === 'Tu correo electrónico no tiene una unidad asignada.' ||
-      fieldErrors.value.email === 'Este correo electrónico ya está registrado. Por favor inicia sesión.') {
+  if (fieldErrors.value.email === t('iam.validation.ownerUnitRequired') ||
+      fieldErrors.value.email === t('iam.validation.emailAlreadyRegistered')) {
     fieldErrors.value.email = null;
   }
-  if (errorMessage.value === 'Para registrarte como propietario, el constructor debe asignarte una unidad primero.' ||
-      errorMessage.value === 'Este correo electrónico ya cuenta con una cuenta de usuario.' ||
-      errorMessage.value === 'No se pudo verificar la unidad asignada. Inténtalo nuevamente.') {
+  if (errorMessage.value === t('iam.validation.ownerUnitRequired') ||
+      errorMessage.value === t('iam.validation.emailAlreadyRegistered') ||
+      errorMessage.value === t('iam.validation.ownerUnitLookupFailed')) {
     errorMessage.value = '';
   }
 }
@@ -375,47 +377,34 @@ async function checkOwnerUnitAssignment(email) {
       isEmailAlreadyRegistered.value = true;
       ownerUnitAssigned.value = false;
       invitationInfo.value = null;
-      fieldErrors.value.email = 'Este correo electrónico ya está registrado. Por favor inicia sesión.';
-      errorMessage.value = 'Este correo electrónico ya cuenta con una cuenta de usuario.';
+      fieldErrors.value.email = t('iam.validation.emailAlreadyRegistered');
+      errorMessage.value = t('iam.validation.emailAlreadyRegistered');
       return false;
     }
     isEmailAlreadyRegistered.value = false;
-    if (!res?.data?.assigned || !res?.data?.unitId) {
+    if (!res?.data?.assigned) {
       ownerUnitAssigned.value = false;
       invitationInfo.value = null;
-      fieldErrors.value.email = 'Tu correo electrónico no tiene una unidad asignada.';
-      errorMessage.value = 'Para registrarte como propietario, el constructor debe asignarte una unidad primero.';
+      fieldErrors.value.email = t('iam.validation.ownerUnitRequired');
+      errorMessage.value = t('iam.validation.ownerUnitRequired');
       return false;
     }
     ownerUnitAssigned.value = true;
-    if (fieldErrors.value.email === 'Tu correo electrónico no tiene una unidad asignada.' ||
-        fieldErrors.value.email === 'Este correo electrónico ya está registrado. Por favor inicia sesión.') {
+    if (fieldErrors.value.email === t('iam.validation.ownerUnitRequired') ||
+        fieldErrors.value.email === t('iam.validation.emailAlreadyRegistered')) {
       fieldErrors.value.email = null;
     }
-    if (errorMessage.value === 'Para registrarte como propietario, el constructor debe asignarte una unidad primero.' ||
-        errorMessage.value === 'Este correo electrónico ya cuenta con una cuenta de usuario.') {
+    if (errorMessage.value === t('iam.validation.ownerUnitRequired') ||
+        errorMessage.value === t('iam.validation.emailAlreadyRegistered')) {
       errorMessage.value = '';
     }
-    if (res?.data?.assigned) {
-      invitationInfo.value = res.data;
-      if (!registerForm.value.name && res.data.fullName) {
-        registerForm.value.name = res.data.fullName;
-      }
-      if (!registerForm.value.phoneNumber && res.data.phoneNumber) {
-        registerForm.value.phoneNumber = res.data.phoneNumber;
-      }
-      if (!registerForm.value.address) {
-        registerForm.value.address = res.data.address || (res.data.unitNumber ? `Unidad ${res.data.unitNumber}` : '');
-      }
-    } else {
-      invitationInfo.value = null;
-    }
+    invitationInfo.value = { assigned: true };
     return true;
   } catch (err) {
     console.debug('Invitation lookup failed or error:', err);
     ownerUnitAssigned.value = false;
     invitationInfo.value = null;
-    errorMessage.value = 'No se pudo verificar la unidad asignada. Inténtalo nuevamente.';
+    errorMessage.value = t('iam.validation.ownerUnitLookupFailed');
     return false;
   } finally {
     checkingInvitation.value = false;
@@ -438,25 +427,25 @@ async function goToStep2() {
   const confirmPassword = registerForm.value.confirmPassword || '';
 
   if (!email) {
-    fieldErrors.value.email = 'El correo electrónico es obligatorio.';
+    fieldErrors.value.email = t('iam.validation.emailRequired');
   } else if (!isValidEmail(email)) {
-    fieldErrors.value.email = 'Ingrese un correo electrónico válido (ejemplo: usuario@empresa.com).';
+    fieldErrors.value.email = t('iam.validation.emailInvalid');
   }
 
   if (!password) {
-    fieldErrors.value.password = 'La contraseña es obligatoria.';
-  } else if (!isValidPassword(password, 6)) {
-    fieldErrors.value.password = 'La contraseña debe tener al menos 6 caracteres.';
+    fieldErrors.value.password = t('iam.validation.passwordRequired');
+  } else if (!isValidPassword(password, 8)) {
+    fieldErrors.value.password = t('iam.validation.passwordMinLength');
   }
 
   if (!confirmPassword) {
-    fieldErrors.value.confirmPassword = 'Debe confirmar su contraseña.';
+    fieldErrors.value.confirmPassword = t('iam.validation.confirmPasswordRequired');
   } else if (password !== confirmPassword) {
-    fieldErrors.value.confirmPassword = 'Las contraseñas no coinciden.';
+    fieldErrors.value.confirmPassword = t('iam.validation.passwordMismatch');
   }
 
   if (Object.keys(fieldErrors.value).length > 0) {
-    errorMessage.value = 'Por favor complete correctamente los campos requeridos.';
+    errorMessage.value = t('iam.validation.completeAccountInfo');
     return;
   }
 
@@ -483,37 +472,37 @@ async function handleRegister() {
   const phoneNumber = (registerForm.value.phoneNumber || '').trim();
 
   if (!name) {
-    fieldErrors.value.name = 'El nombre completo es obligatorio.';
+    fieldErrors.value.name = t('iam.validation.fullNameRequired');
   } else if (!isValidName(name, 2)) {
-    fieldErrors.value.name = 'El nombre debe tener al menos 2 caracteres.';
+    fieldErrors.value.name = t('iam.validation.fullNameMinLength');
   }
 
   if (!username) {
-    fieldErrors.value.username = 'El nombre de usuario es obligatorio.';
+    fieldErrors.value.username = t('iam.validation.usernameRequired');
   } else if (!isValidUsername(username)) {
-    fieldErrors.value.username = 'El usuario debe tener entre 3 y 30 caracteres alfanuméricos (sin espacios).';
+    fieldErrors.value.username = t('iam.validation.usernameInvalid');
   }
 
   if (!address) {
-    fieldErrors.value.address = 'La dirección es obligatoria.';
+    fieldErrors.value.address = t('iam.validation.addressRequired');
   } else if (address.length < 4) {
-    fieldErrors.value.address = 'La dirección debe tener al menos 4 caracteres.';
+    fieldErrors.value.address = t('iam.validation.addressMinLength');
   }
 
   if (age === null || age === undefined || age === '') {
-    fieldErrors.value.age = 'La edad es obligatoria.';
+    fieldErrors.value.age = t('iam.validation.ageRequired');
   } else if (!isValidAge(age, 18, 120)) {
-    fieldErrors.value.age = 'Debe ingresar una edad válida entre 18 y 120 años.';
+    fieldErrors.value.age = t('iam.validation.ageInvalid');
   }
 
   if (!phoneNumber) {
-    fieldErrors.value.phoneNumber = 'El número de teléfono es obligatorio.';
+    fieldErrors.value.phoneNumber = t('iam.validation.phoneRequired');
   } else if (!isValidPhone(phoneNumber)) {
-    fieldErrors.value.phoneNumber = 'Ingrese un número telefónico válido (de 7 a 15 dígitos numéricos).';
+    fieldErrors.value.phoneNumber = t('iam.validation.phoneInvalid');
   }
 
   if (Object.keys(fieldErrors.value).length > 0) {
-    errorMessage.value = 'Por favor corrija los campos marcados antes de continuar.';
+    errorMessage.value = t('iam.validation.completeProfileInfo');
     isLoading.value = false;
     return;
   }
@@ -562,7 +551,7 @@ async function handleRegister() {
       photoUrl: profileData.photoUrl
     });
 
-    successMessage.value = 'Registration successful! Redirecting...';
+    successMessage.value = t('iam.messages.registrationSuccess');
     
     // Redirect to home after 2 seconds
     setTimeout(() => {
@@ -579,18 +568,21 @@ async function handleRegister() {
     
     // Provide more specific error messages
     if (error.response?.data?.code === 'owner_unit_assignment_required') {
-      errorMessage.value = 'Para registrarte como propietario, el constructor debe asignarte una unidad primero.';
-      fieldErrors.value.email = 'Tu correo electrónico no tiene una unidad asignada.';
+      errorMessage.value = t('iam.validation.ownerUnitRequired');
+      fieldErrors.value.email = t('iam.validation.ownerUnitRequired');
       currentStep.value = 1;
     } else if (error.message.includes('user ID')) {
-      errorMessage.value = 'Failed to complete registration. Please try logging in manually.';
+      errorMessage.value = t('iam.messages.profileCreationFailed');
     } else if (error.response?.status === 409 || error.response?.data?.error?.includes('already exists')) {
-      errorMessage.value = 'Este correo electrónico ya está registrado. Por favor inicie sesión.';
-      fieldErrors.value.email = 'Este correo electrónico ya cuenta con una cuenta registrada.';
+      errorMessage.value = t('iam.validation.emailAlreadyRegistered');
+      fieldErrors.value.email = t('iam.validation.emailAlreadyRegistered');
       isEmailAlreadyRegistered.value = true;
       currentStep.value = 1;
     } else {
-      errorMessage.value = error.response?.data?.message || error.response?.data?.error || error.message || 'Registration failed. Please try again.';
+      const apiMessage = error.response?.data?.message || error.response?.data?.error;
+      errorMessage.value = apiMessage === 'Invalid registration data.'
+        ? t('iam.validation.registrationDataInvalid')
+        : t('iam.validation.registrationFailed');
     }
   } finally {
     isLoading.value = false;

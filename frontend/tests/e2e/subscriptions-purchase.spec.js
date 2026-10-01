@@ -16,13 +16,13 @@ test('SUBSCRIPTIONS Builder happy path: browse plans, pay, active subscription',
   // Builder account via the same stepper the Builder journey proves.
   await page.goto('/iam/register-builder');
   await page.locator('#email').fill(email);
-  await page.locator('#password input').fill(password);
-  await page.locator('#confirmPassword input').fill(password);
+  await page.locator('#password').fill(password);
+  await page.locator('#confirmPassword').fill(password);
   await page.getByRole('button', { name: /^next$/i }).click();
   await page.locator('#name').fill('E2E Subs');
   await page.locator('#username').fill(`e2esubs${String(stamp).slice(-6)}`);
   await page.locator('#address').fill('Av. E2E 789');
-  await page.locator('#age input').fill('30');
+  await page.locator('#yearsInBusiness').fill('30');
   await page.locator('#phoneNumber').fill('+51987654323');
   await page.getByRole('button', { name: /register|create|save|submit/i }).click();
   await expect(page).not.toHaveURL(/register-builder/, { timeout: 20_000 });
@@ -30,11 +30,15 @@ test('SUBSCRIPTIONS Builder happy path: browse plans, pay, active subscription',
   // Browse seeded plans.
   await page.goto('/subscriptions/my-subscription');
   await expect(page.locator('.plans-grid')).toContainText('Starter', { timeout: 20_000 });
+  await expect(page.locator('.page-subtitle')).toHaveText("Manage your company's plan, monitor IoT device quotas, and download billing receipts.");
+  await expect(page.locator('.banner-pill')).toContainText('Start operating with IoBuild');
+  await expect(page.locator('.banner-desc')).toHaveText('Choose an infrastructure plan to connect your IoT devices, manage real estate projects, and give unit owners access.');
+  await expect(page.locator('.plans-section-header .section-subtitle')).toHaveText('Scale your infrastructure to fit the number of devices and units across your real estate projects.');
 
   // Pay Starter. Simulated backends redirect back with a same-origin session
   // id; a real Stripe backend lands on checkout.stripe.com, where the test
   // pays with the standard test card and returns to the same success URL.
-  await page.getByRole('button', { name: /elegir starter/i }).click();
+  await page.getByRole('button', { name: /choose starter/i }).click();
   await payOnStripeIfRedirected(page, email);
 
   // The view confirms and cleans the URL when done. Assert on those durable

@@ -97,7 +97,9 @@ public sealed class PublishingAccessTests
         using var client = factory.CreateClient();
         var me = Token(76, "me76@example.test", "Builder");
         var rival = Token(77, "rival77@example.test", "Builder");
+        var owner = Token(78, "owner78@example.test", "Owner");
         var projectId = await CreateProjectAsync(client, me, 76, "Client Plaza");
+        var rivalProjectId = await CreateProjectAsync(client, rival, 77, "Rival Plaza");
 
         using var foreignCreate = await SendAsync(client, HttpMethod.Post, "/api/v1/clients", me,
             "{\"fullName\":\"Rogue\",\"projectName\":\"Client Plaza\",\"accountStatement\":\"Pending\",\"builderId\":77,\"projectId\":" + projectId + "}");
@@ -108,8 +110,47 @@ public sealed class PublishingAccessTests
         Assert.Equal(HttpStatusCode.Created, created.StatusCode);
         var id = (await created.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetInt32();
 
+        using var rivalClient = await SendAsync(client, HttpMethod.Post, "/api/v1/clients", rival,
+            "{\"fullName\":\"Rival PII\",\"projectName\":\"Rival Plaza\",\"accountStatement\":\"Pending\",\"builderId\":77,\"projectId\":" + rivalProjectId + ",\"email\":\"rival-client@example.test\"}");
+        Assert.Equal(HttpStatusCode.Created, rivalClient.StatusCode);
+
+        using var ownListResponse = await SendAsync(client, HttpMethod.Get, "/api/v1/clients", me);
+        Assert.Equal(HttpStatusCode.OK, ownListResponse.StatusCode);
+        var ownList = await ownListResponse.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(1, ownList.GetArrayLength());
+        Assert.Equal("acme@example.test", ownList[0].GetProperty("email").GetString());
+        Assert.DoesNotContain("Rival PII", ownList.GetRawText(), StringComparison.Ordinal);
+        Assert.Equal(HttpStatusCode.Forbidden, (await SendAsync(client, HttpMethod.Get, "/api/v1/clients?builderId=77", me)).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await SendAsync(client, HttpMethod.Get, $"/api/v1/clients?projectId={rivalProjectId}", me)).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await SendAsync(client, HttpMethod.Get, "/api/v1/clients", owner)).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await SendAsync(client, HttpMethod.Get, $"/api/v1/clients/{id}", owner)).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await SendAsync(client, HttpMethod.Delete, $"/api/v1/clients/{id}", owner)).StatusCode);
+
+        var rivalUnitResponse = await SendAsync(client, HttpMethod.Post, "/api/v1/units", rival,
+            "{\"projectId\":" + rivalProjectId + ",\"unitNumber\":\"R1\",\"floor\":1,\"roomNumber\":\"R1\"}");
+        Assert.Equal(HttpStatusCode.Created, rivalUnitResponse.StatusCode);
+        var rivalUnitId = (await rivalUnitResponse.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetInt32();
+
+        using var foreignProjectCreate = await SendAsync(client, HttpMethod.Post, "/api/v1/clients", me,
+            "{\"fullName\":\"Cross Project\",\"projectName\":\"Rival Plaza\",\"accountStatement\":\"Pending\",\"builderId\":76,\"projectId\":" + rivalProjectId + "}");
+        Assert.Equal(HttpStatusCode.NotFound, foreignProjectCreate.StatusCode);
+
+        using var foreignUnitCreate = await SendAsync(client, HttpMethod.Post, "/api/v1/clients", me,
+            "{\"fullName\":\"Cross Unit\",\"projectName\":\"Client Plaza\",\"accountStatement\":\"Pending\",\"builderId\":76,\"projectId\":" + projectId + ",\"unitId\":" + rivalUnitId + ",\"email\":\"cross-unit@example.test\"}");
+        Assert.Equal(HttpStatusCode.NotFound, foreignUnitCreate.StatusCode);
+
         Assert.Equal(HttpStatusCode.OK, (await SendAsync(client, HttpMethod.Get, $"/api/v1/clients/{id}", me)).StatusCode);
         Assert.Equal(HttpStatusCode.NotFound, (await SendAsync(client, HttpMethod.Get, $"/api/v1/clients/{id}", rival)).StatusCode);
+
+        using var crossProjectUpdate = await SendAsync(client, HttpMethod.Put, $"/api/v1/clients/{id}", me,
+            "{\"fullName\":\"Hacked\",\"projectName\":\"Rival Plaza\",\"accountStatement\":\"Pending\",\"builderId\":76,\"projectId\":" + rivalProjectId + "}");
+        Assert.Equal(HttpStatusCode.NotFound, crossProjectUpdate.StatusCode);
+
+        using var crossBuilderUpdate = await SendAsync(client, HttpMethod.Put, $"/api/v1/clients/{id}", me,
+            "{\"fullName\":\"Hacked\",\"projectName\":\"Client Plaza\",\"accountStatement\":\"Pending\",\"builderId\":77,\"projectId\":" + projectId + "}");
+        Assert.Equal(HttpStatusCode.Forbidden, crossBuilderUpdate.StatusCode);
+        var unchanged = await (await SendAsync(client, HttpMethod.Get, $"/api/v1/clients/{id}", me)).Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal("Acme", unchanged.GetProperty("fullName").GetString());
 
         using var foreignPut = await SendAsync(client, HttpMethod.Put, $"/api/v1/clients/{id}", rival,
             "{\"fullName\":\"Hacked\",\"projectName\":\"Client Plaza\",\"accountStatement\":\"Pending\",\"builderId\":77,\"projectId\":" + projectId + "}");

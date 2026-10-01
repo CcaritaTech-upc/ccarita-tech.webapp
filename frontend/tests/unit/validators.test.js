@@ -3,6 +3,7 @@ import {
   isValidEmail,
   isValidPassword,
   isValidAge,
+  isValidYearsInBusiness,
   doPasswordsMatch,
   isNewPasswordDifferent,
   isEligible,
@@ -24,6 +25,8 @@ describe('IAM validators (Convergent Testing: domain/component ownership)', () =
 
   it('IAM.REGISTRATION.WEAK_PASSWORD rejects short passwords', () => {
     expect(isValidPassword('12345')).toBe(false);
+    expect(isValidPassword('1234567')).toBe(false);
+    expect(isValidPassword('12345678')).toBe(true);
     expect(isValidPassword('')).toBe(false);
   });
 
@@ -43,6 +46,13 @@ describe('IAM validators (Convergent Testing: domain/component ownership)', () =
     expect(isValidAge(18)).toBe(true);
     expect(isValidAge(17)).toBe(false);
     expect(isValidAge(18.5)).toBe(false);
+  });
+
+  it('IAM.REGISTRATION.BUSINESS_YEARS accepts new companies without applying age restrictions', () => {
+    expect(isValidYearsInBusiness(0)).toBe(true);
+    expect(isValidYearsInBusiness(5)).toBe(true);
+    expect(isValidYearsInBusiness(-1)).toBe(false);
+    expect(isValidYearsInBusiness(2.5)).toBe(false);
   });
 
   it('IAM.REGISTRATION.ELIGIBILITY uses business context, not a magic 18', () => {

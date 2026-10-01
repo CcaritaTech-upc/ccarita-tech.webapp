@@ -10,29 +10,36 @@ async function registerViaUi(page, role, email, name, username) {
   const stamp = Date.now();
   await page.goto(`/iam/register-${role}`);
   await page.locator('#email').fill(email);
-  await page.locator('#password input').fill('secret123');
-  await page.locator('#confirmPassword input').fill('secret123');
+  await page.locator('#password').fill('secret123');
+  await page.locator('#confirmPassword').fill('secret123');
   await page.getByRole('button', { name: /^next$/i }).click();
   await page.locator('#name').fill(name);
   await page.locator('#username').fill(username);
   await page.locator('#address').fill('Av. Seed 100');
-  await page.locator('#age input').fill('30');
+  await page.locator(role === 'builder' ? '#yearsInBusiness' : '#age input').fill('30');
   await page.locator('#phoneNumber').fill('+51987654310');
   await page.getByRole('button', { name: /register|create|save|submit/i }).click();
   await expect(page).not.toHaveURL(new RegExp(`register-${role}`), { timeout: 20_000 });
   return stamp;
 }
 
-async function proveProfileManage(page, name, newAddress) {
+async function proveProfileManage(page, name, newAddress, yearsInBusiness = null) {
   await page.goto('/profiles/profile');
 
   // The IAM handoff: registration data is visible in the profile view.
   await expect(page.locator('.profile-name').first()).toHaveText(name, { timeout: 20_000 });
+  const updatedYearsInBusiness = yearsInBusiness === null ? null : yearsInBusiness + 1;
+  if (yearsInBusiness !== null) {
+    await expect(page.getByLabel('Years in Business', { exact: true })).toHaveValue(String(yearsInBusiness));
+  }
 
   // Update the address through the UI (4th input: name, email, phone, address).
   await page.locator('.edit-button').first().click();
   const addressInput = page.locator('.account-card .info-group input').nth(3);
   await addressInput.fill(newAddress);
+  if (updatedYearsInBusiness !== null) {
+    await page.getByLabel('Years in Business', { exact: true }).fill(String(updatedYearsInBusiness));
+  }
   const saved = page.waitForResponse(
     (r) => r.url().includes('/api/v1/profiles/') && r.request().method() === 'PUT');
   await page.locator('.edit-actions .edit-button').click();
@@ -42,6 +49,9 @@ async function proveProfileManage(page, name, newAddress) {
   await page.reload();
   await expect(page.locator('.profile-name').first()).toHaveText(name, { timeout: 20_000 });
   await expect(page.locator('.account-card .info-group input').nth(3)).toHaveValue(newAddress);
+  if (updatedYearsInBusiness !== null) {
+    await expect(page.getByLabel('Years in Business', { exact: true })).toHaveValue(String(updatedYearsInBusiness));
+  }
 }
 
 test('PROFILES Builder: registration data manages through view, update, reload', async ({ page }) => {
@@ -59,7 +69,7 @@ test('PROFILES Builder: registration data manages through view, update, reload',
   });
   expect(seeded.status()).toBe(201);
 
-  await proveProfileManage(page, 'E2E Prof Builder', 'Av. Persist 200');
+  await proveProfileManage(page, 'E2E Prof Builder', 'Av. Persist 200', 30);
 });
 
 test('PROFILES Owner: registration data manages through view, update, reload', async ({ page }) => {

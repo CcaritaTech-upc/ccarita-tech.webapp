@@ -14,13 +14,13 @@ test('DEVICES Owner happy path: provision, register, command, reflected status',
   // Builder account via UI (owns the session for provisioning calls).
   await page.goto('/iam/register-builder');
   await page.locator('#email').fill(`e2e.dev.b.${stamp}@example.test`);
-  await page.locator('#password input').fill(password);
-  await page.locator('#confirmPassword input').fill(password);
+  await page.locator('#password').fill(password);
+  await page.locator('#confirmPassword').fill(password);
   await page.getByRole('button', { name: /^next$/i }).click();
   await page.locator('#name').fill('E2E Dev Builder');
   await page.locator('#username').fill(`e2edev${String(stamp).slice(-6)}`);
   await page.locator('#address').fill('Av. E2E 100');
-  await page.locator('#age input').fill('30');
+  await page.locator('#yearsInBusiness').fill('30');
   await page.locator('#phoneNumber').fill('+51987654311');
   await page.getByRole('button', { name: /register|create|save|submit/i }).click();
   await expect(page).not.toHaveURL(/register-builder/, { timeout: 20_000 });
@@ -55,8 +55,8 @@ test('DEVICES Owner happy path: provision, register, command, reflected status',
   await page.context().clearCookies();
   await page.goto('/iam/register-owner');
   await page.locator('#email').fill(ownerEmail);
-  await page.locator('#password input').fill(password);
-  await page.locator('#confirmPassword input').fill(password);
+  await page.locator('#password').fill(password);
+  await page.locator('#confirmPassword').fill(password);
   await page.getByRole('button', { name: /^next$/i }).click();
   await page.locator('#name').fill('E2E Dev Owner');
   await page.locator('#username').fill(`e2edevo${String(stamp).slice(-6)}`);

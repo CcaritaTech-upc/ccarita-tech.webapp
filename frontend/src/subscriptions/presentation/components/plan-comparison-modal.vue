@@ -13,48 +13,13 @@ const props = defineProps({
 const emit = defineEmits(["close", "select-plan"]);
 
 const comparisonRows = [
-  {
-    feature: "Dispositivos IoT soportados",
-    starter: "Hasta 50 dispositivos",
-    pro: "Hasta 200 dispositivos",
-    enterprise: "Ilimitados"
-  },
-  {
-    feature: "Proyectos en simultáneo",
-    starter: "Hasta 5 proyectos",
-    pro: "Hasta 15 proyectos",
-    enterprise: "Ilimitados"
-  },
-  {
-    feature: "Cuentas de Administrador",
-    starter: "1 administrador",
-    pro: "3 administradores",
-    enterprise: "Ilimitados"
-  },
-  {
-    feature: "Frecuencia de telemetría y reportes",
-    starter: "Reportes mensuales básicos",
-    pro: "En tiempo real + analítica avanzada",
-    enterprise: "Suite corporativa completa"
-  },
-  {
-    feature: "Nivel de Soporte Técnico",
-    starter: "Email estándar",
-    pro: "Prioritario 24/7 (Chat & Tickets)",
-    enterprise: "Ingeniero dedicado 24/7"
-  },
-  {
-    feature: "Garantía de SLA",
-    starter: "Estándar",
-    pro: "99.5% uptime garantizado",
-    enterprise: "99.9% contractual"
-  },
-  {
-    feature: "Acceso a API de Telemetría",
-    starter: "No disponible",
-    pro: "API Personalizada",
-    enterprise: "API Completa + Consultoría"
-  }
+  { key: 'devices' },
+  { key: 'projects' },
+  { key: 'administrators' },
+  { key: 'reporting' },
+  { key: 'support' },
+  { key: 'sla' },
+  { key: 'api' }
 ];
 </script>
 
@@ -70,7 +35,7 @@ const comparisonRows = [
       <table class="comparison-table">
         <thead>
           <tr>
-            <th class="th-feature">Característica</th>
+            <th class="th-feature">{{ t('subscriptions.comparison.feature') }}</th>
             <th
               v-for="plan in plans"
               :key="plan.id"
@@ -87,17 +52,17 @@ const comparisonRows = [
         </thead>
         <tbody>
           <tr v-for="(row, idx) in comparisonRows" :key="idx" class="table-row">
-            <td class="td-feature">{{ row.feature }}</td>
-            <td class="td-val">{{ row.starter }}</td>
-            <td class="td-val td-pro">{{ row.pro }}</td>
-            <td class="td-val td-enterprise">{{ row.enterprise }}</td>
+            <td class="td-feature">{{ t(`subscriptions.comparison.features.${row.key}`) }}</td>
+            <td class="td-val">{{ t(`subscriptions.comparison.values.${row.key}.starter`) }}</td>
+            <td class="td-val td-pro">{{ t(`subscriptions.comparison.values.${row.key}.professional`) }}</td>
+            <td class="td-val td-enterprise">{{ t(`subscriptions.comparison.values.${row.key}.enterprise`) }}</td>
           </tr>
         </tbody>
       </table>
 
       <div class="modal-footer">
         <button type="button" class="btn-close" @click="emit('close')">
-          Cerrar
+          {{ t('subscriptions.comparison.close') }}
         </button>
       </div>
     </div>

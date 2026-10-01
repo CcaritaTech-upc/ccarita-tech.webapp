@@ -20,6 +20,9 @@ public static class PublishingEndpoints
     private static int SelfId(ClaimsPrincipal user) =>
         int.TryParse(user.FindFirst(ClaimTypes.Sid)?.Value ?? user.FindFirst("sid")?.Value ?? user.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? user.FindFirst("sub")?.Value, out var id) ? id : 0;
 
+    private static bool HasRole(ClaimsPrincipal user, string expectedRole) =>
+        string.Equals(user.FindFirst(ClaimTypes.Role)?.Value ?? user.FindFirst("role")?.Value, expectedRole, StringComparison.OrdinalIgnoreCase);
+
     private static bool OwnsProject(ClaimsPrincipal user, IoBuild.Api.Publishing.Domain.Model.Aggregates.Project project) => SelfId(user) == project.BuilderId;
 
     private static async Task<bool> OwnsProjectIdAsync(ClaimsPrincipal user, IoBuildDbContext db, int projectId, CancellationToken ct)
@@ -32,6 +35,12 @@ public static class PublishingEndpoints
     {
         var unit = await db.Units.FindAsync([unitId], ct);
         return unit is not null && await OwnsProjectIdAsync(user, db, unit.ProjectId, ct);
+    }
+
+    private static async Task<bool> OwnsUnitInProjectAsync(ClaimsPrincipal user, IoBuildDbContext db, int unitId, int projectId, CancellationToken ct)
+    {
+        var unit = await db.Units.FindAsync([unitId], ct);
+        return unit is not null && unit.ProjectId == projectId && await OwnsProjectIdAsync(user, db, projectId, ct);
     }
 
     public static void MapPublishingEndpoints(this WebApplication app)
@@ -227,21 +236,15 @@ public static class PublishingEndpoints
         // ── Clients Endpoints ──
         var clients = app.MapGroup("/api/v1/clients").WithTags("Clients");
 
-        clients.MapGet("", async ([FromQuery] int? builderId, [FromQuery] int? projectId, IClientQueryService queryService, IoBuildDbContext db, CancellationToken ct) =>
+        clients.MapGet("", async ([FromQuery] int? builderId, [FromQuery] int? projectId, ClaimsPrincipal user, IClientQueryService queryService, IoBuildDbContext db, CancellationToken ct) =>
         {
-            IEnumerable<Client> clientList;
-            if (builderId.HasValue)
-            {
-                clientList = await queryService.Handle(new GetClientsByBuilderIdQuery(builderId.Value), ct);
-            }
-            else if (projectId.HasValue)
-            {
-                clientList = await queryService.Handle(new GetClientsByProjectIdQuery(projectId.Value), ct);
-            }
-            else
-            {
-                clientList = await queryService.Handle(new GetAllClientsQuery(), ct);
-            }
+            if (!HasRole(user, "Builder")) return Results.Forbid();
+            var builderIdFromToken = SelfId(user);
+            if (builderIdFromToken <= 0) return Results.Unauthorized();
+            if (builderId.HasValue && builderId.Value != builderIdFromToken) return Results.Forbid();
+            if (projectId.HasValue && !await OwnsProjectIdAsync(user, db, projectId.Value, ct)) return Results.NotFound();
+
+            var clientList = await queryService.Handle(new GetClientsByBuilderIdQuery(builderIdFromToken, projectId), ct);
 
             var clientsArray = clientList.ToList();
             var unitIds = clientsArray.Where(c => c.UnitId.HasValue).Select(c => c.UnitId!.Value).Distinct().ToList();
@@ -264,6 +267,7 @@ public static class PublishingEndpoints
 
         clients.MapGet("/{id:int}", async (int id, ClaimsPrincipal user, IClientQueryService queryService, IoBuildDbContext db, CancellationToken ct) =>
         {
+            if (!HasRole(user, "Builder")) return Results.Forbid();
             var client = await queryService.Handle(new GetClientByIdQuery(id), ct);
             if (client is null || client.BuilderId != SelfId(user)) return Results.NotFound();
             var deviceCount = client.UnitId.HasValue
@@ -272,16 +276,19 @@ public static class PublishingEndpoints
             return Results.Ok(ClientResourceFromEntityAssembler.ToResourceFromEntity(client, deviceCount));
         }).RequireAuthorization();
 
-        clients.MapPost("", async (CreateClientResource resource, ClaimsPrincipal user, IClientCommandService commandService, IClientQueryService queryService, CancellationToken ct) =>
+        clients.MapPost("", async (CreateClientResource resource, ClaimsPrincipal user, IClientCommandService commandService, IClientQueryService queryService, IoBuildDbContext db, CancellationToken ct) =>
         {
+            if (!HasRole(user, "Builder")) return Results.Forbid();
             var tokenBuilderId = SelfId(user);
+            if (tokenBuilderId <= 0) return Results.Unauthorized();
             if (resource.BuilderId > 0 && resource.BuilderId != tokenBuilderId) return Results.Forbid();
-            var builderId = tokenBuilderId;
+            if (!await OwnsProjectIdAsync(user, db, resource.ProjectId, ct)) return Results.NotFound();
+            if (resource.UnitId.HasValue && !await OwnsUnitInProjectAsync(user, db, resource.UnitId.Value, resource.ProjectId, ct)) return Results.NotFound();
             var command = new CreateClientCommand(
                 resource.FullName,
                 resource.ProjectName,
                 resource.AccountStatement,
-                builderId,
+                tokenBuilderId,
                 resource.ProjectId,
                 resource.Email,
                 resource.PhoneNumber,
@@ -293,10 +300,16 @@ public static class PublishingEndpoints
             return created is null ? Results.Problem(statusCode: 500) : Results.Created($"/api/v1/clients/{clientId}", ClientResourceFromEntityAssembler.ToResourceFromEntity(created));
         }).RequireAuthorization();
 
-        clients.MapPut("/{id:int}", async (int id, UpdateClientResource resource, ClaimsPrincipal user, IClientCommandService commandService, IClientQueryService queryService, CancellationToken ct) =>
+        clients.MapPut("/{id:int}", async (int id, UpdateClientResource resource, ClaimsPrincipal user, IClientCommandService commandService, IClientQueryService queryService, IoBuildDbContext db, CancellationToken ct) =>
         {
+            if (!HasRole(user, "Builder")) return Results.Forbid();
+            var tokenBuilderId = SelfId(user);
+            if (tokenBuilderId <= 0) return Results.Unauthorized();
             var existingPut = await queryService.Handle(new GetClientByIdQuery(id), ct);
-            if (existingPut is null || existingPut.BuilderId != SelfId(user)) return Results.NotFound();
+            if (existingPut is null || existingPut.BuilderId != tokenBuilderId) return Results.NotFound();
+            if (resource.BuilderId > 0 && resource.BuilderId != tokenBuilderId) return Results.Forbid();
+            if (!await OwnsProjectIdAsync(user, db, resource.ProjectId, ct)) return Results.NotFound();
+            if (resource.UnitId.HasValue && !await OwnsUnitInProjectAsync(user, db, resource.UnitId.Value, resource.ProjectId, ct)) return Results.NotFound();
             try
             {
                 var command = new UpdateClientCommand(
@@ -304,7 +317,7 @@ public static class PublishingEndpoints
                     resource.FullName,
                     resource.ProjectName,
                     resource.AccountStatement,
-                    resource.BuilderId,
+                    tokenBuilderId,
                     resource.ProjectId,
                     resource.Email,
                     resource.PhoneNumber,
@@ -322,6 +335,7 @@ public static class PublishingEndpoints
 
         clients.MapDelete("/{id:int}", async (int id, ClaimsPrincipal user, IClientCommandService commandService, IClientQueryService queryService, CancellationToken ct) =>
         {
+            if (!HasRole(user, "Builder")) return Results.Forbid();
             var existingDel = await queryService.Handle(new GetClientByIdQuery(id), ct);
             if (existingDel is null || existingDel.BuilderId != SelfId(user)) return Results.NotFound();
             try

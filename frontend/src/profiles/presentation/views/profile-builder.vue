@@ -122,6 +122,22 @@
           <small v-if="isEditing && errors.secondEmail" class="p-error">{{ errors.secondEmail }}</small>
         </div>
 
+        <div class="info-group">
+          <label for="builder-profile-years-in-business">{{ $t('profile.yearsInBusiness') }}</label>
+          <input
+            id="builder-profile-years-in-business"
+            type="number"
+            min="0"
+            max="120"
+            step="1"
+            v-model.number="profile.yearsInBusiness"
+            :readonly="!isEditing"
+            :class="['info-input', { 'input-error': isEditing && errors.yearsInBusiness }]"
+            @input="errors.yearsInBusiness = ''"
+          />
+          <small v-if="isEditing && errors.yearsInBusiness" class="p-error">{{ errors.yearsInBusiness }}</small>
+        </div>
+
         <h3 id="builder-profile-language-label" class="card-title">{{ $t('profile.appLanguage') }}</h3>
         <select aria-labelledby="builder-profile-language-label" v-model="$i18n.locale" class="language-select">
           <option value="es">Español</option>
@@ -134,11 +150,13 @@
 
 <script setup>
 import { ref, computed, reactive } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useProfileStore } from '../../application/profile.store.js'
 import { ProfileApi } from '../../infrastructure/profile-api.js'
-import { isValidName, isValidPhone, isValidEmail } from '../../../shared/presentation/validators.js'
+import { isValidName, isValidPhone, isValidEmail, isValidYearsInBusiness } from '../../../shared/presentation/validators.js'
 import PvButton from 'primevue/button'
 
+const { t } = useI18n()
 const store = useProfileStore()
 const profile = computed(() => store.profile)
 const api = new ProfileApi()
@@ -149,7 +167,8 @@ const errors = reactive({
   name: '',
   phoneNumber: '',
   address: '',
-  secondEmail: ''
+  secondEmail: '',
+  yearsInBusiness: ''
 })
 
 function validate() {
@@ -157,6 +176,7 @@ function validate() {
   errors.phoneNumber = ''
   errors.address = ''
   errors.secondEmail = ''
+  errors.yearsInBusiness = ''
   let valid = true
 
   if (!isValidName(profile.value.name, 2)) {
@@ -176,6 +196,12 @@ function validate() {
 
   if (profile.value.secondEmail && !isValidEmail(profile.value.secondEmail)) {
     errors.secondEmail = 'Formato de correo secundario no válido.'
+    valid = false
+  }
+
+  const yearsInBusiness = profile.value.yearsInBusiness
+  if (yearsInBusiness !== null && yearsInBusiness !== undefined && yearsInBusiness !== '' && !isValidYearsInBusiness(yearsInBusiness)) {
+    errors.yearsInBusiness = t('iam.validation.yearsBusinessInvalid')
     valid = false
   }
 
@@ -211,6 +237,7 @@ async function toggleEdit() {
     errors.phoneNumber = ''
     errors.address = ''
     errors.secondEmail = ''
+    errors.yearsInBusiness = ''
     isEditing.value = true
   }
 }
@@ -227,7 +254,8 @@ async function saveProfile() {
       address: profile.value.address,
       phoneNumber: profile.value.phoneNumber,
       photoUrl: profile.value.photoUrl,
-      secondEmail: profile.value.secondEmail
+      secondEmail: profile.value.secondEmail,
+      yearsInBusiness: profile.value.yearsInBusiness === '' ? null : profile.value.yearsInBusiness
     })
     console.log('Profile updated successfully')
     if (profile.value?.userId) {
@@ -244,6 +272,7 @@ function cancelEdit() {
   errors.phoneNumber = ''
   errors.address = ''
   errors.secondEmail = ''
+  errors.yearsInBusiness = ''
   // Use userId from profile, not profile.id (which is the profile's ID, not user's ID)
   if (profile.value?.userId) {
     store.fetchProfile(profile.value.userId)

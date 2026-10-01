@@ -14,9 +14,11 @@ test('IAM happy path: register, login, authorized access, logout, revoked token'
 
   // Step 1: account — register-owner is a 2-step stepper under /iam.
   await page.goto('/iam/register-owner');
+  await expect(page.locator('#password')).toHaveAccessibleName('Password *');
+  await expect(page.locator('#confirmPassword')).toHaveAccessibleName('Confirm Password *');
   await page.locator('#email').fill(email);
-  await page.locator('#password input').fill(password);
-  await page.locator('#confirmPassword input').fill(password);
+  await page.locator('#password').fill(password);
+  await page.locator('#confirmPassword').fill(password);
   await expect(page.getByRole('button', { name: /^next$/i })).toBeEnabled();
   await page.getByRole('button', { name: /^next$/i }).click();
 
@@ -37,8 +39,9 @@ test('IAM happy path: register, login, authorized access, logout, revoked token'
 
   // Login with the created account.
   await page.goto('/iam/login');
+  await expect(page.getByLabel('Password', { exact: true })).toBeVisible();
   await page.locator('#email').fill(email);
-  await page.locator('#password input').fill(password);
+  await page.locator('#password').fill(password);
   await page.locator('button[type="submit"]').click();
 
   // Authorized access: login leaves the public login route.
@@ -47,7 +50,10 @@ test('IAM happy path: register, login, authorized access, logout, revoked token'
   // Logout revokes the token server-side (business rule) and clears the session.
   const token = await page.evaluate(() => localStorage.getItem('token'));
   expect(token, 'expected a bearer token after login').toBeTruthy();
-  await page.locator('.logout-button').click();
+  await page.getByRole('button', { name: 'Open navigation' }).click();
+  const sidebarLogout = page.locator('.sidebar-content .logout-item');
+  await expect(sidebarLogout).toBeVisible();
+  await sidebarLogout.click();
 
   // Back on a public route with no local session left.
   await expect(page).toHaveURL(/login/, { timeout: 20_000 });

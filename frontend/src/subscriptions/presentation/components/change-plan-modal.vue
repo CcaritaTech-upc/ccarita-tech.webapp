@@ -112,7 +112,7 @@ const targetFeatures = computed(() => {
           @click="emit('confirm')"
         >
           <i v-if="props.isProcessing" class="pi pi-spin pi-spinner"></i>
-          <span>{{ props.isProcessing ? 'Conectando con Stripe...' : t('subscriptions.proceed-stripe') }}</span>
+          <span>{{ props.isProcessing ? t('subscriptions.connectingToStripe') : t('subscriptions.proceed-stripe') }}</span>
           <i v-if="!props.isProcessing" class="pi pi-arrow-right"></i>
         </button>
       </div>

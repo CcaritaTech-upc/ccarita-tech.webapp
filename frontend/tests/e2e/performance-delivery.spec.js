@@ -104,8 +104,8 @@ for (const actor of ['builder', 'owner']) {
       });
       await page.goto(`/iam/register-${actor}`);
       await page.locator('#email').fill('lazy-upload@example.test');
-      await page.locator('#password input').fill('secret123');
-      await page.locator('#confirmPassword input').fill('secret123');
+      await page.locator('#password').fill('secret123');
+      await page.locator('#confirmPassword').fill('secret123');
       await page.getByRole('button', { name: /^next$/i }).click();
       await expect(page.locator('#name')).toBeVisible();
       expect(loads).toBe(0);

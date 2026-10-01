@@ -22,9 +22,16 @@ manages units and clients).
 - Unit creation and owner assignment require owning the parent project.
 - Client reads and mutations require owning the client record; creation binds
   the builder id to the caller.
-- Unfiltered unit and client lists stay visible by design for now (the
-  frontend depends on them); per-role visibility scoping is a scheduled risk,
-  not a silent guarantee.
+- Client listing is Builder-only and always scoped to the caller's `BuilderId`;
+  an optional project filter must refer to the caller's project. Explicit
+  `builderId` filters cannot select another builder.
+- Client creation and update require an owned project; an assigned unit must
+  belong to that same project. Submitted builder ownership is derived from the
+  authenticated Builder, not trusted from the request body.
+- All client REST endpoints require the `Builder` role; item reads and
+  mutations additionally require ownership of the client record.
+- Unfiltered unit listing remains a scheduled visibility risk; client-list
+  isolation does not imply unit-list isolation.
 
 ## Structure
 

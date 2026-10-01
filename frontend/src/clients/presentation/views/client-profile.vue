@@ -196,7 +196,7 @@ const handleDelete = () => {
               <label class="block font-semibold text-gray-700 mb-2">
                 <i class="pi pi-phone mr-2"></i>{{ t('clients.fields.phoneNumber') }}
               </label>
-              <p class="text-lg text-gray-900">{{ client.phoneNumber || 'N/A' }}</p>
+              <p class="text-lg text-gray-900">{{ client.phoneNumber || t('clients.fields.notAvailable') }}</p>
             </div>
           </div>
 
@@ -205,7 +205,7 @@ const handleDelete = () => {
               <label class="block font-semibold text-gray-700 mb-2">
                 <i class="pi pi-map-marker mr-2"></i>{{ t('clients.fields.address') }}
               </label>
-              <p class="text-lg text-gray-900">{{ client.address || 'N/A' }}</p>
+              <p class="text-lg text-gray-900">{{ client.address || t('clients.fields.notAvailable') }}</p>
             </div>
           </div>
 
@@ -224,8 +224,8 @@ const handleDelete = () => {
                 <i class="pi pi-home mr-2"></i>{{ t('clients.fields.unit') }}
               </label>
               <p class="text-lg text-gray-900">
-                <pv-tag v-if="client.unitNumber" :value="`Unidad ${client.unitNumber}`" severity="info" />
-                <span v-else class="text-gray-400 italic">Sin asignar</span>
+                <pv-tag v-if="client.unitNumber" :value="t('projects.structure.unit', { number: client.unitNumber })" severity="info" />
+                <span v-else class="text-gray-400 italic">{{ t('clients.fields.unassigned') }}</span>
               </p>
             </div>
           </div>
@@ -240,7 +240,7 @@ const handleDelete = () => {
               </div>
               <div v-else-if="loadingDevices" class="flex align-items-center gap-2">
                 <i class="pi pi-spin pi-spinner text-blue-500"></i>
-                <span class="text-gray-500 text-sm">Cargando...</span>
+                <span class="text-gray-500 text-sm">{{ t('clients.messages.loadingDevices') }}</span>
               </div>
               <div v-else class="flex align-items-center gap-2">
                 <pv-tag
@@ -263,7 +263,7 @@ const handleDelete = () => {
             </div>
             <pv-tag
               v-if="client.unitId"
-              :value="`${unitDevices.length || client.deviceCount || 0} dispositivos vinculados`"
+              :value="t('clients.fields.devicesCount', { count: unitDevices.length || client.deviceCount || 0 })"
               :severity="(unitDevices.length || client.deviceCount) > 0 ? 'success' : 'secondary'"
             />
           </div>
@@ -275,7 +275,7 @@ const handleDelete = () => {
 
           <div v-else-if="loadingDevices" class="text-center py-4">
             <i class="pi pi-spin pi-spinner text-3xl text-blue-500 mb-2"></i>
-            <p class="text-gray-500 m-0">Consultando dispositivos IoT asociados...</p>
+            <p class="text-gray-500 m-0">{{ t('clients.messages.queryingDevices') }}</p>
           </div>
 
           <div v-else-if="unitDevices.length === 0" class="text-center py-4 text-gray-500">
@@ -296,11 +296,11 @@ const handleDelete = () => {
                   </div>
                   <div>
                     <span class="font-bold text-gray-900 block text-base">{{ device.name }}</span>
-                    <span class="text-xs text-gray-500 block">{{ device.type }} • {{ device.location || 'Unidad ' + (client.unitNumber || '') }}</span>
+                    <span class="text-xs text-gray-500 block">{{ device.type }} • {{ device.location || t('projects.structure.unit', { number: client.unitNumber || '' }) }}</span>
                   </div>
                 </div>
                 <pv-tag
-                  :value="device.status || 'Active'"
+                  :value="device.status || t('devices.status.online')"
                   :severity="device.status?.toLowerCase() === 'offline' ? 'danger' : 'success'"
                 />
               </div>

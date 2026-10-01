@@ -18,6 +18,7 @@ public static class ProfileConfiguration
             entity.Property(profile => profile.Address).HasMaxLength(255);
             entity.Property(profile => profile.SecondEmail).HasMaxLength(150);
             entity.Property(profile => profile.Age);
+            entity.Property(profile => profile.YearsInBusiness);
             entity.Property(profile => profile.PhotoReference).HasMaxLength(128);
             entity.Property(profile => profile.CloudinaryReference).HasColumnType("longtext");
             entity.Property(profile => profile.PhotoUrl).HasColumnType("longtext");

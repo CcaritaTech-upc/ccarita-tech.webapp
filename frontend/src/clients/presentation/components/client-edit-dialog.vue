@@ -17,7 +17,7 @@ const props = defineProps({
 
 const emit = defineEmits(['update:visible', 'save']);
 
-const { t, te } = useI18n();
+const { t } = useI18n();
 
 const projectsFacade = new ProjectsFacade();
 const localVisible = ref(props.visible);
@@ -70,19 +70,19 @@ const projectOptions = computed(() => {
 
 // Computed property to format units for dropdown
 const unitOptions = computed(() => {
-  const unassignedLabel = te('clients.fields.unassigned') ? t('clients.fields.unassigned') : 'Sin asignar';
+  const unassignedLabel = t('clients.fields.unassigned');
   const list = [
     { label: unassignedLabel, value: null }
   ];
   units.value.forEach(u => {
     const isThisClient = formData.value.unitId === u.id || (u.ownerEmail && formData.value.email && u.ownerEmail.toLowerCase() === formData.value.email.toLowerCase());
     const isOccupied = !!u.ownerEmail && !isThisClient;
-    const assignedText = te('projects.structure.assigned-to-this-client') ? t('projects.structure.assigned-to-this-client') : 'Asignada a este cliente';
-    const occupiedText = te('projects.structure.occupied') ? t('projects.structure.occupied') : 'Ocupada';
-    const availableText = te('projects.structure.available') ? t('projects.structure.available') : 'Disponible';
+    const assignedText = t('projects.structure.assigned-to-this-client');
+    const occupiedText = t('projects.structure.occupied');
+    const availableText = t('projects.structure.available');
     const statusText = isThisClient ? `(${assignedText})` : (isOccupied ? `(${occupiedText} - ${u.ownerEmail})` : `(${availableText})`);
-    const unitText = te('projects.structure.unit') ? t('projects.structure.unit', { number: u.unitNumber || u.roomNumber }) : `Unidad ${u.unitNumber || u.roomNumber}`;
-    const floorText = te('projects.structure.floor') ? t('projects.structure.floor', { number: u.floor }) : `Piso ${u.floor}`;
+    const unitText = t('projects.structure.unit', { number: u.unitNumber || u.roomNumber });
+    const floorText = t('projects.structure.floor', { number: u.floor });
     list.push({
       label: `${unitText} - ${floorText} ${statusText}`,
       value: u.id
@@ -141,23 +141,23 @@ const handleSave = () => {
   const projectId = formData.value.projectId;
 
   if (!fullName) {
-    errors.value.fullName = 'El nombre completo es obligatorio.';
+    errors.value.fullName = t('clients.validation.fullNameRequired');
   } else if (!isValidName(fullName, 2)) {
-    errors.value.fullName = 'El nombre completo debe tener al menos 2 caracteres.';
+    errors.value.fullName = t('clients.validation.fullNameMinLength');
   }
 
   if (!email) {
-    errors.value.email = 'El correo electrónico es obligatorio.';
+    errors.value.email = t('clients.validation.emailRequired');
   } else if (!isValidEmail(email)) {
-    errors.value.email = 'Ingrese un correo electrónico válido (ejemplo: usuario@empresa.com).';
+    errors.value.email = t('clients.validation.emailInvalid');
   }
 
   if (phoneNumber && !isValidPhone(phoneNumber)) {
-    errors.value.phoneNumber = 'Ingrese un número telefónico válido (de 7 a 15 dígitos numéricos).';
+    errors.value.phoneNumber = t('clients.validation.phoneInvalid');
   }
 
   if (!projectId) {
-    errors.value.projectId = 'Debe seleccionar un proyecto para este cliente.';
+    errors.value.projectId = t('clients.validation.projectRequired');
   }
 
   if (Object.keys(errors.value).length > 0) {
@@ -178,78 +178,78 @@ const handleCancel = () => {
   localVisible.value = false;
 };
 
-const accountStatementOptions = [
-  { label: 'Active', value: 'Active' },
-  { label: 'Stand by', value: 'Stand by' },
-  { label: 'Suspended', value: 'Suspended' }
-];
+const accountStatementOptions = computed(() => [
+  { label: t('clients.status.active'), value: 'Active' },
+  { label: t('clients.status.standBy'), value: 'Stand by' },
+  { label: t('clients.status.suspended'), value: 'Suspended' }
+]);
 </script>
 
 <template>
   <pv-dialog
     v-model:visible="localVisible"
     modal
-    header="Edit Client"
+    :header="t('clients.actions.editClient')"
     :style="{ width: '600px' }"
     class="client-edit-dialog"
   >
     <div class="grid">
       <div class="col-12 mb-3">
-        <label for="fullName" class="block mb-2 font-semibold">Full Name *</label>
+        <label for="fullName" class="block mb-2 font-semibold">{{ t('clients.fields.fullName') }} *</label>
         <pv-input-text
           id="fullName"
           v-model="formData.fullName"
           class="w-full"
           :invalid="!!errors.fullName"
-          placeholder="Enter full name"
+          :placeholder="t('clients.placeholders.fullName')"
         />
         <small v-if="errors.fullName" class="p-error block mt-1">{{ errors.fullName }}</small>
       </div>
 
       <div class="col-12 mb-3">
-        <label for="email" class="block mb-2 font-semibold">Email *</label>
+        <label for="email" class="block mb-2 font-semibold">{{ t('clients.fields.email') }} *</label>
         <pv-input-text
           id="email"
           v-model="formData.email"
           class="w-full"
           type="email"
           :invalid="!!errors.email"
-          placeholder="Enter email address"
+          :placeholder="t('clients.placeholders.email')"
         />
         <small v-if="errors.email" class="p-error block mt-1">{{ errors.email }}</small>
       </div>
 
       <div class="col-12 mb-3">
-        <label for="phoneNumber" class="block mb-2 font-semibold">Phone Number</label>
+        <label for="phoneNumber" class="block mb-2 font-semibold">{{ t('clients.fields.phoneNumber') }}</label>
         <pv-input-text
           id="phoneNumber"
           v-model="formData.phoneNumber"
           class="w-full"
           :invalid="!!errors.phoneNumber"
-          placeholder="Enter phone number"
+          :placeholder="t('clients.placeholders.phoneNumber')"
         />
         <small v-if="errors.phoneNumber" class="p-error block mt-1">{{ errors.phoneNumber }}</small>
       </div>
 
       <div class="col-12 mb-3">
-        <label for="address" class="block mb-2 font-semibold">Address</label>
+        <label for="address" class="block mb-2 font-semibold">{{ t('clients.fields.address') }}</label>
         <pv-input-text
           id="address"
           v-model="formData.address"
           class="w-full"
-          placeholder="Enter address"
+          :placeholder="t('clients.placeholders.address')"
         />
       </div>
 
       <div class="col-12 mb-3">
-        <label for="projectId" class="block mb-2 font-semibold">Project *</label>
+        <label for="projectId" class="block mb-2 font-semibold">{{ t('clients.fields.project') }} *</label>
         <pv-select
           id="projectId"
           v-model="formData.projectId"
           :options="projectOptions"
           optionLabel="label"
           optionValue="value"
-          placeholder="Select a project"
+          :placeholder="t('clients.placeholders.project')"
           class="w-full"
           :invalid="!!errors.projectId"
           :disabled="projectOptions.length === 0"
@@ -258,25 +258,25 @@ const accountStatementOptions = [
       </div>
 
       <div class="col-12 mb-3">
-        <label for="unitId" class="block mb-2 font-semibold">Unidad / Departamento asignado</label>
+        <label for="unitId" class="block mb-2 font-semibold">{{ t('clients.fields.assignedUnit') }}</label>
         <pv-select
           id="unitId"
           v-model="formData.unitId"
           :options="unitOptions"
           optionLabel="label"
           optionValue="value"
-          placeholder="Seleccionar unidad (opcional)"
+          :placeholder="t('clients.placeholders.unitOptional')"
           class="w-full"
           :loading="loadingUnits"
           :disabled="!formData.projectId || unitOptions.length <= 1"
         />
         <small v-if="formData.projectId && unitOptions.length <= 1 && !loadingUnits" class="text-gray-500 block mt-1">
-          Este proyecto no tiene unidades configuradas todavía.
+          {{ t('clients.messages.noUnitsConfigured') }}
         </small>
       </div>
 
       <div class="col-12">
-        <label for="accountStatement" class="block mb-2 font-semibold">Account Statement</label>
+        <label for="accountStatement" class="block mb-2 font-semibold">{{ t('clients.fields.accountStatement') }}</label>
         <pv-select
           id="accountStatement"
           v-model="formData.accountStatement"
@@ -290,14 +290,14 @@ const accountStatementOptions = [
 
     <template #footer>
       <pv-button
-        label="Cancel"
+        :label="t('clients.actions.cancel')"
         icon="pi pi-times"
         @click="handleCancel"
         severity="danger"
         outlined
       />
       <pv-button
-        label="Save"
+        :label="t('clients.actions.save')"
         icon="pi pi-check"
         @click="handleSave"
         severity="success"

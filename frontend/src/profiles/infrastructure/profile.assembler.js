@@ -23,7 +23,8 @@ export class ProfileAssembler {
       username: response.username || '',
       // Role comes from IAM bounded context, not from profiles
       role: roleFromIam || 'builder',
-      age: response.age || 0,
+      age: response.age ?? 0,
+      yearsInBusiness: response.yearsInBusiness ?? null,
 
       photoUrl: response.photoUrl && response.photoUrl !== 'undefined'
         ? response.photoUrl

@@ -38,7 +38,7 @@
                 {{ $t('iam.login.password') }}
               </label>
               <pv-password
-                id="password"
+                inputId="password"
                 v-model="loginForm.password"
                 :placeholder="$t('iam.login.passwordPlaceholder')"
                 :invalid="!!fieldErrors.password"
@@ -97,12 +97,14 @@
 
 <script setup>
 import { ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 import { useIamStore } from '../../application/iam.store.js';
 import { isValidEmail } from '../../../shared/presentation/validators.js';
 
 const router = useRouter();
 const iamStore = useIamStore();
+const { t } = useI18n();
 
 const loginForm = ref({
   email: '',
@@ -121,13 +123,13 @@ async function handleLogin() {
   const password = loginForm.value.password || '';
 
   if (!email) {
-    fieldErrors.value.email = 'El correo electrónico es requerido.';
+    fieldErrors.value.email = t('iam.validation.emailRequired');
   } else if (!isValidEmail(email)) {
-    fieldErrors.value.email = 'Ingrese un formato de correo electrónico válido.';
+    fieldErrors.value.email = t('iam.validation.emailInvalid');
   }
 
   if (!password) {
-    fieldErrors.value.password = 'La contraseña es requerida.';
+    fieldErrors.value.password = t('iam.validation.passwordRequired');
   }
 
   if (Object.keys(fieldErrors.value).length > 0) {
@@ -141,7 +143,7 @@ async function handleLogin() {
     // Redirect to home or dashboard after successful login
     router.push({ name: 'home' });
   } catch (error) {
-    errorMessage.value = error.response?.data?.message || 'Correo o contraseña incorrectos.';
+    errorMessage.value = t('iam.validation.credentialsInvalid');
   } finally {
     isLoading.value = false;
   }
