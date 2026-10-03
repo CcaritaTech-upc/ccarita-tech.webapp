@@ -1,5 +1,13 @@
 # IAM evidence ledger
 
+## Backend test navigation — 2026-10-02
+
+The [IAM catalogue](test-catalog.md) maps the unchanged scenarios to capability
+and layer folders. [Reorganization evidence](../../../backend/tests/reorganization-evidence.md)
+records baseline/final discovery, exact source preservation, local solution runs
+and skipped live-infrastructure/CI gates. This entry does not extend the
+historical acceptance claims below.
+
 See the [crosscutting frontend performance report](../../performance/evidence-ledger.md)
 for the verbatim 2026-09-29 evidence, shared gzip/cache/chunks, deferred
 Cloudinary and auth hero preload. The original `/iam/login` and
@@ -134,10 +142,10 @@ owner_unit_assignment_registration:
   scenarios:
     - tier: A
       scenario: Unassigned Owner registration is rejected before user/dispatch persistence.
-      owner: backend/tests/Modules/IamWorkflowTests.cs
+      owner: backend/tests/Modules/IAM/AccountLifecycle/Application/IamWorkflowTests.cs
     - tier: A
       scenario: Both public registration routes reject unassigned Owners; assigned-owner registration remains successful.
-      owner: backend/tests/Modules/IamWorkflowTests.cs
+      owner: backend/tests/Modules/IAM/AccountLifecycle/Api/IamApiContractTests.cs
     - tier: B
       scenario: Invitation lookup failure disables Next and blocks the Owner form from progressing.
       owner: frontend/tests/e2e/iam-form-feedback.spec.js
@@ -192,16 +200,16 @@ backend_security_hardening:
   scenarios:
     - tier: A
       scenario: Malformed email and password under 8 characters fail before persistence.
-      owner: backend/tests/Modules/IamTierDTests.cs
+      owner: backend/tests/Modules/IAM/Registration/Api/RegistrationExploratoryTests.cs
     - tier: A
       scenario: Regular Builder is forbidden from global user listing; Admin-only access preserves the response contract.
-      owner: backend/tests/Modules/IamWorkflowTests.cs
+      owner: backend/tests/Modules/IAM/AccountLifecycle/Api/IamApiContractTests.cs
     - tier: A
       scenario: Anonymous invitation lookup returns no owner PII.
-      owner: backend/tests/Modules/IamWorkflowTests.cs
+      owner: backend/tests/Modules/IAM/AccountLifecycle/Api/IamApiContractTests.cs
     - tier: A
       scenario: Invalid email and password below 8 characters are rejected without creating a sign-in-capable account.
-      owner: backend/tests/Modules/IamWorkflowTests.cs
+      owner: backend/tests/Modules/IAM/AccountLifecycle/Api/IamApiContractTests.cs
   gates:
     G0: passed
     G1: passed

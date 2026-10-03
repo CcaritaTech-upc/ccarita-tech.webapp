@@ -5,6 +5,8 @@ namespace IoBuild.TestKit;
 // scenario across xUnit, Vitest and Playwright implementations.
 public static class Traits
 {
+    public const string Context = "Context";
+    public const string Capability = "Capability";
     public const string Flow = "Flow";
     public const string Layer = "Layer";
     public const string Risk = "Risk";

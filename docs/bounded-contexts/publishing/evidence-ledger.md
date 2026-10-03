@@ -1,5 +1,12 @@
 # Publishing evidence ledger
 
+## Backend test navigation — 2026-10-02
+
+The [Publishing catalogue](test-catalog.md) maps management, structure, units
+and clients to the unchanged scenarios. [Reorganization evidence](../../../backend/tests/reorganization-evidence.md)
+records local source/discovery preservation and solution runs; it does not claim
+new relational atomicity, runtime-stack or CI acceptance.
+
 See the [crosscutting frontend performance report](../../performance/evidence-ledger.md)
 for shared gzip/cache/chunks, functional E2E evidence and the new local
 mobile/desktop Lighthouse audit of Builder project list/create/detail and client
@@ -81,16 +88,16 @@ client_tenant_read_and_assignment_isolation:
   scenarios:
     - tier: A
       scenario: List filters by token BuilderId; spoofed builder/project filters are denied.
-      owner: backend/tests/Modules/PublishingAccessTests.cs
+      owner: backend/tests/Modules/Publishing/Management/Api/PublishingAccessTests.cs
     - tier: A
       scenario: Create/update reject foreign project or unit references and cannot reassign BuilderId.
-      owner: backend/tests/Modules/PublishingAccessTests.cs
+      owner: backend/tests/Modules/Publishing/Management/Api/PublishingAccessTests.cs
     - tier: A
       scenario: Invitation lookup does not reveal client or unit PII.
-      owner: backend/tests/Modules/IamWorkflowTests.cs
+      owner: backend/tests/Modules/IAM/AccountLifecycle/Api/IamApiContractTests.cs
     - tier: A
       scenario: Admin-only user directory denies Builder tokens.
-      owner: backend/tests/Modules/IamWorkflowTests.cs
+      owner: backend/tests/Modules/IAM/AccountLifecycle/Api/IamApiContractTests.cs
   gates:
     G0: passed
     G1: passed

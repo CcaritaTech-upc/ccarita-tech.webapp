@@ -1,5 +1,12 @@
 # Devices evidence ledger
 
+## Backend test navigation — 2026-10-02
+
+The [Devices catalogue](test-catalog.md) maps management/control/telemetry and
+direct service collaboration. [Reorganization evidence](../../../backend/tests/reorganization-evidence.md)
+records source/discovery preservation and local reruns. No broker delivery,
+live-Influx/MySQL runtime proof or CI pass is added by this organization-only entry.
+
 See the [crosscutting frontend performance report](../../performance/evidence-ledger.md)
 for shared gzip/cache/chunks, functional E2E evidence and the new local
 mobile/desktop Lighthouse audit of `/devices/device-management` for Builder and

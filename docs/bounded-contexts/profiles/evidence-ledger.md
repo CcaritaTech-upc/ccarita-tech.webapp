@@ -1,5 +1,12 @@
 # Profiles evidence ledger
 
+## Backend test navigation — 2026-10-02
+
+The [Profiles catalogue](test-catalog.md) maps creation, management and photo
+coverage by actual layer/dependency. [Reorganization evidence](../../../backend/tests/reorganization-evidence.md)
+records source/discovery preservation and local runs; no new live-MySQL,
+Cloudinary or CI acceptance is claimed by this organization-only entry.
+
 See the [crosscutting frontend performance report](../../performance/evidence-ledger.md)
 for shared gzip/cache/chunks, functional E2E evidence and the new local
 mobile/desktop Lighthouse audit of `/profiles/profile` for Builder and Owner.
@@ -104,10 +111,10 @@ actor_coverage:
 scenarios:
   - tier: A
     scenario: Profile API rejects supplied years below 0 or above 120 and does not map Builder years into Age.
-    owner: backend/tests/Modules/ProfileAccessTests.cs
+    owner: backend/tests/Modules/Profiles/Management/Api/ProfileAccessTests.cs
   - tier: A
     scenario: Existing MySQL profiles schema gains the nullable column and moves valid legacy Builder Age values into YearsInBusiness.
-    owner: backend/tests/Modules/ProfilePersistenceMySqlTests.cs
+    owner: backend/tests/Modules/Profiles/Management/Persistence/ProfilePersistenceMySqlTests.cs
   - tier: B
     scenario: Builder registration with zero persists age=null and yearsInBusiness=0; profile view edit and reload preserve the updated value.
     owner: frontend/tests/e2e/iam-builder.spec.js, frontend/tests/e2e/profiles-manage.spec.js

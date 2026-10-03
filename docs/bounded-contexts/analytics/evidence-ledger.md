@@ -1,5 +1,12 @@
 # Analytics evidence ledger
 
+## Backend test navigation — 2026-10-02
+
+The [Analytics catalogue](test-catalog.md) maps dashboard, access, read queries
+and live-read parser/adapter boundaries. [Reorganization evidence](../../../backend/tests/reorganization-evidence.md)
+records source/discovery preservation, local suite results and an inherited
+static-cooldown/order dependency. No live-Influx/MySQL or CI pass is claimed.
+
 See the [crosscutting frontend performance report](../../performance/evidence-ledger.md)
 for shared gzip/cache/chunks, functional E2E evidence and the new local
 mobile/desktop Lighthouse audit of `/analytics/dashboard` for Builder and Owner.

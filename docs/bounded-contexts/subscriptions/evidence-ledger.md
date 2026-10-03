@@ -1,5 +1,12 @@
 # Subscriptions evidence ledger
 
+## Backend test navigation — 2026-10-02
+
+The [Subscriptions catalogue](test-catalog.md) maps purchase, webhooks, plans
+and Stripe adapter coverage. [Reorganization evidence](../../../backend/tests/reorganization-evidence.md)
+records unchanged source/discovery and local suite results. Fake HTTP/simulated
+payment results do not add live-Stripe, live-MySQL or CI evidence.
+
 See the [crosscutting frontend performance report](../../performance/evidence-ledger.md)
 for shared gzip/cache/chunks, deferred Stripe initialization and the new local
 mobile/desktop Lighthouse audit of Builder `/subscriptions/my-subscription`
