@@ -1,5 +1,39 @@
 # Publishing evidence ledger
 
+## Core entity tests and behavior scenarios — 2026-10-02
+
+Added isolated entity tests for Publishing `Unit` and `Client`, plus Given/When/Then-style test names and a scenario index shared with Subscriptions. These are domain-level tests with no database or external dependencies; no production behavior changed. The scenarios are documented in [Core entity tests and behavior scenarios](../../testing/core-entity-and-behavior-scenarios.md).
+
+```yaml
+context: publishing
+feature: core-entity-tests-and-behavior-scenarios
+journey: Unit ownership state and client profile/unit association behavior are specified as observable domain outcomes.
+actor_coverage: []
+scenarios:
+  - scenario: Unit construction defaults room number and availability; assigning and clearing owner updates owner data and status.
+    owner: backend/tests/Modules/Publishing/Units/Domain/UnitEntityTests.cs
+  - scenario: Client construction keeps supplied details and update replaces profile/unit association.
+    owner: backend/tests/Modules/Publishing/Clients/Domain/ClientEntityTests.cs
+layer_ownership:
+  G0: Domain unit tests assert entity behavior without infrastructure.
+  G1: skipped — no API, persistence, or external boundary changed.
+  G2: skipped — no user-visible behavior changed; this work adds evidence only.
+  G3: skipped — no risk-bearing product behavior changed.
+  G4: skipped — CI was not run from this workspace.
+gates:
+  G0: passed
+  G1: skipped — no boundary changed.
+  G2: skipped — no product behavior changed.
+  G3: skipped — no risk-bearing behavior changed.
+  G4: skipped — CI was not run from this workspace.
+commands:
+  - command: dotnet test backend/tests/Modules/IoBuild.Modules.Tests.csproj --no-restore --filter "Layer=Domain" --verbosity minimal
+    result: 7/7 passed for Publishing entity tests (9/9 across the Domain layer filter).
+  - command: dotnet test backend/tests/Modules/IoBuild.Modules.Tests.csproj --no-restore --verbosity minimal
+    result: 171/171 passed; no tests skipped.
+open_risks: []
+```
+
 ## Backend test navigation — 2026-10-02
 
 The [Publishing catalogue](test-catalog.md) maps management, structure, units

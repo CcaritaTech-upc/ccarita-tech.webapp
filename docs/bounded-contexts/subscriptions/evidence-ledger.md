@@ -1,5 +1,39 @@
 # Subscriptions evidence ledger
 
+## Core entity tests and behavior scenarios — 2026-10-02
+
+Added isolated domain tests for `Plan` construction defaults and update behavior. Given/When/Then-style names and the shared scenario index provide readable behavior evidence without Gherkin or a BDD runner; production behavior is unchanged. See [Core entity tests and behavior scenarios](../../testing/core-entity-and-behavior-scenarios.md).
+
+```yaml
+context: subscriptions
+feature: core-entity-tests-and-behavior-scenarios
+journey: A plan's defaults and commercial details remain observable through its domain entity.
+actor_coverage: []
+scenarios:
+  - scenario: Plan creation supplies monthly interval and empty features by default.
+    owner: backend/tests/Modules/Subscriptions/Plans/Domain/PlanEntityTests.cs
+  - scenario: Updating a plan replaces its name, description, price, interval, and features.
+    owner: backend/tests/Modules/Subscriptions/Plans/Domain/PlanEntityTests.cs
+layer_ownership:
+  G0: Domain unit tests assert entity behavior without infrastructure.
+  G1: skipped — no API, persistence, or external boundary changed.
+  G2: skipped — no user-visible behavior changed; this work adds evidence only.
+  G3: skipped — no risk-bearing product behavior changed.
+  G4: skipped — CI was not run from this workspace.
+gates:
+  G0: passed
+  G1: skipped — no boundary changed.
+  G2: skipped — no product behavior changed.
+  G3: skipped — no risk-bearing behavior changed.
+  G4: skipped — CI was not run from this workspace.
+commands:
+  - command: dotnet test backend/tests/Modules/IoBuild.Modules.Tests.csproj --no-restore --filter "Layer=Domain" --verbosity minimal
+    result: 2/2 passed for Subscriptions entity tests (9/9 across the Domain layer filter).
+  - command: dotnet test backend/tests/Modules/IoBuild.Modules.Tests.csproj --no-restore --verbosity minimal
+    result: 171/171 passed; no tests skipped.
+open_risks: []
+```
+
 ## Backend test navigation — 2026-10-02
 
 The [Subscriptions catalogue](test-catalog.md) maps purchase, webhooks, plans

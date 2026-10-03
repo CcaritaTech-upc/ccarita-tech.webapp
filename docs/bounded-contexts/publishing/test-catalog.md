@@ -11,7 +11,9 @@ no Risk trait; counts are test methods.
 | Provision units plus floor/unit devices | `Structure/Application/ProjectStructureWorkflowTests.cs` | Application, InMemory; Publishing-owned provisioning spanning Devices | U |
 | Structure determinism, ownership and duplicate/parallel definition | `Structure/Persistence/PublishingPersistenceMySqlTests.cs` | Persistence, opt-in MySQL | A ×3 |
 | Unit creation/query and owner assignment/projection outcomes | `Units/Application/UnitCommandQueryTests.cs` | Application, InMemory; IAM owner lookup/projection collaborator | U ×4 |
+| Unit constructor and ownership state transitions | `Units/Domain/UnitEntityTests.cs` | Domain, no dependencies | 3 methods / 5 cases (owner-clear theory has 3 inputs) |
 | Client CRUD and client→unit→owner projection | `Clients/Application/ClientCommandQueryTests.cs` | Application, InMemory; IAM owner lookup | U ×2 |
+| Client construction and detail/unit updates | `Clients/Domain/ClientEntityTests.cs` | Domain, no dependencies | 2 methods / 2 cases |
 
 ## Run the functionality
 
@@ -19,6 +21,8 @@ no Risk trait; counts are test methods.
 dotnet test backend/tests/Modules/IoBuild.Modules.Tests.csproj --no-restore --filter "Context=Publishing"
 dotnet test backend/tests/Modules/IoBuild.Modules.Tests.csproj --no-restore --filter "FullyQualifiedName~UnitCommandQueryTests"
 dotnet test backend/tests/Modules/IoBuild.Modules.Tests.csproj --no-restore --filter "FullyQualifiedName~ClientCommandQueryTests"
+dotnet test backend/tests/Modules/IoBuild.Modules.Tests.csproj --no-restore --filter "FullyQualifiedName~UnitEntityTests"
+dotnet test backend/tests/Modules/IoBuild.Modules.Tests.csproj --no-restore --filter "FullyQualifiedName~ClientEntityTests"
 ```
 
 `PUBLISHING.MANAGE` remains the existing Flow. The validation campaign spans

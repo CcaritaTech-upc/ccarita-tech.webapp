@@ -14,6 +14,7 @@ Risk classification.
 | Signed event idempotency | `Webhooks/Application/SubscriptionWebhookIdempotencyTests.cs` | Application, InMemory | A |
 | Create/query plans | `Plans/Application/PlanCommandQueryTests.cs` | Application, InMemory repository | U |
 | Feature JSON resilience and resource mapping | `Plans/Unit/PlanResourceTests.cs` | Unit, no database/HTTP | U ×2 |
+| Plan construction defaults and updates | `Plans/Domain/PlanEntityTests.cs` | Domain, no dependencies | 2 methods / 2 cases |
 | Restricted-key/dynamic-method options | `StripeAdapter/Unit/StripeOptionsTests.cs` | Unit, no HTTP/database | U |
 | Key resolver decisions | `StripeAdapter/Unit/StripeKeyResolverTests.cs` | Unit; inherited `Layer=Application` | A ×3 |
 | Outgoing restricted key and receipt mappings | `StripeAdapter/Contract/StripeKeyDisciplineTests.cs` | Adapter contract, fake HTTP; inherited `Api`/`Application` labels | A ×3 |
@@ -24,6 +25,7 @@ Risk classification.
 ```sh
 dotnet test backend/tests/Modules/IoBuild.Modules.Tests.csproj --no-restore --filter "Context=Subscriptions"
 dotnet test backend/tests/Modules/IoBuild.Modules.Tests.csproj --no-restore --filter "FullyQualifiedName~PlanResourceTests"
+dotnet test backend/tests/Modules/IoBuild.Modules.Tests.csproj --no-restore --filter "FullyQualifiedName~PlanEntityTests"
 dotnet test backend/tests/Modules/IoBuild.Modules.Tests.csproj --no-restore --filter "Flow=SUBSCRIPTIONS.PURCHASE&Risk=A"
 ```
 
