@@ -188,7 +188,7 @@ public static class PublishingEndpoints
             return (false, "El nombre completo del cliente debe tener entre 3 y 100 caracteres.");
         if (trimmedName.Contains('<') || trimmedName.Contains('>'))
             return (false, "El nombre completo no puede contener caracteres HTML (<, >).");
-        if (!System.Text.RegularExpressions.Regex.IsMatch(trimmedName, @"^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s.\-']+$"))
+        if (!System.Text.RegularExpressions.Regex.IsMatch(trimmedName, @"^[a-zA-Z0-9áéíóúÁÉÍÓÚñÑüÜ\s.\-']+$"))
             return (false, "El nombre completo solo puede contener letras y caracteres válidos.");
         var nameLetters = System.Text.RegularExpressions.Regex.Matches(trimmedName, @"[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ]").Count;
         if (nameLetters < 3)

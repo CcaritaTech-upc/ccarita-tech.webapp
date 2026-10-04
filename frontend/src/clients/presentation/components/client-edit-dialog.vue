@@ -299,7 +299,7 @@ const accountStatementOptions = computed(() => [
     modal
     :header="t('clients.actions.editClient')"
     :style="{ width: '640px', maxWidth: '95vw' }"
-    class="client-dialog"
+    class="client-dialog client-edit-dialog"
   >
     <pv-toast />
     <div class="grid p-fluid">

@@ -285,7 +285,7 @@ const handleCancel = () => {
     modal
     :header="t('clients.addDialogTitle')"
     :style="{ width: '640px', maxWidth: '95vw' }"
-    class="client-dialog"
+    class="client-dialog client-add-dialog"
   >
     <pv-toast />
     <div class="grid p-fluid">
