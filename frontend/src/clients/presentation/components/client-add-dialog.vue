@@ -5,7 +5,6 @@ import { useToast } from 'primevue/usetoast';
 import { Client } from '../../domain/model/client.entity.js';
 import { ProjectsFacade } from '../../infrastructure/projects.facade.js';
 import {
-  isValidEmail,
   isValidPhone,
   validateClientFullName,
   validateClientEmail,
@@ -28,10 +27,20 @@ const toast = useToast();
 const iamStore = useIamStore();
 const projectsFacade = new ProjectsFacade();
 const localVisible = ref(props.visible);
-const errors = ref({});
+
+const defaultErrors = () => ({
+  fullName: '',
+  email: '',
+  phoneNumber: '',
+  address: '',
+  projectId: ''
+});
+const errors = ref(defaultErrors());
+
 const projects = ref([]);
 const units = ref([]);
 const loadingUnits = ref(false);
+
 const defaultFormData = () => ({
   fullName: '',
   email: '',
@@ -91,7 +100,7 @@ const touched = ref({
 
 watch(() => props.visible, (newVal) => {
   localVisible.value = newVal;
-  errors.value = {};
+  errors.value = defaultErrors();
   touched.value = {
     fullName: false,
     email: false,
@@ -100,7 +109,6 @@ watch(() => props.visible, (newVal) => {
     projectId: false
   };
   if (newVal) {
-    // Reset form when dialog opens
     formData.value = defaultFormData();
     units.value = [];
   }
@@ -141,29 +149,25 @@ watch(() => formData.value.unitId, (newUnitId) => {
   }
 });
 
-const validateField = (field, customVal) => {
+const validateField = (field) => {
+  const val = formData.value ? formData.value[field] : '';
   if (field === 'fullName') {
-    const val = customVal !== undefined ? customVal : formData.value.fullName;
     const res = validateClientFullName(val, t);
     errors.value.fullName = res.isValid ? '' : res.error;
   } else if (field === 'email') {
-    const val = customVal !== undefined ? customVal : formData.value.email;
     const res = validateClientEmail(val, t);
     errors.value.email = res.isValid ? '' : res.error;
   } else if (field === 'phoneNumber') {
-    const raw = customVal !== undefined ? customVal : formData.value.phoneNumber;
-    const val = (raw || '').trim();
-    if (val && !isValidPhone(val)) {
+    const clean = (val || '').trim();
+    if (clean && !isValidPhone(clean)) {
       errors.value.phoneNumber = t('clients.validation.phoneInvalid');
     } else {
       errors.value.phoneNumber = '';
     }
   } else if (field === 'address') {
-    const val = customVal !== undefined ? customVal : formData.value.address;
     const res = validateClientAddress(val, t);
     errors.value.address = res.isValid ? '' : res.error;
   } else if (field === 'projectId') {
-    const val = customVal !== undefined ? customVal : formData.value.projectId;
     if (!val) {
       errors.value.projectId = t('clients.validation.projectRequired');
     } else {
@@ -172,12 +176,9 @@ const validateField = (field, customVal) => {
   }
 };
 
-const onFieldInput = (field, val) => {
+const onFieldInput = (field) => {
   touched.value[field] = true;
-  if (val !== undefined && formData.value) {
-    formData.value[field] = val;
-  }
-  validateField(field, val);
+  validateField(field);
 };
 
 const onFieldBlur = (field) => {
@@ -185,28 +186,28 @@ const onFieldBlur = (field) => {
   validateField(field);
 };
 
-// Real-time reactive watchers on form data inputs
-watch(() => formData.value.fullName, (newVal) => {
-  if (touched.value.fullName || (newVal && newVal.length > 0)) {
-    validateField('fullName', newVal);
+// Immediate reactive watcher on email input so errors appear and clear in real-time
+watch(() => formData.value.email, (newVal) => {
+  if (touched.value.email || (newVal && newVal.length > 0)) {
+    validateField('email');
   }
 });
 
-watch(() => formData.value.email, (newVal) => {
-  if (touched.value.email || (newVal && newVal.length > 0)) {
-    validateField('email', newVal);
+watch(() => formData.value.fullName, (newVal) => {
+  if (touched.value.fullName || (newVal && newVal.length > 0)) {
+    validateField('fullName');
   }
 });
 
 watch(() => formData.value.phoneNumber, (newVal) => {
   if (touched.value.phoneNumber || (newVal && newVal.length > 0)) {
-    validateField('phoneNumber', newVal);
+    validateField('phoneNumber');
   }
 });
 
 watch(() => formData.value.address, (newVal) => {
   if (touched.value.address || (newVal && newVal.length > 0)) {
-    validateField('address', newVal);
+    validateField('address');
   }
 });
 
@@ -218,7 +219,6 @@ const handleSave = () => {
     address: true,
     projectId: true
   };
-  errors.value = {};
 
   validateField('fullName');
   validateField('email');
@@ -226,12 +226,12 @@ const handleSave = () => {
   validateField('address');
   validateField('projectId');
 
-  const activeErrors = Object.entries(errors.value).filter(([_, err]) => !!err);
-  if (activeErrors.length > 0) {
-    const firstError = activeErrors[0][1];
+  const hasErrors = Object.values(errors.value).some(err => !!err);
+  if (hasErrors) {
+    const firstError = Object.values(errors.value).find(err => !!err);
     toast.add({
       severity: 'warn',
-      summary: t('clients.validation.formInvalid') || 'Datos inválidos',
+      summary: t('clients.validation.formInvalid') || 'Datos requeridos',
       detail: firstError,
       life: 4000
     });
@@ -261,7 +261,7 @@ const handleSave = () => {
 };
 
 const handleCancel = () => {
-  errors.value = {};
+  errors.value = defaultErrors();
   localVisible.value = false;
 };
 </script>
@@ -271,112 +271,104 @@ const handleCancel = () => {
     v-model:visible="localVisible"
     modal
     :header="t('clients.addDialogTitle')"
-    :style="{ width: '600px' }"
-    class="client-add-dialog"
+    :style="{ width: '640px', maxWidth: '95vw' }"
+    class="client-dialog"
   >
     <pv-toast />
-    <div class="grid">
-      <!-- General Form Alert Banner when errors exist -->
-      <div v-if="Object.values(errors).some(e => !!e) && (touched.fullName || touched.email || touched.phoneNumber || touched.address || touched.projectId)" class="col-12 mb-2">
-        <div class="field-alert field-alert--error p-3 font-medium">
-          <i class="pi pi-exclamation-triangle field-alert__icon text-lg"></i>
-          <span class="field-alert__text">
-            {{ t('clients.validation.formInvalid') || 'Por favor revise y corrija los campos marcados antes de continuar.' }}
-          </span>
+    <div class="grid p-fluid">
+      <!-- Section 1: Personal Information -->
+      <div class="col-12 mb-2">
+        <div class="flex items-center gap-2 pb-1 border-b border-gray-200 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+          <i class="pi pi-user text-primary text-xs"></i>
+          <span>{{ t('clients.profile.personalInfo') }}</span>
         </div>
       </div>
 
       <!-- Full Name Field -->
       <div class="col-12 mb-3">
-        <label for="fullName" class="block mb-2 font-semibold">{{ t('clients.fields.fullName') }} *</label>
+        <label for="fullName" class="block mb-1 text-sm font-semibold text-gray-700">
+          {{ t('clients.fields.fullName') }} <span class="text-red-500">*</span>
+        </label>
         <pv-input-text
           id="fullName"
           v-model="formData.fullName"
           class="w-full"
-          :class="{ 'input-invalid-custom': !!errors.fullName }"
           :invalid="!!errors.fullName"
           :placeholder="t('clients.placeholders.fullName')"
-          @update:modelValue="(val) => onFieldInput('fullName', val)"
+          @input="onFieldInput('fullName')"
           @blur="onFieldBlur('fullName')"
         />
-        <div v-if="errors.fullName" class="field-alert field-alert--error mt-1" role="alert">
-          <i class="pi pi-exclamation-circle field-alert__icon"></i>
-          <span class="field-alert__text">{{ errors.fullName }}</span>
-        </div>
-        <small v-else class="text-xs text-gray-500 block mt-1">
-          {{ t('clients.hints.fullName') }}
-        </small>
+        <small v-if="errors.fullName" class="p-error block mt-1 text-xs">{{ errors.fullName }}</small>
+        <small v-else class="text-xs text-gray-400 block mt-1">{{ t('clients.hints.fullName') }}</small>
       </div>
 
       <!-- Email Field -->
       <div class="col-12 mb-3">
-        <label for="email" class="block mb-2 font-semibold">{{ t('clients.fields.email') }} *</label>
+        <label for="email" class="block mb-1 text-sm font-semibold text-gray-700">
+          {{ t('clients.fields.email') }} <span class="text-red-500">*</span>
+        </label>
         <pv-input-text
           id="email"
           v-model="formData.email"
           class="w-full"
-          :class="{ 'input-invalid-custom': !!errors.email }"
           :invalid="!!errors.email"
           :placeholder="t('clients.placeholders.email')"
-          @update:modelValue="(val) => onFieldInput('email', val)"
+          @input="onFieldInput('email')"
           @blur="onFieldBlur('email')"
         />
-        <div v-if="errors.email" class="field-alert field-alert--error mt-1" role="alert">
-          <i class="pi pi-exclamation-circle field-alert__icon"></i>
-          <span class="field-alert__text">{{ errors.email }}</span>
-        </div>
-        <small v-else class="text-xs text-gray-500 block mt-1">
-          {{ t('clients.hints.email') }}
-        </small>
+        <small v-if="errors.email" class="p-error block mt-1 text-xs">{{ errors.email }}</small>
+        <small v-else class="text-xs text-gray-400 block mt-1">{{ t('clients.hints.email') }}</small>
       </div>
 
       <!-- Phone Number Field -->
-      <div class="col-12 mb-3">
-        <label for="phoneNumber" class="block mb-2 font-semibold">{{ t('clients.fields.phoneNumber') }}</label>
+      <div class="col-12 md:col-6 mb-3">
+        <label for="phoneNumber" class="block mb-1 text-sm font-semibold text-gray-700">
+          {{ t('clients.fields.phoneNumber') }}
+        </label>
         <pv-input-text
           id="phoneNumber"
           v-model="formData.phoneNumber"
           class="w-full"
-          :class="{ 'input-invalid-custom': !!errors.phoneNumber }"
           :invalid="!!errors.phoneNumber"
           :placeholder="t('clients.placeholders.phoneNumber')"
-          @update:modelValue="(val) => onFieldInput('phoneNumber', val)"
+          @input="onFieldInput('phoneNumber')"
           @blur="onFieldBlur('phoneNumber')"
         />
-        <div v-if="errors.phoneNumber" class="field-alert field-alert--error mt-1" role="alert">
-          <i class="pi pi-exclamation-circle field-alert__icon"></i>
-          <span class="field-alert__text">{{ errors.phoneNumber }}</span>
-        </div>
-        <small v-else class="text-xs text-gray-500 block mt-1">
-          {{ t('clients.hints.phoneNumber') }}
-        </small>
+        <small v-if="errors.phoneNumber" class="p-error block mt-1 text-xs">{{ errors.phoneNumber }}</small>
+        <small v-else class="text-xs text-gray-400 block mt-1">{{ t('clients.hints.phoneNumber') }}</small>
       </div>
 
       <!-- Address Field -->
-      <div class="col-12 mb-3">
-        <label for="address" class="block mb-2 font-semibold">{{ t('clients.fields.address') }}</label>
+      <div class="col-12 md:col-6 mb-3">
+        <label for="address" class="block mb-1 text-sm font-semibold text-gray-700">
+          {{ t('clients.fields.address') }}
+        </label>
         <pv-input-text
           id="address"
           v-model="formData.address"
           class="w-full"
-          :class="{ 'input-invalid-custom': !!errors.address }"
           :invalid="!!errors.address"
           :placeholder="t('clients.placeholders.address')"
-          @update:modelValue="(val) => onFieldInput('address', val)"
+          @input="onFieldInput('address')"
           @blur="onFieldBlur('address')"
         />
-        <div v-if="errors.address" class="field-alert field-alert--error mt-1" role="alert">
-          <i class="pi pi-exclamation-circle field-alert__icon"></i>
-          <span class="field-alert__text">{{ errors.address }}</span>
+        <small v-if="errors.address" class="p-error block mt-1 text-xs">{{ errors.address }}</small>
+        <small v-else class="text-xs text-gray-400 block mt-1">{{ t('clients.hints.address') }}</small>
+      </div>
+
+      <!-- Section 2: Project Assignment -->
+      <div class="col-12 mt-2 mb-2">
+        <div class="flex items-center gap-2 pb-1 border-b border-gray-200 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+          <i class="pi pi-building text-primary text-xs"></i>
+          <span>{{ t('clients.profile.projectInfo') }}</span>
         </div>
-        <small v-else class="text-xs text-gray-500 block mt-1">
-          {{ t('clients.hints.address') }}
-        </small>
       </div>
 
       <!-- Project Selection -->
-      <div class="col-12 mb-3">
-        <label for="projectId" class="block mb-2 font-semibold">{{ t('clients.fields.project') }} *</label>
+      <div class="col-12 md:col-6 mb-3">
+        <label for="projectId" class="block mb-1 text-sm font-semibold text-gray-700">
+          {{ t('clients.fields.project') }} <span class="text-red-500">*</span>
+        </label>
         <pv-select
           id="projectId"
           v-model="formData.projectId"
@@ -385,25 +377,20 @@ const handleCancel = () => {
           optionValue="value"
           :placeholder="t('clients.placeholders.project')"
           class="w-full"
-          :class="{ 'input-invalid-custom': !!errors.projectId }"
           :invalid="!!errors.projectId"
           :disabled="projectOptions.length === 0"
-          @change="(e) => onFieldInput('projectId', e.value)"
-          @update:modelValue="(val) => onFieldInput('projectId', val)"
+          @change="onFieldInput('projectId')"
           @blur="onFieldBlur('projectId')"
         />
-        <div v-if="errors.projectId" class="field-alert field-alert--error mt-1" role="alert">
-          <i class="pi pi-exclamation-circle field-alert__icon"></i>
-          <span class="field-alert__text">{{ errors.projectId }}</span>
-        </div>
-        <small v-else class="text-xs text-gray-500 block mt-1">
-          {{ t('clients.hints.project') }}
-        </small>
+        <small v-if="errors.projectId" class="p-error block mt-1 text-xs">{{ errors.projectId }}</small>
+        <small v-else class="text-xs text-gray-400 block mt-1">{{ t('clients.hints.project') }}</small>
       </div>
 
       <!-- Unit Selection (Optional) -->
-      <div class="col-12 mb-3">
-        <label for="unitId" class="block mb-2 font-semibold">{{ t('clients.fields.assignedUnit') }}</label>
+      <div class="col-12 md:col-6 mb-3">
+        <label for="unitId" class="block mb-1 text-sm font-semibold text-gray-700">
+          {{ t('clients.fields.assignedUnit') }}
+        </label>
         <pv-select
           id="unitId"
           v-model="formData.unitId"
@@ -415,175 +402,37 @@ const handleCancel = () => {
           :loading="loadingUnits"
           :disabled="!formData.projectId || unitOptions.length <= 1"
         />
-        <small v-if="formData.projectId && unitOptions.length <= 1 && !loadingUnits" class="text-gray-500 block mt-1">
+        <small v-if="formData.projectId && unitOptions.length <= 1 && !loadingUnits" class="text-xs text-gray-400 block mt-1">
           {{ t('clients.messages.noUnitsConfigured') }}
         </small>
-        <small v-else-if="formData.projectId" class="text-xs text-gray-500 block mt-1">
+        <small v-else-if="formData.projectId" class="text-xs text-gray-400 block mt-1">
           {{ t('clients.hints.unit') }}
         </small>
       </div>
     </div>
 
     <template #footer>
-      <pv-button
-        :label="t('clients.actions.cancel')"
-        icon="pi pi-times"
-        @click="handleCancel"
-        severity="danger"
-        outlined
-      />
-      <pv-button
-        :label="t('clients.actions.add')"
-        icon="pi pi-check"
-        @click="handleSave"
-        severity="success"
-      />
+      <div class="flex justify-end gap-2 pt-2">
+        <pv-button
+          :label="t('clients.actions.cancel')"
+          icon="pi pi-times"
+          severity="secondary"
+          text
+          @click="handleCancel"
+        />
+        <pv-button
+          :label="t('clients.actions.add')"
+          icon="pi pi-check"
+          severity="primary"
+          @click="handleSave"
+        />
+      </div>
     </template>
   </pv-dialog>
 </template>
 
 <style scoped>
-/* Forzar fondo blanco en el diálogo principal */
-:deep(.p-dialog) {
-  background: white !important;
-}
-
-:deep(.p-dialog .p-dialog-header) {
-  background: white !important;
-  color: #111827 !important;
-}
-
-:deep(.p-dialog .p-dialog-content) {
-  background: white !important;
-  color: #111827 !important;
-}
-
-:deep(.p-dialog .p-dialog-footer) {
-  background: white !important;
-}
-
-/* Estilos para inputs */
-:deep(.p-inputtext) {
-  background: white !important;
-  color: #111827 !important;
-  border-color: #d1d5db;
-}
-
-:deep(.p-inputtext:enabled:hover) {
-  background: white !important;
-  border-color: #9ca3af;
-}
-
-:deep(.p-inputtext:enabled:focus) {
-  background: white !important;
-  border-color: #3b82f6 !important;
-  box-shadow: 0 0 0 0.2rem rgba(59, 130, 246, 0.25) !important;
-}
-
-/* Invalid inputs styling */
-:deep(.input-invalid-custom),
-:deep(.p-inputtext.p-invalid),
-:deep(.p-inputtext.input-invalid-custom),
-:deep(.p-select.p-invalid),
-:deep(.p-select.input-invalid-custom) {
-  border-color: #ef4444 !important;
-  background-color: #fef2f2 !important;
-  box-shadow: 0 0 0 1px #ef4444 !important;
-}
-
-/* Alert boxes */
-.field-alert {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.45rem;
-  padding: 0.45rem 0.65rem;
-  border-radius: 6px;
-  margin-top: 0.35rem;
-  font-size: 0.8125rem;
-  line-height: 1.25rem;
-}
-
-.field-alert--error {
-  background-color: #fef2f2 !important;
-  border: 1px solid #fca5a5 !important;
-  color: #991b1b !important;
-}
-
-.field-alert__icon {
-  color: #dc2626 !important;
-  font-size: 0.95rem !important;
-  margin-top: 0.15rem;
-  flex-shrink: 0;
-}
-
-.field-alert__text {
-  color: #991b1b !important;
-  font-weight: 500;
-}
-
-/* Estilos para el select */
-:deep(.p-select) {
-  background: white !important;
-  color: #111827 !important;
-  border-color: #d1d5db !important;
-}
-
-:deep(.p-select:hover) {
-  background: white !important;
-  border-color: #9ca3af !important;
-}
-
-:deep(.p-select:focus) {
-  background: white !important;
-  border-color: #3b82f6 !important;
-  box-shadow: 0 0 0 0.2rem rgba(59, 130, 246, 0.25) !important;
-}
-
-:deep(.p-select .p-select-label) {
-  background: white !important;
-  color: #111827 !important;
-}
-
-:deep(.p-select .p-select-dropdown) {
-  background: white !important;
-  color: #111827 !important;
-}
-
-:deep(label) {
-  color: #374151 !important;
-}
-
-/* Grid del formulario */
-:deep(.grid) {
-  background: white !important;
-}
-
-/* Estilos para los botones del footer */
-:deep(.p-button) {
-  color: white !important;
-}
-
-:deep(.p-button.p-button-danger.p-button-outlined) {
-  background: #fee2e2 !important;
-  border-color: #ef4444 !important;
-  color: #dc2626 !important;
-}
-
-:deep(.p-button.p-button-danger.p-button-outlined:hover) {
-  background: #fecaca !important;
-  border-color: #dc2626 !important;
-  color: #991b1b !important;
-}
-
-:deep(.p-button-success) {
-  background: #10b981 !important;
-  border-color: #10b981 !important;
-  color: white !important;
-}
-
-:deep(.p-button-success:hover) {
-  background: #059669 !important;
-  border-color: #059669 !important;
-  color: white !important;
+.p-error {
+  color: #ef4444;
 }
 </style>
