@@ -21,7 +21,8 @@ public sealed class StripeHttpPaymentProvider(HttpClient client, IConfiguration 
     {
         if (!StripeRestrictedKeyResolver.IsRestrictedKey(options.RestrictedApiKey)) return null;
 
-        if (configuration.GetValue<bool>("Stripe:UseSimulatedPayments") || options.RestrictedApiKey.StartsWith("rk_test_local", StringComparison.Ordinal))
+        var useSimulated = configuration.GetValue<bool>("Stripe:UseSimulatedPayments") || string.Equals(configuration["Stripe:RestrictedApiKey"], "rk_test_local", StringComparison.Ordinal);
+        if (useSimulated)
         {
             var sessionId = $"cs_sim_{request.BuilderId}_{request.PlanId}_{Guid.NewGuid():N}";
             var separator = request.SuccessUrl.Contains('?') ? "&" : "?";

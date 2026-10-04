@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import crypto from 'node:crypto';
 
 async function chooseLanguage(page, language) {
   await page.locator('.language-select').click();
@@ -6,7 +7,7 @@ async function chooseLanguage(page, language) {
 }
 
 test('Builder UI translates client and plan journeys and keeps sidebar logout legible', async ({ page }) => {
-  const suffix = `${Date.now()}${Math.floor(Math.random() * 1000)}`;
+  const suffix = `${Date.now()}${crypto.randomInt(100, 1000)}`;
   const email = `ui.builder.${suffix}@example.test`;
   const password = 'ui-builder-password-123';
 
