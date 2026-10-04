@@ -10,6 +10,7 @@ Final monolith topology is one backend + one frontend + one MySQL. No YARP, no R
 | `mysql-monolith` | `iobuild-mysql-monolith` | MySQL 8 (single DB `iobuild`) | yes |
 | `frontend` | `iobuild-frontend` | Vue SPA (built via `frontend/Dockerfile`) | yes |
 | `nginx` | `iobuild-nginx` | Edge proxy — `/api/` → `iobuild-api:8080`, SPA fallback | yes |
+| `phpmyadmin` | `iobuild-phpmyadmin` | MySQL administration UI (container port 80) | local profile `db-admin`; included in Dokploy stack |
 | `jaeger` | `iobuild-jaeger` | OTLP collector (4317/4318, UI 16686) | no — profile `observability` |
 | `influxdb` | `iobuild-influxdb` | Telemetry sink (profile `telemetry`) | no |
 | `mosquitto` | `iobuild-mosquitto` | MQTT broker (profile `telemetry`) | no |
@@ -41,6 +42,14 @@ curl -f http://localhost:80/api/v1/cutover/status
 docker compose --profile observability up -d --wait
 # Jaeger UI at http://localhost:16686
 
+# Local database UI for demos/manual inspection only
+docker compose --profile db-admin up -d phpmyadmin
+# phpMyAdmin at http://localhost:8082; sign in using the MySQL credentials
+# Use username `root` and the `DB_PASSWORD` value from `.env` (defaults to `iobuild`).
+# The UI connects to mysql-monolith:3306 inside the Compose network.
+# Stop the UI when finished:
+docker compose stop phpmyadmin
+
 # With telemetry (influx + mosquitto + simulator)
 docker compose --profile telemetry up -d --wait
 # Or full
@@ -69,6 +78,30 @@ volumes:
 ```
 
 All services attach to `iobuild-network`. `mysql_monolith_data` persists DB; others are optional and ephemeral if not profile-enabled.
+
+phpMyAdmin is opt-in and binds only to `127.0.0.1:8082` on the host; it is not
+exposed to the LAN or Internet. Its container listens on port `80` and connects
+to MySQL at `mysql-monolith:3306` over `iobuild-network`.
+
+## Production database UI (Dokploy)
+
+The Dokploy Compose stack includes phpMyAdmin on the internal Compose network
+only. Configure its Domain in Dokploy to target service `phpmyadmin`, port `80`;
+do not add a Compose `ports` mapping. Require HTTPS and Dokploy access control
+(such as an IP allowlist or an additional authentication layer) before making
+the Domain available.
+
+For database-scoped administrator access, create a dedicated MySQL account
+instead of sharing the global `root` credentials. Run once against production
+as a database administrator, replacing the placeholder with a strong secret:
+
+```sql
+CREATE USER 'iobuild_admin'@'%' IDENTIFIED BY '<strong-secret>';
+GRANT ALL PRIVILEGES ON `iobuild`.* TO 'iobuild_admin'@'%';
+```
+
+This grants administration rights on `iobuild` only, not global MySQL privileges.
+Store the password securely and provide it only to the people who need access.
 
 ## Healthchecks
 

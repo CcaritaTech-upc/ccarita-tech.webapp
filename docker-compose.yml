@@ -62,6 +62,23 @@ services:
     networks:
       - iobuild-network
 
+  # Local database UI — opt in only for demos or manual inspection
+  phpmyadmin:
+    image: phpmyadmin:5.2-apache
+    container_name: iobuild-phpmyadmin
+    environment:
+      PMA_HOST: mysql-monolith
+      PMA_PORT: 3306
+    depends_on:
+      mysql-monolith:
+        condition: service_healthy
+    networks:
+      - iobuild-network
+    ports:
+      - "127.0.0.1:8082:80"
+    profiles:
+      - db-admin
+
   # Frontend — Vue SPA built via Vite (nginx serves dist)
   frontend:
     build:

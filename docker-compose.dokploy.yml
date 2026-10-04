@@ -69,6 +69,23 @@ services:
     networks:
       - iobuild-network
 
+  # Production database UI — publish only through a protected Dokploy Domain.
+  # Do not add a host `ports` mapping here; Traefik routes to container port 80.
+  phpmyadmin:
+    image: phpmyadmin:5.2-apache
+    container_name: iobuild-phpmyadmin
+    restart: unless-stopped
+    environment:
+      PMA_HOST: mysql-monolith
+      PMA_PORT: 3306
+    depends_on:
+      mysql-monolith:
+        condition: service_healthy
+    expose:
+      - "80"
+    networks:
+      - iobuild-network
+
   frontend:
     build:
       context: ./frontend
