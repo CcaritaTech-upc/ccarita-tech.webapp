@@ -7,6 +7,7 @@ import {
   isValidEmail,
   isValidPhone,
   validateClientFullName,
+  validateClientEmail,
   validateClientAddress
 } from '../../../shared/presentation/validators.js';
 
@@ -158,14 +159,8 @@ const validateField = (field) => {
     const res = validateClientFullName(formData.value.fullName, t);
     errors.value.fullName = res.isValid ? '' : res.error;
   } else if (field === 'email') {
-    const val = (formData.value.email || '').trim();
-    if (!val) {
-      errors.value.email = t('clients.validation.emailRequired');
-    } else if (!isValidEmail(val)) {
-      errors.value.email = t('clients.validation.emailInvalid');
-    } else {
-      errors.value.email = '';
-    }
+    const res = validateClientEmail(formData.value.email, t);
+    errors.value.email = res.isValid ? '' : res.error;
   } else if (field === 'phoneNumber') {
     const val = (formData.value.phoneNumber || '').trim();
     if (val && !isValidPhone(val)) {
@@ -282,6 +277,7 @@ const accountStatementOptions = computed(() => [
     :style="{ width: '600px' }"
     class="client-edit-dialog"
   >
+    <pv-toast />
     <div class="grid">
       <!-- General Form Alert Banner when errors exist -->
       <div v-if="Object.values(errors).some(e => !!e) && (touched.fullName || touched.email || touched.phoneNumber || touched.address || touched.projectId)" class="col-12 mb-2">

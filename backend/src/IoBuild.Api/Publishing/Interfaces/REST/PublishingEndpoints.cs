@@ -194,8 +194,43 @@ public static class PublishingEndpoints
         var trimmedEmail = email?.Trim();
         if (string.IsNullOrWhiteSpace(trimmedEmail))
             return (false, "El correo electrónico del cliente es obligatorio.");
+        if (trimmedEmail.Length < 6 || trimmedEmail.Length > 100)
+            return (false, "El correo electrónico debe tener entre 6 y 100 caracteres.");
+        if (trimmedEmail.Contains('<') || trimmedEmail.Contains('>'))
+            return (false, "El correo electrónico no puede contener etiquetas HTML (<, >).");
         if (!System.Text.RegularExpressions.Regex.IsMatch(trimmedEmail, @"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"))
             return (false, "Ingrese un correo electrónico válido (ej. usuario@empresa.com).");
+
+        var emailParts = trimmedEmail.Split('@');
+        if (emailParts.Length != 2)
+            return (false, "Ingrese un correo electrónico válido con formato usuario@dominio.com.");
+
+        var username = emailParts[0];
+        var domain = emailParts[1];
+
+        if (username.Length < 2)
+            return (false, "El usuario del correo electrónico debe tener al menos 2 caracteres.");
+        if (System.Text.RegularExpressions.Regex.IsMatch(username, @"(.)\1{3,}", System.Text.RegularExpressions.RegexOptions.IgnoreCase))
+            return (false, "El correo electrónico no puede contener caracteres repetitivos continuos.");
+
+        var cleanUserAlpha = System.Text.RegularExpressions.Regex.Replace(username.ToLowerInvariant(), @"[^a-z]", "");
+        string[] keyboardSequences = ["asdf", "qwer", "zxcv", "hjkl", "yuio", "uiop", "ghjk", "fdsa", "rewq", "vcxz"];
+        if (keyboardSequences.Any(seq => cleanUserAlpha.Contains(seq)))
+            return (false, "El correo electrónico contiene secuencias de teclas del teclado (ej. asdf).");
+        if (cleanUserAlpha.Length >= 4 && System.Text.RegularExpressions.Regex.IsMatch(cleanUserAlpha, @"^(.{2,4})\1+$"))
+            return (false, "El correo electrónico contiene secuencias repetitivas.");
+        if (!System.Text.RegularExpressions.Regex.IsMatch(username, @"[aeiou0-9]", System.Text.RegularExpressions.RegexOptions.IgnoreCase))
+            return (false, "El usuario del correo debe ser un texto legible y contener al menos una vocal o número.");
+
+        var domainParts = domain.Split('.');
+        if (domainParts.Length < 2 || domainParts.Any(p => p.Length < 2))
+            return (false, "El dominio del correo debe tener una estructura válida (ej. empresa.com).");
+
+        var domainName = domainParts[0].ToLowerInvariant();
+        if (keyboardSequences.Any(seq => domainName.Contains(seq)))
+            return (false, "El dominio del correo contiene secuencias del teclado no válidas.");
+        if (System.Text.RegularExpressions.Regex.IsMatch(domainName, @"(.)\1{3,}", System.Text.RegularExpressions.RegexOptions.IgnoreCase))
+            return (false, "El dominio del correo contiene caracteres repetitivos no válidos.");
 
         var trimmedPhone = phoneNumber?.Trim();
         if (!string.IsNullOrWhiteSpace(trimmedPhone))

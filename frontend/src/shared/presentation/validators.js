@@ -275,6 +275,89 @@ export function validateClientFullName(fullName, t = null) {
 }
 
 /**
+ * Comprehensive validator for client email.
+ * Checks RFC standard format, minimum lengths, no HTML,
+ * no repetitive characters, no keyboard sequences/mash in username or domain,
+ * and valid domain structure.
+ */
+export function validateClientEmail(email, t = null) {
+  const tr = (key, fallback) => (t ? t(key) : fallback);
+  if (!email || typeof email !== 'string' || !email.trim()) {
+    return { isValid: false, error: tr('clients.validation.emailRequired', 'El correo electrónico es obligatorio.') };
+  }
+  const trimmed = email.trim().toLowerCase();
+
+  // Basic length constraints
+  if (trimmed.length < 6) {
+    return { isValid: false, error: tr('clients.validation.emailInvalid', 'El correo electrónico debe tener al menos 6 caracteres.') };
+  }
+  if (trimmed.length > 100) {
+    return { isValid: false, error: tr('clients.validation.emailInvalid', 'El correo electrónico no puede exceder los 100 caracteres.') };
+  }
+
+  // HTML / injection check
+  if (/[<>]/.test(trimmed)) {
+    return { isValid: false, error: tr('clients.validation.emailNoHtml', 'El correo electrónico no puede contener etiquetas HTML (<, >).') };
+  }
+
+  // RFC regex check
+  if (!EMAIL_REGEX.test(trimmed)) {
+    return { isValid: false, error: tr('clients.validation.emailInvalid', 'Ingrese un correo electrónico válido (ej. usuario@empresa.com).') };
+  }
+
+  const parts = trimmed.split('@');
+  if (parts.length !== 2) {
+    return { isValid: false, error: tr('clients.validation.emailInvalid', 'Ingrese un correo electrónico válido con formato usuario@dominio.com.') };
+  }
+
+  const [username, domain] = parts;
+
+  // Username validation
+  if (username.length < 2) {
+    return { isValid: false, error: tr('clients.validation.emailUserTooShort', 'El usuario del correo electrónico debe tener al menos 2 caracteres.') };
+  }
+
+  // Continuous repetitive chars (e.g. aaaa@...)
+  if (/(.)\1{3,}/i.test(username)) {
+    return { isValid: false, error: tr('clients.validation.emailRepetitive', 'El correo electrónico no puede contener caracteres repetitivos continuos.') };
+  }
+
+  // Keyboard mash / sequences in username (e.g. asdf, qwer, zxcv)
+  const cleanUserAlpha = username.replace(/[^a-z]/gi, '');
+  const KEYBOARD_SEQUENCES = ['asdf', 'qwer', 'zxcv', 'hjkl', 'yuio', 'uiop', 'ghjk', 'fdsa', 'rewq', 'vcxz'];
+  if (KEYBOARD_SEQUENCES.some(seq => cleanUserAlpha.includes(seq))) {
+    return { isValid: false, error: tr('clients.validation.emailKeyboardMash', 'El correo electrónico contiene secuencias de teclas del teclado (ej. asdf).') };
+  }
+
+  // Pure repetitive sequence pattern in username (e.g. asdasd, testtest)
+  if (cleanUserAlpha.length >= 4 && /^(.{2,4})\1+$/.test(cleanUserAlpha)) {
+    return { isValid: false, error: tr('clients.validation.emailRepetitive', 'El correo electrónico contiene secuencias repetitivas.') };
+  }
+
+  // Username legibility: must contain at least one vowel or digit
+  if (!/[aeiou0-9]/i.test(username)) {
+    return { isValid: false, error: tr('clients.validation.emailInvalid', 'El usuario del correo debe ser un texto legible y contener al menos una vocal o número.') };
+  }
+
+  // Domain validation
+  const domainParts = domain.split('.');
+  if (domainParts.length < 2 || domainParts.some(p => p.length < 2)) {
+    return { isValid: false, error: tr('clients.validation.emailInvalidDomain', 'El dominio del correo debe tener una estructura válida (ej. empresa.com).') };
+  }
+
+  const domainName = domainParts[0];
+  if (KEYBOARD_SEQUENCES.some(seq => domainName.includes(seq))) {
+    return { isValid: false, error: tr('clients.validation.emailInvalidDomain', 'El dominio del correo contiene secuencias del teclado no válidas.') };
+  }
+
+  if (/(.)\1{3,}/i.test(domainName)) {
+    return { isValid: false, error: tr('clients.validation.emailInvalidDomain', 'El dominio del correo contiene caracteres repetitivos no válidos.') };
+  }
+
+  return { isValid: true, error: null };
+}
+
+/**
  * Comprehensive validator for client address (optional, but if entered must be valid).
  */
 export function validateClientAddress(address, t = null) {
