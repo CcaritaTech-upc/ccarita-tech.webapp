@@ -329,8 +329,10 @@ export function validateClientEmail(email, t = null) {
     return { isValid: false, error: tr('clients.validation.emailKeyboardMash', 'El correo electrónico contiene secuencias de teclas del teclado (ej. asdf).') };
   }
 
-  // Pure repetitive sequence pattern in username (e.g. asdasd, testtest)
-  if (cleanUserAlpha.length >= 4 && /^(.{2,4})\1+$/.test(cleanUserAlpha)) {
+  // Pure repetitive sequence pattern in username (e.g. asdasdasd, ababab) or repetitive keyboard loops
+  const REPETITIVE_KEYBOARD_PATTERNS = ['asdasd', 'adadad', 'dfdfdf', 'jkjkjk', 'ababab', 'testtest'];
+  if (REPETITIVE_KEYBOARD_PATTERNS.some(pat => cleanUserAlpha.includes(pat)) ||
+      (cleanUserAlpha.length >= 6 && /^(.{2,3})\1{2,}$/.test(cleanUserAlpha))) {
     return { isValid: false, error: tr('clients.validation.emailRepetitive', 'El correo electrónico contiene secuencias repetitivas.') };
   }
 

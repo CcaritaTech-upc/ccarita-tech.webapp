@@ -32,17 +32,19 @@ const errors = ref({});
 const projects = ref([]);
 const units = ref([]);
 const loadingUnits = ref(false);
-const formData = ref(new Client({
+const defaultFormData = () => ({
   fullName: '',
   email: '',
   phoneNumber: '',
   address: '',
+  projectId: null,
   projectName: '',
   accountStatement: 'Active',
   builderId: iamStore.currentUser?.id || 0,
   unitId: null,
   unitNumber: ''
-}));
+});
+const formData = ref(defaultFormData());
 
 // Load projects on component mount
 onMounted(async () => {
@@ -99,18 +101,7 @@ watch(() => props.visible, (newVal) => {
   };
   if (newVal) {
     // Reset form when dialog opens
-    formData.value = new Client({
-      fullName: '',
-      email: '',
-      phoneNumber: '',
-      address: '',
-      projectId: 0,
-      projectName: '',
-      accountStatement: 'Active',
-      builderId: iamStore.currentUser?.id || 0,
-      unitId: null,
-      unitNumber: ''
-    });
+    formData.value = defaultFormData();
     units.value = [];
   }
 });
@@ -150,25 +141,30 @@ watch(() => formData.value.unitId, (newUnitId) => {
   }
 });
 
-const validateField = (field) => {
+const validateField = (field, customVal) => {
   if (field === 'fullName') {
-    const res = validateClientFullName(formData.value.fullName, t);
+    const val = customVal !== undefined ? customVal : formData.value.fullName;
+    const res = validateClientFullName(val, t);
     errors.value.fullName = res.isValid ? '' : res.error;
   } else if (field === 'email') {
-    const res = validateClientEmail(formData.value.email, t);
+    const val = customVal !== undefined ? customVal : formData.value.email;
+    const res = validateClientEmail(val, t);
     errors.value.email = res.isValid ? '' : res.error;
   } else if (field === 'phoneNumber') {
-    const val = (formData.value.phoneNumber || '').trim();
+    const raw = customVal !== undefined ? customVal : formData.value.phoneNumber;
+    const val = (raw || '').trim();
     if (val && !isValidPhone(val)) {
       errors.value.phoneNumber = t('clients.validation.phoneInvalid');
     } else {
       errors.value.phoneNumber = '';
     }
   } else if (field === 'address') {
-    const res = validateClientAddress(formData.value.address, t);
+    const val = customVal !== undefined ? customVal : formData.value.address;
+    const res = validateClientAddress(val, t);
     errors.value.address = res.isValid ? '' : res.error;
   } else if (field === 'projectId') {
-    if (!formData.value.projectId) {
+    const val = customVal !== undefined ? customVal : formData.value.projectId;
+    if (!val) {
       errors.value.projectId = t('clients.validation.projectRequired');
     } else {
       errors.value.projectId = '';
@@ -176,9 +172,12 @@ const validateField = (field) => {
   }
 };
 
-const onFieldInput = (field) => {
+const onFieldInput = (field, val) => {
   touched.value[field] = true;
-  validateField(field);
+  if (val !== undefined && formData.value) {
+    formData.value[field] = val;
+  }
+  validateField(field, val);
 };
 
 const onFieldBlur = (field) => {
@@ -189,25 +188,25 @@ const onFieldBlur = (field) => {
 // Real-time reactive watchers on form data inputs
 watch(() => formData.value.fullName, (newVal) => {
   if (touched.value.fullName || (newVal && newVal.length > 0)) {
-    validateField('fullName');
+    validateField('fullName', newVal);
   }
 });
 
 watch(() => formData.value.email, (newVal) => {
   if (touched.value.email || (newVal && newVal.length > 0)) {
-    validateField('email');
+    validateField('email', newVal);
   }
 });
 
 watch(() => formData.value.phoneNumber, (newVal) => {
   if (touched.value.phoneNumber || (newVal && newVal.length > 0)) {
-    validateField('phoneNumber');
+    validateField('phoneNumber', newVal);
   }
 });
 
 watch(() => formData.value.address, (newVal) => {
   if (touched.value.address || (newVal && newVal.length > 0)) {
-    validateField('address');
+    validateField('address', newVal);
   }
 });
 
@@ -244,13 +243,20 @@ const handleSave = () => {
   const phoneNumber = (formData.value.phoneNumber || '').trim();
   const address = (formData.value.address || '').trim();
 
-  formData.value.fullName = fullName;
-  formData.value.email = email;
-  formData.value.phoneNumber = phoneNumber;
-  formData.value.address = address;
-  formData.value.builderId = formData.value.builderId || iamStore.currentUser?.id || 0;
+  const clientPayload = new Client({
+    fullName: fullName,
+    email: email,
+    phoneNumber: phoneNumber,
+    address: address,
+    projectId: formData.value.projectId,
+    projectName: formData.value.projectName,
+    accountStatement: formData.value.accountStatement || 'Active',
+    builderId: formData.value.builderId || iamStore.currentUser?.id || 0,
+    unitId: formData.value.unitId,
+    unitNumber: formData.value.unitNumber
+  });
 
-  emit('save', formData.value);
+  emit('save', clientPayload);
   localVisible.value = false;
 };
 
@@ -290,8 +296,7 @@ const handleCancel = () => {
           :class="{ 'input-invalid-custom': !!errors.fullName }"
           :invalid="!!errors.fullName"
           :placeholder="t('clients.placeholders.fullName')"
-          @update:modelValue="onFieldInput('fullName')"
-          @input="onFieldInput('fullName')"
+          @update:modelValue="(val) => onFieldInput('fullName', val)"
           @blur="onFieldBlur('fullName')"
         />
         <div v-if="errors.fullName" class="field-alert field-alert--error mt-1" role="alert">
@@ -311,11 +316,9 @@ const handleCancel = () => {
           v-model="formData.email"
           class="w-full"
           :class="{ 'input-invalid-custom': !!errors.email }"
-          type="email"
           :invalid="!!errors.email"
           :placeholder="t('clients.placeholders.email')"
-          @update:modelValue="onFieldInput('email')"
-          @input="onFieldInput('email')"
+          @update:modelValue="(val) => onFieldInput('email', val)"
           @blur="onFieldBlur('email')"
         />
         <div v-if="errors.email" class="field-alert field-alert--error mt-1" role="alert">
@@ -337,8 +340,7 @@ const handleCancel = () => {
           :class="{ 'input-invalid-custom': !!errors.phoneNumber }"
           :invalid="!!errors.phoneNumber"
           :placeholder="t('clients.placeholders.phoneNumber')"
-          @update:modelValue="onFieldInput('phoneNumber')"
-          @input="onFieldInput('phoneNumber')"
+          @update:modelValue="(val) => onFieldInput('phoneNumber', val)"
           @blur="onFieldBlur('phoneNumber')"
         />
         <div v-if="errors.phoneNumber" class="field-alert field-alert--error mt-1" role="alert">
@@ -360,8 +362,7 @@ const handleCancel = () => {
           :class="{ 'input-invalid-custom': !!errors.address }"
           :invalid="!!errors.address"
           :placeholder="t('clients.placeholders.address')"
-          @update:modelValue="onFieldInput('address')"
-          @input="onFieldInput('address')"
+          @update:modelValue="(val) => onFieldInput('address', val)"
           @blur="onFieldBlur('address')"
         />
         <div v-if="errors.address" class="field-alert field-alert--error mt-1" role="alert">
@@ -387,8 +388,8 @@ const handleCancel = () => {
           :class="{ 'input-invalid-custom': !!errors.projectId }"
           :invalid="!!errors.projectId"
           :disabled="projectOptions.length === 0"
-          @change="onFieldInput('projectId')"
-          @update:modelValue="onFieldInput('projectId')"
+          @change="(e) => onFieldInput('projectId', e.value)"
+          @update:modelValue="(val) => onFieldInput('projectId', val)"
           @blur="onFieldBlur('projectId')"
         />
         <div v-if="errors.projectId" class="field-alert field-alert--error mt-1" role="alert">

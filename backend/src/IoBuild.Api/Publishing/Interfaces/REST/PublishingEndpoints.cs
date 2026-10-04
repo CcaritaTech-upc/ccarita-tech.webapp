@@ -217,7 +217,9 @@ public static class PublishingEndpoints
         string[] keyboardSequences = ["asdf", "qwer", "zxcv", "hjkl", "yuio", "uiop", "ghjk", "fdsa", "rewq", "vcxz"];
         if (keyboardSequences.Any(seq => cleanUserAlpha.Contains(seq)))
             return (false, "El correo electrónico contiene secuencias de teclas del teclado (ej. asdf).");
-        if (cleanUserAlpha.Length >= 4 && System.Text.RegularExpressions.Regex.IsMatch(cleanUserAlpha, @"^(.{2,4})\1+$"))
+        string[] repetitiveKeyboardPatterns = ["asdasd", "adadad", "dfdfdf", "jkjkjk", "ababab", "testtest"];
+        if (repetitiveKeyboardPatterns.Any(pat => cleanUserAlpha.Contains(pat)) ||
+            (cleanUserAlpha.Length >= 6 && System.Text.RegularExpressions.Regex.IsMatch(cleanUserAlpha, @"^(.{2,3})\1{2,}$")))
             return (false, "El correo electrónico contiene secuencias repetitivas.");
         if (!System.Text.RegularExpressions.Regex.IsMatch(username, @"[aeiou0-9]", System.Text.RegularExpressions.RegexOptions.IgnoreCase))
             return (false, "El usuario del correo debe ser un texto legible y contener al menos una vocal o número.");
