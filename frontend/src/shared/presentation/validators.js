@@ -97,6 +97,75 @@ export function validateProjectName(name, t = null) {
   if (!/^[a-zA-Z0-9áéíóúÁÉÍÓÚñÑüÜ\s.,\-#'&()/]+$/.test(trimmed)) {
     return { isValid: false, error: tr('projects.validation.nameInvalid', 'El nombre contiene caracteres no permitidos.') };
   }
+  return checkTextLegibility(trimmed, 'name', t);
+}
+
+/**
+ * Helper to detect keyboard smashing, home row spam, consonant clusters, and unpronounceable text.
+ */
+function checkTextLegibility(text, fieldName, t = null) {
+  const tr = (key, fallback) => (t ? t(key) : fallback);
+  const trimmed = text.trim();
+  const letters = trimmed.toLowerCase().match(/[a-záéíóúñü]/g) || [];
+  const uniqueLetters = new Set(letters);
+  const words = trimmed.split(/\s+/).filter(w => w.length > 0);
+
+  // 1. Any individual word longer than 20 characters, or words without vowels
+  for (const word of words) {
+    const cleanWord = word.replace(/[^a-záéíóúñü]/gi, '');
+    if (cleanWord.length > 20) {
+      return { isValid: false, error: tr('projects.validation.wordTooLong', 'Contiene palabras excesivamente largas o no válidas.') };
+    }
+    if (cleanWord.length >= 3 && !/[aeiouáéíóúAEIOUÁÉÍÓÚyY]/i.test(cleanWord)) {
+      return { isValid: false, error: tr('projects.validation.wordNoVowels', 'Cada palabra debe ser legible y contener vocales.') };
+    }
+  }
+
+  // 2. Minimum words required for Description
+  if (fieldName === 'description') {
+    if (words.length < 2 || !trimmed.includes(' ')) {
+      return { isValid: false, error: tr('projects.validation.descriptionWords', 'La descripción debe ser una frase u oración compuesta por varias palabras separadas por espacios.') };
+    }
+  }
+
+  // 3. Location structure: if 8+ chars and no spaces, must not be unspaced gibberish
+  if (fieldName === 'location') {
+    if (trimmed.length >= 8 && !trimmed.includes(' ')) {
+      return { isValid: false, error: tr('projects.validation.locationStructure', 'La ubicación debe describir una dirección o zona válida con palabras separadas por espacios.') };
+    }
+  }
+
+  // 4. Consecutive consonants (5 or more consonants in a row is impossible in Spanish/English)
+  if (/[bcdfghjklmnñpqrstvwxyzBCDFGHJKLMNÑPQRSTVWXYZ]{5,}/i.test(trimmed)) {
+    return { isValid: false, error: tr('projects.validation.consonantCluster', 'Contiene combinaciones de consonantes continuas no legibles.') };
+  }
+
+  // 5. Vowel ratio check (between 20% and 80% for text with 6+ letters)
+  if (letters.length >= 6) {
+    const vowels = trimmed.match(/[aeiouáéíóúAEIOUÁÉÍÓÚ]/gi) || [];
+    const ratio = vowels.length / letters.length;
+    if (ratio < 0.20 || ratio > 0.80) {
+      return { isValid: false, error: tr('projects.validation.vowelRatio', 'El texto debe contener una proporción legible de vocales y consonantes.') };
+    }
+  }
+
+  // 6. Keyboard mash / Home row spam check:
+  if (letters.length >= 8) {
+    if (letters.length >= 10 && uniqueLetters.size <= 4) {
+      return { isValid: false, error: tr('projects.validation.keyboardMash', 'El texto parece una combinación aleatoria o repetitiva del teclado.') };
+    }
+    const homeRowKeys = new Set(['a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l']);
+    const homeLetters = letters.filter(l => homeRowKeys.has(l));
+    if (letters.length >= 10 && (homeLetters.length / letters.length) >= 0.88) {
+      return { isValid: false, error: tr('projects.validation.homeRowSpam', 'El texto contiene patrones repetitivos de teclas del teclado.') };
+    }
+  }
+
+  // 7. Repetitive sub-patterns (e.g. asdasd, dfsdfs, etc.)
+  if (/(.{2,5})\1{2,}/i.test(trimmed)) {
+    return { isValid: false, error: tr('projects.validation.repetitivePattern', 'Contiene patrones o secuencias repetitivas de caracteres.') };
+  }
+
   return { isValid: true, error: null };
 }
 
@@ -132,7 +201,7 @@ export function validateProjectLocation(location, t = null) {
   if (!/^[a-zA-Z0-9áéíóúÁÉÍÓÚñÑüÜ\s.,\-#'&()/°ºª]+$/.test(trimmed)) {
     return { isValid: false, error: tr('projects.validation.locationInvalid', 'La ubicación contiene caracteres no permitidos.') };
   }
-  return { isValid: true, error: null };
+  return checkTextLegibility(trimmed, 'location', t);
 }
 
 /**
@@ -164,7 +233,7 @@ export function validateProjectDescription(description, t = null) {
   if (!vowels) {
     return { isValid: false, error: tr('projects.validation.descriptionVowels', 'La descripción debe ser un texto legible y contener vocales.') };
   }
-  return { isValid: true, error: null };
+  return checkTextLegibility(trimmed, 'description', t);
 }
 
 /**

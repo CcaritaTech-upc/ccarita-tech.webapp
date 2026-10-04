@@ -64,6 +64,15 @@
       "descriptionRepetitive": "Description cannot contain repetitive continuous characters.",
       "descriptionNoHtml": "Description cannot contain HTML tags or brackets (<, >).",
       "descriptionVowels": "Description must be legible and contain vowels.",
+      "wordTooLong": "Contains excessively long or invalid words.",
+      "wordNoVowels": "Each word must be legible and contain vowels.",
+      "descriptionWords": "Description must be a phrase or sentence composed of multiple words separated by spaces.",
+      "locationStructure": "Location must describe a valid address or area with words separated by spaces.",
+      "consonantCluster": "Contains impossible or unreadable consecutive consonant sequences.",
+      "vowelRatio": "Text must contain a legible ratio of vowels and consonants.",
+      "keyboardMash": "Text appears to be an arbitrary keyboard smash or repetitive combination.",
+      "homeRowSpam": "Text contains repetitive keyboard mash patterns.",
+      "repetitivePattern": "Contains repeating character patterns or syllables.",
       "imageInvalid": "Please enter a valid image URL."
     },
     "status": {
