@@ -87,7 +87,7 @@ const handleLogout = async () => {
 
 const items = [
 
-  { label: 'option.home', to: ROUTES.ANALYTICS_DASHBOARD, use_role: 'builder', type: 'builder', icon: 'pi pi-home' },
+  { label: 'option.home', to: ROUTES.ANALYTICS_DASHBOARD, use_role: 'builder', type: 'builder', icon: 'pi pi-home', requiresSubscription: true },
   { label: 'option.profile', to: ROUTES.PROFILES, use_role: 'builder', type: 'builder', icon: 'pi pi-user' },
   { label: 'option.projects', to: ROUTES.PROJECTS, use_role: 'builder', type: 'builder', icon: 'pi pi-folder', requiresSubscription: true },
   { label: 'option.clients', to: ROUTES.CLIENTS, use_role: 'builder', type: 'builder', icon: 'pi pi-users', requiresSubscription: true },
@@ -126,7 +126,7 @@ const filteredItems = computed(() => {
                 text
                 rounded
                 @click="toggleDrawer"
-            />            <router-link :to="ROUTES.ANALYTICS_DASHBOARD" class="logo-link">
+            />            <router-link :to="userRole === 'builder' && !hasActiveSubscription ? ROUTES.SUBSCRIPTION_DETAIL : ROUTES.ANALYTICS_DASHBOARD" class="logo-link">
               <img
                 src="/IoBuild-Logo.png"
                 alt="IoBuild Logo"

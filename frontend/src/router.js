@@ -128,9 +128,7 @@ router.beforeEach(async (to, from, next) => {
         const isBuilder = String(currentUser?.role).toLowerCase() === 'builder';
         const isAllowedWithoutSub = to.path.startsWith(ROUTES.SUBSCRIPTIONS_BASE)
             || to.path.startsWith(ROUTES.IAM_BASE)
-            || to.path.startsWith(ROUTES.PROFILES_BASE)
-            || to.path === ROUTES.HOME
-            || to.path.startsWith(ROUTES.ANALYTICS_BASE);
+            || to.path.startsWith(ROUTES.PROFILES_BASE);
 
         if (isBuilder && !isAllowedWithoutSub) {
             // Retry up to 2 times with a short delay to handle the race window

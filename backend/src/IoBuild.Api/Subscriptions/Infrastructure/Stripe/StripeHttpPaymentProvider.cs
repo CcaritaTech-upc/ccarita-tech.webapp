@@ -253,14 +253,27 @@ public sealed class StripeHttpPaymentProvider(HttpClient client, IConfiguration 
         try
         {
             using var response = await client.SendAsync(request, cancellationToken);
-            if (!response.IsSuccessStatusCode) return null;
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorBody = await response.Content.ReadAsStringAsync(cancellationToken);
+                Console.WriteLine($"[Stripe Payment Error] Status: {response.StatusCode}, Body: {errorBody}");
+                return null;
+            }
             using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync(cancellationToken));
             var root = document.RootElement;
             if (!root.TryGetProperty("id", out var id) || !root.TryGetProperty("url", out var url)) return null;
             var amount = root.TryGetProperty("amount_total", out var total) ? total.GetInt64() : 0;
             return new PaymentCheckoutSession(id.GetString()!, url.GetString()!, amount);
         }
-        catch (HttpRequestException) { return null; }
-        catch (JsonException) { return null; }
+        catch (HttpRequestException ex)
+        {
+            Console.WriteLine($"[Stripe HttpRequestException] {ex.Message}");
+            return null;
+        }
+        catch (JsonException ex)
+        {
+            Console.WriteLine($"[Stripe JsonException] {ex.Message}");
+            return null;
+        }
     }
 }
