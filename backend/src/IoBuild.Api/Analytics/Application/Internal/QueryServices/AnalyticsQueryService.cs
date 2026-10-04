@@ -220,7 +220,7 @@ public sealed class AnalyticsQueryService : IAnalyticsQueryService
                 await _db.SaveChangesAsync(ct);
             }
         }
-        else
+        else if (await _db.Projects.AnyAsync(ct))
         {
             var staleProjectProjections = await _db.ProjectProjections.Where(p => p.BuilderUserId == query.UserId).ToListAsync(ct);
             if (staleProjectProjections.Count > 0) _db.ProjectProjections.RemoveRange(staleProjectProjections);
