@@ -117,7 +117,7 @@ public sealed class PublishingTiersTests
     private static async Task<int> CreateProjectAsync(HttpClient client, string token, int builderId, string name)
     {
         using var response = await SendAsync(client, HttpMethod.Post, "/api/v1/projects", token,
-            $"{{\"name\":\"{name}\",\"description\":\"D\",\"location\":\"L\",\"totalUnits\":1,\"builderId\":{builderId},\"imageUrl\":null}}");
+            $"{{\"name\":\"{name}\",\"description\":\"Valid Project Description\",\"location\":\"Av. Test 123, Lima\",\"totalUnits\":1,\"builderId\":{builderId},\"imageUrl\":null}}");
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
         return (await response.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetInt32();
     }

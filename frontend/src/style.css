@@ -483,7 +483,12 @@ body {
   color: #ffffff !important;
 }
 
-/* ── Toast Messages: garantizar fondo claro y texto oscuro legible ── */
+/* ── Toast Messages: garantizar fondo claro, posición debajo del header y texto oscuro legible ── */
+.p-toast {
+  top: 88px !important;
+  z-index: 2000 !important;
+}
+
 .p-toast .p-toast-message {
   background: #ffffff !important;
   border: 1px solid #e5e7eb !important;
@@ -525,3 +530,54 @@ body {
   background: #f1f5f9 !important;
   color: #1e293b !important;
 }
+
+/* ── Global Form Validation Alerts & Error Styles ── */
+.p-error,
+small.p-error {
+  color: #dc2626 !important;
+  font-size: 0.825rem !important;
+  font-weight: 500 !important;
+  display: flex !important;
+  align-items: center !important;
+  margin-top: 0.35rem !important;
+  line-height: 1.25 !important;
+}
+
+.field-alert {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.45rem;
+  padding: 0.4rem 0.65rem;
+  border-radius: 6px;
+  margin-top: 0.35rem;
+  font-size: 0.8125rem;
+  line-height: 1.25rem;
+}
+
+.field-alert--error {
+  background-color: #fef2f2 !important;
+  border: 1px solid #fca5a5 !important;
+  color: #991b1b !important;
+}
+
+.field-alert__icon {
+  color: #dc2626 !important;
+  font-size: 0.95rem !important;
+  margin-top: 0.15rem;
+  flex-shrink: 0;
+}
+
+.field-alert__text {
+  color: #991b1b !important;
+  font-weight: 500;
+}
+
+.p-inputtext.p-invalid,
+.p-select.p-invalid,
+.p-textarea.p-invalid,
+.input-invalid-custom {
+  border-color: #ef4444 !important;
+  background-color: #fff5f5 !important;
+  box-shadow: 0 0 0 1px #ef4444 !important;
+}
+

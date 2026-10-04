@@ -2,6 +2,7 @@
 import { computed } from "vue";
 import { useI18n } from "vue-i18n";
 import { translatePlanDescription } from '../plan-copy.js';
+import { getPlanLimits } from '../../domain/model/plan-limits.js';
 
 const { t, te, locale } = useI18n();
 
@@ -32,24 +33,26 @@ const renewalDateFormatted = computed(() => {
 });
 
 const planLimits = computed(() => {
-  const name = props.plan?.name?.toLowerCase() || "";
-  if (name.includes("starter")) {
-    return { maxDevices: 50, maxProjects: 5, label: "50" };
-  }
-  if (name.includes("pro")) {
-    return { maxDevices: 200, maxProjects: 15, label: "200" };
-  }
-  return { maxDevices: Infinity, maxProjects: Infinity, label: t("subscriptions.usage-unlimited") };
+  return getPlanLimits(props.plan);
 });
 
-const devicePercentage = computed(() => {
-  if (planLimits.value.maxDevices === Infinity) return 15;
-  const pct = Math.round((props.totalDevices / planLimits.value.maxDevices) * 100);
-  return Math.min(pct, 100);
+const rawDevicePercentage = computed(() => {
+  if (planLimits.value.isUnlimited || planLimits.value.maxDevices === Infinity) return 15;
+  if (!planLimits.value.maxDevices || planLimits.value.maxDevices <= 0) return 0;
+  return Math.round((props.totalDevices / planLimits.value.maxDevices) * 100);
+});
+
+const progressWidth = computed(() => {
+  if (planLimits.value.isUnlimited || planLimits.value.maxDevices === Infinity) return 15;
+  return Math.min(rawDevicePercentage.value, 100);
+});
+
+const isLimitExceeded = computed(() => {
+  return !planLimits.value.isUnlimited && props.totalDevices > planLimits.value.maxDevices;
 });
 
 const isNearLimit = computed(() => {
-  return planLimits.value.maxDevices !== Infinity && devicePercentage.value >= 80;
+  return !planLimits.value.isUnlimited && !isLimitExceeded.value && rawDevicePercentage.value >= 80;
 });
 </script>
 
@@ -101,17 +104,31 @@ const isNearLimit = computed(() => {
             <span class="quota-label">{{ t('subscriptions.usage-devices') }}</span>
             <span class="quota-values">
               <strong>{{ props.totalDevices }}</strong> / {{ planLimits.label }}
-              <span v-if="planLimits.maxDevices !== Infinity" class="quota-pct">({{ devicePercentage }}%)</span>
+              <span
+                v-if="!planLimits.isUnlimited"
+                class="quota-pct"
+                :class="{ 'quota-pct-danger': isLimitExceeded }"
+              >({{ rawDevicePercentage }}%)</span>
             </span>
           </div>
-          <div class="progress-track">
+          <div class="progress-track" :class="{ 'track-danger': isLimitExceeded }">
             <div
               class="progress-fill"
-              :class="{ 'progress-warning': isNearLimit }"
-              :style="{ width: `${devicePercentage}%` }"
+              :class="{ 'progress-warning': isNearLimit, 'progress-danger': isLimitExceeded }"
+              :style="{ width: `${progressWidth}%` }"
             ></div>
           </div>
-          <p v-if="isNearLimit" class="quota-alert-text">
+          <div v-if="isLimitExceeded" class="quota-alert-box quota-alert-danger">
+            <div class="quota-alert-msg">
+              <i class="pi pi-exclamation-circle"></i>
+              <span>{{ t('subscriptions.usage-exceeded', { current: props.totalDevices, max: planLimits.label }) }}</span>
+            </div>
+            <button type="button" class="quota-upgrade-btn" @click="$emit('compare-plans')">
+              <i class="pi pi-arrow-up-right"></i>
+              <span>{{ t('subscriptions.upgrade') }}</span>
+            </button>
+          </div>
+          <p v-else-if="isNearLimit" class="quota-alert-text">
             <i class="pi pi-info-circle"></i>
             <span>{{ t('subscriptions.usage-warning') }}</span>
           </p>
@@ -132,6 +149,7 @@ const isNearLimit = computed(() => {
       <!-- 3. Actions -->
       <div class="hero-col hero-col-actions">
         <button
+          v-if="isCancelled"
           type="button"
           class="hero-btn hero-btn-renew"
           :disabled="props.isProcessing"
@@ -139,16 +157,17 @@ const isNearLimit = computed(() => {
         >
           <i v-if="props.isProcessing" class="pi pi-spin pi-spinner"></i>
           <i v-else class="pi pi-sync"></i>
-          <span>{{ isCancelled ? t('subscriptions.reactivate-plan') : t('subscriptions.renew-plan') }}</span>
+          <span>{{ t('subscriptions.reactivate-plan') }}</span>
         </button>
 
         <button
+          v-if="isActive && isLimitExceeded"
           type="button"
-          class="hero-btn hero-btn-invoices"
-          @click="$emit('view-invoices')"
+          class="hero-btn hero-btn-upgrade-danger"
+          @click="$emit('compare-plans')"
         >
-          <i class="pi pi-receipt"></i>
-          <span>{{ t('subscriptions.view-invoices') }}</span>
+          <i class="pi pi-arrow-circle-up"></i>
+          <span>{{ t('subscriptions.upgrade') }}</span>
         </button>
 
         <button
@@ -395,6 +414,19 @@ const isNearLimit = computed(() => {
   background: #f59e0b;
 }
 
+.progress-fill.progress-danger {
+  background: #ef4444;
+}
+
+.progress-track.track-danger {
+  background: #fee2e2;
+}
+
+.quota-pct.quota-pct-danger {
+  color: #dc2626;
+  font-weight: 700;
+}
+
 .quota-alert-text {
   font-size: 0.72rem;
   color: #b45309;
@@ -402,6 +434,65 @@ const isNearLimit = computed(() => {
   display: flex;
   align-items: center;
   gap: 0.35rem;
+}
+
+.quota-alert-box.quota-alert-danger {
+  margin-top: 0.6rem;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #991b1b;
+  border-radius: 0.65rem;
+  padding: 0.6rem 0.85rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  font-size: 0.76rem;
+  line-height: 1.35;
+}
+
+.quota-alert-msg {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.45rem;
+}
+
+.quota-alert-msg i {
+  color: #dc2626;
+  margin-top: 2px;
+  font-size: 0.9rem;
+  flex-shrink: 0;
+}
+
+.quota-upgrade-btn {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.75rem;
+  background: #dc2626;
+  color: #ffffff;
+  border: none;
+  border-radius: 0.45rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.quota-upgrade-btn:hover {
+  background: #b91c1c;
+}
+
+.hero-btn-upgrade-danger {
+  background: #dc2626;
+  color: #ffffff;
+  border: 1px solid #dc2626;
+  box-shadow: 0 4px 10px rgba(220, 38, 38, 0.25);
+}
+
+.hero-btn-upgrade-danger:hover {
+  background: #b91c1c;
+  border-color: #b91c1c;
 }
 
 .quota-submeta {

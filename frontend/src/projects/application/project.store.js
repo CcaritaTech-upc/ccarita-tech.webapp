@@ -3,6 +3,7 @@ import { ref, computed } from "vue";
 import { ProjectApi } from "../infrastructure/project-api.js";
 import { ProjectAssembler } from "../infrastructure/project.assembler.js";
 import { CURRENT_USER_KEY } from "../../shared/infrastructure/storage-keys.js";
+import { useAnalyticsStore } from "../../analytics/application/analytics.store.js";
 
 const projectApi = new ProjectApi();
 
@@ -102,9 +103,21 @@ export const useProjectStore = defineStore("projects", () => {
         const projectId = project.id ?? project;
         return projectApi
             .deleteProject(projectId)
-            .then(() => {
+            .then(async () => {
                 const index = projects.value.findIndex((p) => p.id === parseInt(projectId));
                 if (index !== -1) projects.value.splice(index, 1);
+
+                try {
+                    const analyticsStore = useAnalyticsStore();
+                    analyticsStore.invalidateBuilderDashboard();
+                    const builderId = getCurrentBuilderId();
+                    if (builderId) {
+                        analyticsStore.fetchBuilderDashboard(builderId, true).catch(() => {});
+                    }
+                } catch (e) {
+                    console.warn('[projects] could not invalidate analytics dashboard:', e);
+                }
+
                 return fetchProjects();
             })
             .catch((error) => {

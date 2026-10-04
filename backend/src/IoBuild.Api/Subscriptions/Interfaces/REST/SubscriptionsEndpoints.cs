@@ -132,11 +132,20 @@ public static class SubscriptionsEndpoints
         {
             if (!OwnsBuilder(user, request.BuilderId)) return Results.Forbid();
             var restrictedKey = StripeRestrictedKeyResolver.Resolve(configuration);
-            if (restrictedKey is null) return Results.Problem(statusCode: 503);
+            if (restrictedKey is null)
+            {
+                Console.WriteLine("[Payments Error] No Stripe API key could be resolved from configuration.");
+                return Results.Problem(detail: "Stripe payment service is not configured.", statusCode: 503);
+            }
             if (await db.Plans.FindAsync([request.PlanId], ct) is null) return Results.NotFound();
             var options = StripeIntegrationOptions.Create(restrictedKey);
             var session = await provider.CreateCheckoutSessionAsync(request, options, ct);
-            return session is null ? Results.Problem(statusCode: 503) : Results.Created($"/api/v1/subscriptions/payments/sessions/{session.Id}", new
+            if (session is null)
+            {
+                Console.WriteLine($"[Payments Error] CreateCheckoutSessionAsync returned null for builder {request.BuilderId}, plan {request.PlanId}.");
+                return Results.Problem(detail: "Payment session could not be created with Stripe.", statusCode: 503);
+            }
+            return Results.Created($"/api/v1/subscriptions/payments/sessions/{session.Id}", new
             {
                 session.Id,
                 session.Url,

@@ -57,7 +57,8 @@ test('SUBSCRIPTIONS Builder happy path: browse plans, pay, active subscription',
 // cardNumber, cardExpiry, cardCvc, plus the required email.
 async function payOnStripeIfRedirected(page, email) {
   await page.waitForURL(/session_id=|checkout\.stripe\.com/, { timeout: 20_000 });
-  if (!page.url().includes('checkout.stripe.com')) return;
+  const currentUrl = new URL(page.url());
+  if (currentUrl.hostname !== 'checkout.stripe.com') return;
 
   const yy = String(new Date().getFullYear() + 2).slice(-2);
   // The elements iframe loads after navigation: poll until the card field exists.

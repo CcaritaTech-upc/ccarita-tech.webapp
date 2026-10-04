@@ -40,7 +40,7 @@ public sealed class CleanupTests
     {
         var full = Path.Combine(RepoRoot, relativePath);
         Assert.True(File.Exists(full), $"Expected file to exist: {relativePath} (resolved {full}, root {RepoRoot})");
-        return File.ReadAllText(full);
+        return File.ReadAllText(full).Replace("\r\n", "\n");
     }
 
     // ── docker-compose.yml ──────────────────────────────────────────

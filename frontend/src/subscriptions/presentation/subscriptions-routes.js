@@ -6,7 +6,7 @@ const subscriptionsRoutes = [
     {
         path: "my-subscription",
         name: "my-subscription",
-        meta: { title: 'My Subscription' },
+        meta: { title: 'My Subscription', requiresRole: 'builder' },
         component: () => import("./views/my-subscription.vue"),
     }
 ];

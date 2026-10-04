@@ -1,8 +1,9 @@
 import { test, expect } from '@playwright/test';
+import crypto from 'node:crypto';
 import { provisionAssignedOwner } from './owner-assignment.fixture.js';
 
 async function session(page, role) {
-  const stamp = `${Date.now()}${Math.random().toString(36).slice(2, 7)}`;
+  const stamp = `${Date.now()}${crypto.randomInt(100, 1000)}`;
   const email = `e2e.round2.${role}.${stamp}@example.test`;
   if (role === 'Owner') await provisionAssignedOwner(page, email, stamp);
   const registration = await page.request.post('/api/v1/users', { data: { email, password: 'secret123', role } });

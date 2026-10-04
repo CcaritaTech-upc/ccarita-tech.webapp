@@ -7,25 +7,25 @@ const projectsRoutes=[
         path: '',
         name: 'projects-management',
         component: projectGrid,
-        meta: { title: 'Projects' }
+        meta: { title: 'Projects', requiresRole: 'builder' }
     },
     {
         path: 'new',
         name: 'projects-management-new',
         component: projectForm,
-        meta: { title: 'New Project' }
+        meta: { title: 'New Project', requiresRole: 'builder' }
     },
     {
         path: ':id',
         name: 'projects-management-details',
         component: projectDetails,
-        meta: { title: 'Project Details' }
+        meta: { title: 'Project Details', requiresRole: 'builder' }
     },
     {
         path: ':id/edit',
         name: 'projects-management-edit',
         component: projectForm,
-        meta: { title: 'Edit Project' }
+        meta: { title: 'Edit Project', requiresRole: 'builder' }
     }
 ];
 

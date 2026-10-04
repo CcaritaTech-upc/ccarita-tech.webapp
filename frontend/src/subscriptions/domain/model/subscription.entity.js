@@ -27,7 +27,7 @@ export class Subscription {
      * Check if subscription is active
      */
     isActive() {
-        return isActiveStatus(this.status);
+        return isActiveStatus(this.status, this.endDate);
     }
 
     /**

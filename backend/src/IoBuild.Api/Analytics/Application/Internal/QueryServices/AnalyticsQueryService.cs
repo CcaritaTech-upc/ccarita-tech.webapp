@@ -190,10 +190,43 @@ public sealed class AnalyticsQueryService : IAnalyticsQueryService
                 }
             }
 
-            if (missingProjects.Count > 0 || missingUnits.Count > 0 || updatedDevicesCount > 0)
+            // Purge stale project projections for this builder that no longer exist in real Projects
+            var staleProjectProjections = await _db.ProjectProjections
+                .Where(p => p.BuilderUserId == query.UserId && !pIds.Contains(p.ProjectId))
+                .ToListAsync(ct);
+            if (staleProjectProjections.Count > 0)
+            {
+                _db.ProjectProjections.RemoveRange(staleProjectProjections);
+            }
+
+            var staleDeviceProjections = await _db.DeviceProjections
+                .Where(d => d.ProjectId.HasValue && !pIds.Contains(d.ProjectId.Value))
+                .ToListAsync(ct);
+            if (staleDeviceProjections.Count > 0)
+            {
+                _db.DeviceProjections.RemoveRange(staleDeviceProjections);
+            }
+
+            var staleUnitProjections = await _db.UnitProjections
+                .Where(u => u.BuilderUserId == query.UserId && !pIds.Contains(u.ProjectId))
+                .ToListAsync(ct);
+            if (staleUnitProjections.Count > 0)
+            {
+                _db.UnitProjections.RemoveRange(staleUnitProjections);
+            }
+
+            if (missingProjects.Count > 0 || missingUnits.Count > 0 || updatedDevicesCount > 0 || staleProjectProjections.Count > 0 || staleDeviceProjections.Count > 0 || staleUnitProjections.Count > 0)
             {
                 await _db.SaveChangesAsync(ct);
             }
+        }
+        else if (await _db.Projects.AnyAsync(ct))
+        {
+            var staleProjectProjections = await _db.ProjectProjections.Where(p => p.BuilderUserId == query.UserId).ToListAsync(ct);
+            if (staleProjectProjections.Count > 0) _db.ProjectProjections.RemoveRange(staleProjectProjections);
+            var staleUnitProjections = await _db.UnitProjections.Where(u => u.BuilderUserId == query.UserId).ToListAsync(ct);
+            if (staleUnitProjections.Count > 0) _db.UnitProjections.RemoveRange(staleUnitProjections);
+            if (staleProjectProjections.Count > 0 || staleUnitProjections.Count > 0) await _db.SaveChangesAsync(ct);
         }
 
         var builderProjectIds = await _db.ProjectProjections.Where(p => p.BuilderUserId == query.UserId).Select(p => p.ProjectId).ToListAsync(ct);

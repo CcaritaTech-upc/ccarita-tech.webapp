@@ -10,9 +10,16 @@ export const SubscriptionStatus = Object.freeze({
 });
 
 /**
- * Returns true if status equals active (case-insensitive).
+ * Returns true if status equals active (or cancelled but still within billing cycle).
  * @param {string|null|undefined} status
+ * @param {string|Date|null|undefined} endDate
  */
-export function isActiveStatus(status) {
-    return String(status ?? '').trim().toLowerCase() === SubscriptionStatus.ACTIVE;
+export function isActiveStatus(status, endDate = null) {
+    const s = String(status ?? '').trim().toLowerCase();
+    if (s === SubscriptionStatus.ACTIVE) return true;
+    if (s === SubscriptionStatus.CANCELLED && endDate) {
+        const end = new Date(endDate);
+        return !isNaN(end.getTime()) && end.getTime() > Date.now();
+    }
+    return false;
 }

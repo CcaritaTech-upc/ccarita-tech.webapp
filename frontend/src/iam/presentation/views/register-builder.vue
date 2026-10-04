@@ -251,6 +251,7 @@ import { useRouter } from 'vue-router';
 import { useIamStore } from '../../application/iam.store.js';
 import { useProfileStore } from '../../../profiles/application/profile.store.js';
 import { IamApi } from '../../infrastructure/iam-api.js';
+import { ROUTES } from '../../../shared/infrastructure/paths.js';
 import {
   isValidEmail,
   isValidPhone,
@@ -501,9 +502,9 @@ async function handleRegister() {
 
     successMessage.value = t('iam.messages.registrationSuccess');
     
-    // Redirect to home after 2 seconds
+    // Redirect to subscription after 2 seconds
     setTimeout(() => {
-      router.push({ name: 'home' });
+      router.push(ROUTES.SUBSCRIPTION_DETAIL);
     }, 2000);
 
   } catch (error) {
@@ -641,6 +642,12 @@ function goToLogin() {
   }
 
   .green-fragment {
+    display: none;
+  }
+}
+
+@media (max-width: 768px) {
+  .auth-image-side {
     display: none;
   }
 }
