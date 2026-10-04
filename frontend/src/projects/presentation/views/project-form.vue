@@ -230,11 +230,12 @@ const save = async () => {
     }
   } catch (error) {
     console.error('Error saving project:', error);
+    const backendDetail = error?.response?.data?.error || error?.message || 'No se pudo guardar el proyecto. Por favor verifique los datos.';
     toast.add({
       severity: 'error',
       summary: 'Error',
-      detail: 'No se pudo guardar el proyecto. Por favor verifique los datos.',
-      life: 4000
+      detail: backendDetail,
+      life: 5000
     });
   } finally {
     saving.value = false;
@@ -282,7 +283,7 @@ const cancel = () => {
                 :invalid="!!errors.name"
                 :placeholder="t('projects.fields.name-placeholder')"
                 @blur="validateField('name')"
-                @input="errors.name && validateField('name')"
+                @input="validateField('name')"
             />
             <small v-if="errors.name" class="p-error block mt-1">{{ errors.name }}</small>
           </div>
@@ -292,6 +293,7 @@ const cancel = () => {
             <label class="form-label">
               <i class="pi pi-align-left form-label__icon mr-2"></i>
               {{ t("projects.fields.description") }}
+              <span class="text-red-500 ml-1">*</span>
             </label>
             <pv-textarea
                 v-model="form.description"
@@ -300,7 +302,7 @@ const cancel = () => {
                 rows="3"
                 :placeholder="t('projects.fields.description-placeholder')"
                 @blur="validateField('description')"
-                @input="errors.description && validateField('description')"
+                @input="validateField('description')"
             />
             <small v-if="errors.description" class="p-error block mt-1">{{ errors.description }}</small>
           </div>
@@ -318,7 +320,7 @@ const cancel = () => {
                 :invalid="!!errors.location"
                 :placeholder="t('projects.fields.location-placeholder')"
                 @blur="validateField('location')"
-                @input="errors.location && validateField('location')"
+                @input="validateField('location')"
             />
             <small v-if="errors.location" class="p-error block mt-1">{{ errors.location }}</small>
           </div>

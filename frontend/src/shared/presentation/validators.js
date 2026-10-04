@@ -109,8 +109,8 @@ export function validateProjectLocation(location, t = null) {
     return { isValid: false, error: tr('projects.validation.locationRequired', 'La ubicación del proyecto es obligatoria.') };
   }
   const trimmed = location.trim();
-  if (trimmed.length < 3) {
-    return { isValid: false, error: tr('projects.validation.locationMinLength', 'La ubicación debe tener al menos 3 caracteres.') };
+  if (trimmed.length < 4) {
+    return { isValid: false, error: tr('projects.validation.locationMinLength', 'La ubicación debe tener al menos 4 caracteres.') };
   }
   if (trimmed.length > 150) {
     return { isValid: false, error: tr('projects.validation.locationMaxLength', 'La ubicación no puede exceder los 150 caracteres.') };
@@ -125,6 +125,10 @@ export function validateProjectLocation(location, t = null) {
   if (!letters || letters.length < 3) {
     return { isValid: false, error: tr('projects.validation.locationInvalid', 'La ubicación debe contener al menos 3 letras y describir una dirección, calle o distrito válido.') };
   }
+  const vowels = trimmed.match(/[aeiouáéíóúAEIOUÁÉÍÓÚ]/i);
+  if (!vowels) {
+    return { isValid: false, error: tr('projects.validation.locationVowels', 'La ubicación debe ser una dirección o zona legible y contener al menos una vocal.') };
+  }
   if (!/^[a-zA-Z0-9áéíóúÁÉÍÓÚñÑüÜ\s.,\-#'&()/°ºª]+$/.test(trimmed)) {
     return { isValid: false, error: tr('projects.validation.locationInvalid', 'La ubicación contiene caracteres no permitidos.') };
   }
@@ -137,14 +141,28 @@ export function validateProjectLocation(location, t = null) {
 export function validateProjectDescription(description, t = null) {
   const tr = (key, fallback) => (t ? t(key) : fallback);
   if (!description || typeof description !== 'string' || !description.trim()) {
-    return { isValid: true, error: null };
+    return { isValid: false, error: tr('projects.validation.descriptionRequired', 'La descripción del proyecto es obligatoria.') };
   }
   const trimmed = description.trim();
+  if (trimmed.length < 10) {
+    return { isValid: false, error: tr('projects.validation.descriptionMinLength', 'La descripción debe tener al menos 10 caracteres.') };
+  }
   if (trimmed.length > 500) {
     return { isValid: false, error: tr('projects.validation.descriptionMaxLength', 'La descripción no puede exceder los 500 caracteres.') };
   }
   if (/[<>]/.test(trimmed)) {
     return { isValid: false, error: tr('projects.validation.descriptionNoHtml', 'La descripción no puede contener etiquetas ni caracteres HTML (<, >).') };
+  }
+  if (/(.)\1{3,}/i.test(trimmed)) {
+    return { isValid: false, error: tr('projects.validation.descriptionRepetitive', 'La descripción no puede contener caracteres repetitivos continuos.') };
+  }
+  const letters = trimmed.match(/[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ]/g);
+  if (!letters || letters.length < 5) {
+    return { isValid: false, error: tr('projects.validation.descriptionInvalid', 'La descripción debe contener al menos 5 letras y ser un texto descriptivo comprensible.') };
+  }
+  const vowels = trimmed.match(/[aeiouáéíóúAEIOUÁÉÍÓÚ]/i);
+  if (!vowels) {
+    return { isValid: false, error: tr('projects.validation.descriptionVowels', 'La descripción debe ser un texto legible y contener vocales.') };
   }
   return { isValid: true, error: null };
 }

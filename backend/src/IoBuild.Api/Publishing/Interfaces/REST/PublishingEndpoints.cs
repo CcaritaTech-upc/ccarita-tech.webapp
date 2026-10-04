@@ -63,8 +63,8 @@ public static class PublishingEndpoints
         var trimmedLoc = location?.Trim();
         if (string.IsNullOrWhiteSpace(trimmedLoc))
             return (false, "La ubicación del proyecto es obligatoria.");
-        if (trimmedLoc.Length < 3 || trimmedLoc.Length > 150)
-            return (false, "La ubicación del proyecto debe tener entre 3 y 150 caracteres.");
+        if (trimmedLoc.Length < 4 || trimmedLoc.Length > 150)
+            return (false, "La ubicación del proyecto debe tener entre 4 y 150 caracteres.");
         if (trimmedLoc.Contains('<') || trimmedLoc.Contains('>'))
             return (false, "La ubicación del proyecto no puede contener caracteres HTML (<, >).");
         var locLetters = System.Text.RegularExpressions.Regex.Matches(trimmedLoc, @"[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ]").Count;
@@ -72,14 +72,23 @@ public static class PublishingEndpoints
             return (false, "La ubicación del proyecto debe contener al menos 3 letras que describan una dirección o zona válida.");
         if (System.Text.RegularExpressions.Regex.IsMatch(trimmedLoc, @"(.)\1{3,}", System.Text.RegularExpressions.RegexOptions.IgnoreCase))
             return (false, "La ubicación del proyecto no puede contener caracteres repetitivos continuos.");
+        if (!System.Text.RegularExpressions.Regex.IsMatch(trimmedLoc, @"[aeiouáéíóúAEIOUÁÉÍÓÚ]", System.Text.RegularExpressions.RegexOptions.IgnoreCase))
+            return (false, "La ubicación del proyecto debe ser una dirección o zona legible y contener al menos una vocal.");
 
-        if (!string.IsNullOrWhiteSpace(description))
-        {
-            if (description.Length > 500)
-                return (false, "La descripción del proyecto no puede exceder los 500 caracteres.");
-            if (description.Contains('<') || description.Contains('>'))
-                return (false, "La descripción del proyecto no puede contener caracteres HTML (<, >).");
-        }
+        var trimmedDesc = description?.Trim();
+        if (string.IsNullOrWhiteSpace(trimmedDesc))
+            return (false, "La descripción del proyecto es obligatoria.");
+        if (trimmedDesc.Length < 10 || trimmedDesc.Length > 500)
+            return (false, "La descripción del proyecto debe tener entre 10 y 500 caracteres.");
+        if (trimmedDesc.Contains('<') || trimmedDesc.Contains('>'))
+            return (false, "La descripción del proyecto no puede contener caracteres HTML (<, >).");
+        var descLetters = System.Text.RegularExpressions.Regex.Matches(trimmedDesc, @"[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ]").Count;
+        if (descLetters < 5)
+            return (false, "La descripción del proyecto debe contener al menos 5 letras y ser un texto descriptivo comprensible.");
+        if (System.Text.RegularExpressions.Regex.IsMatch(trimmedDesc, @"(.)\1{3,}", System.Text.RegularExpressions.RegexOptions.IgnoreCase))
+            return (false, "La descripción del proyecto no puede contener caracteres repetitivos continuos.");
+        if (!System.Text.RegularExpressions.Regex.IsMatch(trimmedDesc, @"[aeiouáéíóúAEIOUÁÉÍÓÚ]", System.Text.RegularExpressions.RegexOptions.IgnoreCase))
+            return (false, "La descripción del proyecto debe ser un texto legible y contener vocales.");
 
         return (true, string.Empty);
     }
