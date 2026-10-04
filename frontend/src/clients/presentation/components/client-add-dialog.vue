@@ -1,6 +1,7 @@
 <script setup>
 import { ref, watch, computed, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { useToast } from 'primevue/usetoast';
 import { Client } from '../../domain/model/client.entity.js';
 import { ProjectsFacade } from '../../infrastructure/projects.facade.js';
 import {
@@ -21,6 +22,7 @@ const props = defineProps({
 const emit = defineEmits(['update:visible', 'save']);
 
 const { t } = useI18n();
+const toast = useToast();
 
 const iamStore = useIamStore();
 const projectsFacade = new ProjectsFacade();
@@ -175,6 +177,13 @@ const handleSave = () => {
 
   const activeErrors = Object.entries(errors.value).filter(([_, err]) => !!err);
   if (activeErrors.length > 0) {
+    const firstError = activeErrors[0][1];
+    toast.add({
+      severity: 'warn',
+      summary: t('clients.validation.formInvalid') || 'Datos inválidos',
+      detail: firstError,
+      life: 4000
+    });
     return;
   }
 
@@ -219,7 +228,12 @@ const handleCancel = () => {
           @blur="validateField('fullName')"
           @input="validateField('fullName')"
         />
-        <small v-if="errors.fullName" class="p-error block mt-1">{{ errors.fullName }}</small>
+        <small v-if="errors.fullName" class="p-error block mt-1">
+          <i class="pi pi-exclamation-triangle mr-1"></i>{{ errors.fullName }}
+        </small>
+        <small v-else class="text-xs text-gray-500 block mt-1">
+          {{ t('clients.hints.fullName') }}
+        </small>
       </div>
 
       <div class="col-12 mb-3">
@@ -234,7 +248,12 @@ const handleCancel = () => {
           @blur="validateField('email')"
           @input="validateField('email')"
         />
-        <small v-if="errors.email" class="p-error block mt-1">{{ errors.email }}</small>
+        <small v-if="errors.email" class="p-error block mt-1">
+          <i class="pi pi-exclamation-triangle mr-1"></i>{{ errors.email }}
+        </small>
+        <small v-else class="text-xs text-gray-500 block mt-1">
+          {{ t('clients.hints.email') }}
+        </small>
       </div>
 
       <div class="col-12 mb-3">
@@ -248,7 +267,12 @@ const handleCancel = () => {
           @blur="validateField('phoneNumber')"
           @input="validateField('phoneNumber')"
         />
-        <small v-if="errors.phoneNumber" class="p-error block mt-1">{{ errors.phoneNumber }}</small>
+        <small v-if="errors.phoneNumber" class="p-error block mt-1">
+          <i class="pi pi-exclamation-triangle mr-1"></i>{{ errors.phoneNumber }}
+        </small>
+        <small v-else class="text-xs text-gray-500 block mt-1">
+          {{ t('clients.hints.phoneNumber') }}
+        </small>
       </div>
 
       <div class="col-12 mb-3">
@@ -262,7 +286,12 @@ const handleCancel = () => {
           @blur="validateField('address')"
           @input="validateField('address')"
         />
-        <small v-if="errors.address" class="p-error block mt-1">{{ errors.address }}</small>
+        <small v-if="errors.address" class="p-error block mt-1">
+          <i class="pi pi-exclamation-triangle mr-1"></i>{{ errors.address }}
+        </small>
+        <small v-else class="text-xs text-gray-500 block mt-1">
+          {{ t('clients.hints.address') }}
+        </small>
       </div>
 
       <div class="col-12 mb-3">
@@ -277,8 +306,14 @@ const handleCancel = () => {
           class="w-full"
           :invalid="!!errors.projectId"
           :disabled="projectOptions.length === 0"
+          @change="validateField('projectId')"
         />
-        <small v-if="errors.projectId" class="p-error block mt-1">{{ errors.projectId }}</small>
+        <small v-if="errors.projectId" class="p-error block mt-1">
+          <i class="pi pi-exclamation-triangle mr-1"></i>{{ errors.projectId }}
+        </small>
+        <small v-else class="text-xs text-gray-500 block mt-1">
+          {{ t('clients.hints.project') }}
+        </small>
       </div>
 
       <div class="col-12 mb-3">
@@ -296,6 +331,9 @@ const handleCancel = () => {
         />
         <small v-if="formData.projectId && unitOptions.length <= 1 && !loadingUnits" class="text-gray-500 block mt-1">
           {{ t('clients.messages.noUnitsConfigured') }}
+        </small>
+        <small v-else-if="formData.projectId" class="text-xs text-gray-500 block mt-1">
+          {{ t('clients.hints.unit') }}
         </small>
       </div>
     </div>

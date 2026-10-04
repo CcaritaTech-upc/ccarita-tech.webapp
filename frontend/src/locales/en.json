@@ -298,7 +298,16 @@
       "addressMaxLength": "Address cannot exceed 150 characters.",
       "addressNoHtml": "Address cannot contain HTML tags or brackets (<, >).",
       "addressInvalid": "Address contains invalid characters.",
-      "projectRequired": "Select a project for this client."
+      "projectRequired": "Select a project for this client.",
+      "formInvalid": "Please complete or correct the required fields before saving."
+    },
+    "hints": {
+      "fullName": "Enter real first and last names (min 3 characters, no repetitive sequences).",
+      "email": "Valid personal or business email address.",
+      "phoneNumber": "Optional. Local or international format (7 to 15 digits).",
+      "address": "Optional. Physical residence or contact address.",
+      "project": "Select the real estate project this client belongs to.",
+      "unit": "Optional. Select the unit or room assigned to this client."
     },
     "status": {
       "active": "Active",

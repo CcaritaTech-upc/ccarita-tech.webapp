@@ -103,6 +103,14 @@ public static class PublishingEndpoints
         if (System.Text.RegularExpressions.Regex.IsMatch(trimmed, @"(.{2,5})\1{2,}", System.Text.RegularExpressions.RegexOptions.IgnoreCase))
             return (false, "El texto contiene patrones o secuencias repetitivas de caracteres.");
 
+        // 8. Keyboard sequences and pure repetition (e.g. asdf, qwer, zxcv, asdasd)
+        var cleanAlpha = System.Text.RegularExpressions.Regex.Replace(trimmed.ToLowerInvariant(), @"[^a-záéíóúñü]", "");
+        string[] keyboardSequences = ["asdf", "qwer", "zxcv", "hjkl", "yuio", "uiop", "ghjk", "fdsa", "rewq", "vcxz"];
+        if (keyboardSequences.Any(seq => cleanAlpha.Contains(seq)))
+            return (false, "El texto contiene secuencias de teclas del teclado (ej. asdf).");
+        if (cleanAlpha.Length >= 4 && System.Text.RegularExpressions.Regex.IsMatch(cleanAlpha, @"^(.{2,4})\1+$"))
+            return (false, "El texto contiene secuencias repetitivas del teclado.");
+
         return (true, string.Empty);
     }
 

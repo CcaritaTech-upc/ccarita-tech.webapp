@@ -166,6 +166,16 @@ function checkTextLegibility(text, fieldName, t = null) {
     return { isValid: false, error: tr('projects.validation.repetitivePattern', 'Contiene patrones o secuencias repetitivas de caracteres.') };
   }
 
+  // 8. Keyboard sequences and pure repetition (e.g. asdf, qwer, zxcv, asdasd)
+  const cleanAlpha = trimmed.toLowerCase().replace(/[^a-záéíóúñü]/gi, '');
+  const KEYBOARD_SEQUENCES = ['asdf', 'qwer', 'zxcv', 'hjkl', 'yuio', 'uiop', 'ghjk', 'fdsa', 'rewq', 'vcxz'];
+  if (KEYBOARD_SEQUENCES.some(seq => cleanAlpha.includes(seq))) {
+    return { isValid: false, error: tr('projects.validation.keyboardMash', 'El texto contiene secuencias de teclas del teclado (ej. asdf).') };
+  }
+  if (cleanAlpha.length >= 4 && /^(.{2,4})\1+$/.test(cleanAlpha)) {
+    return { isValid: false, error: tr('projects.validation.repetitivePattern', 'El texto contiene secuencias repetitivas del teclado.') };
+  }
+
   return { isValid: true, error: null };
 }
 

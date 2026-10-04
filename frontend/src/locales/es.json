@@ -298,7 +298,16 @@
       "addressMaxLength": "La dirección no puede exceder los 150 caracteres.",
       "addressNoHtml": "La dirección no puede contener caracteres HTML (<, >).",
       "addressInvalid": "La dirección contiene caracteres no permitidos.",
-      "projectRequired": "Seleccione un proyecto para este cliente."
+      "projectRequired": "Seleccione un proyecto para este cliente.",
+      "formInvalid": "Por favor complete o corrija los campos requeridos antes de guardar."
+    },
+    "hints": {
+      "fullName": "Ingrese nombres y apellidos reales (mínimo 3 caracteres, sin secuencias repetitivas).",
+      "email": "Correo electrónico corporativo o personal válido.",
+      "phoneNumber": "Opcional. Formato internacional o local (7 a 15 dígitos numéricos).",
+      "address": "Opcional. Dirección física de residencia o contacto.",
+      "project": "Seleccione el proyecto inmobiliario al que pertenece este cliente.",
+      "unit": "Opcional. Seleccione el departamento o espacio asignado al cliente."
     },
     "status": {
       "active": "Activo",
