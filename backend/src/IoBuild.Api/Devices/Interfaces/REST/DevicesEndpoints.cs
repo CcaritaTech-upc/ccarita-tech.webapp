@@ -89,6 +89,7 @@ public static class DevicesEndpoints
             return await telemetry.IngestAsync(request, ct) ? Results.Ok(new { received = true }) : Results.NotFound();
         }).AllowAnonymous();
         group.MapPost("/devices/telemetry/replay", async (DeviceTelemetryService telemetry, CancellationToken ct) => Results.Ok(new { replayed = await telemetry.ReplayInfluxAsync(ct) })).RequireAuthorization();
+        group.MapPost("/devices/reconcile", async (DeviceRegistryService registry, CancellationToken ct) => { await registry.ReconcileAsync(ct); return Results.Ok(new { reconciled = true }); }).AllowAnonymous();
         group.MapGet("/devices/{id:int}/energy", async (int id, DateTimeOffset? from, DateTimeOffset? to, IoBuildDbContext db, CancellationToken ct) =>
         {
             if (await db.Devices.FindAsync([id], ct) is null) return Results.NotFound(new { message = $"Device with ID {id} not found" });

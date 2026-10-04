@@ -1,3 +1,4 @@
+using IoBuild.Api.Devices.Application.Internal.CommandServices;
 using IoBuild.Api.Persistence;
 using IoBuild.Api.Publishing.Domain.Services;
 using Microsoft.EntityFrameworkCore;
@@ -8,7 +9,7 @@ namespace IoBuild.Api.Publishing.Application.Internal.CommandServices;
 /// Publishing application service (Project).
 /// Implements IProjectCommandService from Domain.Services.
 /// </summary>
-public sealed class ProjectCommandService(IoBuildDbContext dbContext) : IProjectCommandService
+public sealed class ProjectCommandService(IoBuildDbContext dbContext, DeviceRegistryService? registry = null) : IProjectCommandService
 {
     public async Task<Project> CreateProjectAsync(string name, string description, string location, int totalUnits, int builderId, string? imageUrl, CancellationToken cancellationToken = default)
     {
@@ -147,5 +148,14 @@ public sealed class ProjectCommandService(IoBuildDbContext dbContext) : IProject
             });
         }
         await dbContext.SaveChangesAsync(cancellationToken);
+
+        if (registry is not null)
+        {
+            foreach (var dev in floorDevices.Concat(unitDevices))
+            {
+                try { await registry.AnnounceAsync(dev, cancellationToken); }
+                catch (HttpRequestException) { /* Non-fatal if broker is temporarily unavailable */ }
+            }
+        }
     }
 }
