@@ -45,11 +45,12 @@ const handleSaveNewClient = async (newClientData) => {
       life: TOAST_ERROR_DURATION_MS
     });
   } catch (error) {
+    const detail = error?.response?.data?.error || t('clients.messages.addError');
     toast.add({
       severity: 'error',
       summary: t('clients.messages.addError'),
-      detail: t('clients.messages.addError'),
-      life: TOAST_ERROR_DURATION_MS
+      detail: detail,
+      life: 5000
     });
   }
 };

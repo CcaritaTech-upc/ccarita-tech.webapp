@@ -165,6 +165,56 @@ public static class PublishingEndpoints
         return (true, string.Empty);
     }
 
+    private static (bool isValid, string error) ValidateClientData(string? fullName, string? email, string? phoneNumber, string? address)
+    {
+        var trimmedName = fullName?.Trim();
+        if (string.IsNullOrWhiteSpace(trimmedName))
+            return (false, "El nombre completo del cliente es obligatorio.");
+        if (trimmedName.Length < 3 || trimmedName.Length > 100)
+            return (false, "El nombre completo del cliente debe tener entre 3 y 100 caracteres.");
+        if (trimmedName.Contains('<') || trimmedName.Contains('>'))
+            return (false, "El nombre completo no puede contener caracteres HTML (<, >).");
+        if (!System.Text.RegularExpressions.Regex.IsMatch(trimmedName, @"^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s.\-']+$"))
+            return (false, "El nombre completo solo puede contener letras y caracteres válidos.");
+        var nameLetters = System.Text.RegularExpressions.Regex.Matches(trimmedName, @"[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ]").Count;
+        if (nameLetters < 3)
+            return (false, "El nombre completo debe contener al menos 3 letras.");
+
+        var nameLegibility = CheckTextLegibility(trimmedName, "name");
+        if (!nameLegibility.isValid) return nameLegibility;
+
+        var trimmedEmail = email?.Trim();
+        if (string.IsNullOrWhiteSpace(trimmedEmail))
+            return (false, "El correo electrónico del cliente es obligatorio.");
+        if (!System.Text.RegularExpressions.Regex.IsMatch(trimmedEmail, @"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"))
+            return (false, "Ingrese un correo electrónico válido (ej. usuario@empresa.com).");
+
+        var trimmedPhone = phoneNumber?.Trim();
+        if (!string.IsNullOrWhiteSpace(trimmedPhone))
+        {
+            var digitsOnly = System.Text.RegularExpressions.Regex.Replace(trimmedPhone, @"\D", "");
+            if (digitsOnly.Length < 7 || digitsOnly.Length > 15)
+                return (false, "El número telefónico debe tener entre 7 y 15 dígitos.");
+        }
+
+        var trimmedAddr = address?.Trim();
+        if (!string.IsNullOrWhiteSpace(trimmedAddr))
+        {
+            if (trimmedAddr.Length < 4 || trimmedAddr.Length > 150)
+                return (false, "La dirección debe tener entre 4 y 150 caracteres.");
+            if (trimmedAddr.Contains('<') || trimmedAddr.Contains('>'))
+                return (false, "La dirección no puede contener caracteres HTML (<, >).");
+            var addrLetters = System.Text.RegularExpressions.Regex.Matches(trimmedAddr, @"[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ]").Count;
+            if (addrLetters < 3)
+                return (false, "La dirección debe contener al menos 3 letras.");
+
+            var addrLegibility = CheckTextLegibility(trimmedAddr, "location");
+            if (!addrLegibility.isValid) return addrLegibility;
+        }
+
+        return (true, string.Empty);
+    }
+
     public static void MapPublishingEndpoints(this WebApplication app)
     {
         // ── Projects Endpoints ──
@@ -475,6 +525,10 @@ public static class PublishingEndpoints
             if (resource.BuilderId > 0 && resource.BuilderId != tokenBuilderId) return Results.Forbid();
             if (!await OwnsProjectIdAsync(user, db, resource.ProjectId, ct)) return Results.NotFound();
             if (resource.UnitId.HasValue && !await OwnsUnitInProjectAsync(user, db, resource.UnitId.Value, resource.ProjectId, ct)) return Results.NotFound();
+
+            var validation = ValidateClientData(resource.FullName, resource.Email, resource.PhoneNumber, resource.Address);
+            if (!validation.isValid) return Results.Json(new { error = validation.error }, statusCode: 422);
+
             var command = new CreateClientCommand(
                 resource.FullName,
                 resource.ProjectName,
@@ -501,6 +555,10 @@ public static class PublishingEndpoints
             if (resource.BuilderId > 0 && resource.BuilderId != tokenBuilderId) return Results.Forbid();
             if (!await OwnsProjectIdAsync(user, db, resource.ProjectId, ct)) return Results.NotFound();
             if (resource.UnitId.HasValue && !await OwnsUnitInProjectAsync(user, db, resource.UnitId.Value, resource.ProjectId, ct)) return Results.NotFound();
+
+            var validation = ValidateClientData(resource.FullName, resource.Email, resource.PhoneNumber, resource.Address);
+            if (!validation.isValid) return Results.Json(new { error = validation.error }, statusCode: 422);
+
             try
             {
                 var command = new UpdateClientCommand(

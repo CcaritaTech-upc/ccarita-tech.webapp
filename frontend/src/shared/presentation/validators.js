@@ -237,6 +237,62 @@ export function validateProjectDescription(description, t = null) {
 }
 
 /**
+ * Comprehensive validator for client full name.
+ */
+export function validateClientFullName(fullName, t = null) {
+  const tr = (key, fallback) => (t ? t(key) : fallback);
+  if (!fullName || typeof fullName !== 'string' || !fullName.trim()) {
+    return { isValid: false, error: tr('clients.validation.fullNameRequired', 'El nombre completo es obligatorio.') };
+  }
+  const trimmed = fullName.trim();
+  if (trimmed.length < 3) {
+    return { isValid: false, error: tr('clients.validation.fullNameMinLength', 'El nombre completo debe tener al menos 3 caracteres.') };
+  }
+  if (trimmed.length > 100) {
+    return { isValid: false, error: tr('clients.validation.fullNameMaxLength', 'El nombre completo no puede exceder los 100 caracteres.') };
+  }
+  if (/[<>]/.test(trimmed)) {
+    return { isValid: false, error: tr('projects.validation.nameNoHtml', 'El nombre no puede contener etiquetas ni caracteres HTML (<, >).') };
+  }
+  if (!/^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s.\-']+$/.test(trimmed)) {
+    return { isValid: false, error: tr('clients.validation.fullNameInvalid', 'El nombre completo solo puede contener letras y caracteres válidos.') };
+  }
+  const letters = trimmed.match(/[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ]/g);
+  if (!letters || letters.length < 3) {
+    return { isValid: false, error: tr('clients.validation.fullNameInvalid', 'El nombre completo debe contener al menos 3 letras.') };
+  }
+  return checkTextLegibility(trimmed, 'name', t);
+}
+
+/**
+ * Comprehensive validator for client address (optional, but if entered must be valid).
+ */
+export function validateClientAddress(address, t = null) {
+  const tr = (key, fallback) => (t ? t(key) : fallback);
+  if (!address || typeof address !== 'string' || !address.trim()) {
+    return { isValid: true, error: null };
+  }
+  const trimmed = address.trim();
+  if (trimmed.length < 4) {
+    return { isValid: false, error: tr('clients.validation.addressMinLength', 'La dirección debe tener al menos 4 caracteres.') };
+  }
+  if (trimmed.length > 150) {
+    return { isValid: false, error: tr('clients.validation.addressMaxLength', 'La dirección no puede exceder los 150 caracteres.') };
+  }
+  if (/[<>]/.test(trimmed)) {
+    return { isValid: false, error: tr('clients.validation.addressNoHtml', 'La dirección no puede contener etiquetas ni caracteres HTML (<, >).') };
+  }
+  if (!/^[a-zA-Z0-9áéíóúÁÉÍÓÚñÑüÜ\s.,\-#'&()/°ºª]+$/.test(trimmed)) {
+    return { isValid: false, error: tr('clients.validation.addressInvalid', 'La dirección contiene caracteres no permitidos.') };
+  }
+  const letters = trimmed.match(/[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ]/g);
+  if (!letters || letters.length < 3) {
+    return { isValid: false, error: tr('clients.validation.addressInvalid', 'La dirección debe contener al menos 3 letras.') };
+  }
+  return checkTextLegibility(trimmed, 'location', t);
+}
+
+/**
  * Validates a username.
  */
 export function isValidUsername(username) {

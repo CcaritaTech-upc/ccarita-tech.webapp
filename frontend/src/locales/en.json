@@ -288,10 +288,16 @@
     },
     "validation": {
       "fullNameRequired": "Full name is required.",
-      "fullNameMinLength": "Full name must have at least 2 characters.",
+      "fullNameMinLength": "Full name must be at least 3 characters.",
+      "fullNameMaxLength": "Full name cannot exceed 100 characters.",
+      "fullNameInvalid": "Full name can only contain letters and valid characters.",
       "emailRequired": "Email is required.",
       "emailInvalid": "Enter a valid email address (for example, user@company.com).",
       "phoneInvalid": "Enter a valid phone number (7 to 15 digits).",
+      "addressMinLength": "Address must be at least 4 characters.",
+      "addressMaxLength": "Address cannot exceed 150 characters.",
+      "addressNoHtml": "Address cannot contain HTML tags or brackets (<, >).",
+      "addressInvalid": "Address contains invalid characters.",
       "projectRequired": "Select a project for this client."
     },
     "status": {

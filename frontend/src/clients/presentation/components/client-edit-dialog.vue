@@ -1,8 +1,12 @@
 <script setup>
 import { ref, watch, computed, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { ProjectsFacade } from '../../infrastructure/projects.facade.js';
-import { isValidEmail, isValidPhone, isValidName } from '../../../shared/presentation/validators.js';
+import {
+  isValidEmail,
+  isValidPhone,
+  validateClientFullName,
+  validateClientAddress
+} from '../../../shared/presentation/validators.js';
 
 const props = defineProps({
   visible: {
@@ -131,38 +135,56 @@ watch(() => formData.value.unitId, (newUnitId) => {
   }
 });
 
+const validateField = (field) => {
+  if (field === 'fullName') {
+    const res = validateClientFullName(formData.value.fullName, t);
+    errors.value.fullName = res.isValid ? '' : res.error;
+  } else if (field === 'email') {
+    const val = (formData.value.email || '').trim();
+    if (!val) {
+      errors.value.email = t('clients.validation.emailRequired');
+    } else if (!isValidEmail(val)) {
+      errors.value.email = t('clients.validation.emailInvalid');
+    } else {
+      errors.value.email = '';
+    }
+  } else if (field === 'phoneNumber') {
+    const val = (formData.value.phoneNumber || '').trim();
+    if (val && !isValidPhone(val)) {
+      errors.value.phoneNumber = t('clients.validation.phoneInvalid');
+    } else {
+      errors.value.phoneNumber = '';
+    }
+  } else if (field === 'address') {
+    const res = validateClientAddress(formData.value.address, t);
+    errors.value.address = res.isValid ? '' : res.error;
+  } else if (field === 'projectId') {
+    if (!formData.value.projectId) {
+      errors.value.projectId = t('clients.validation.projectRequired');
+    } else {
+      errors.value.projectId = '';
+    }
+  }
+};
+
 const handleSave = () => {
   errors.value = {};
+
+  validateField('fullName');
+  validateField('email');
+  validateField('phoneNumber');
+  validateField('address');
+  validateField('projectId');
+
+  const activeErrors = Object.entries(errors.value).filter(([_, err]) => !!err);
+  if (activeErrors.length > 0) {
+    return;
+  }
 
   const fullName = (formData.value.fullName || '').trim();
   const email = (formData.value.email || '').trim();
   const phoneNumber = (formData.value.phoneNumber || '').trim();
   const address = (formData.value.address || '').trim();
-  const projectId = formData.value.projectId;
-
-  if (!fullName) {
-    errors.value.fullName = t('clients.validation.fullNameRequired');
-  } else if (!isValidName(fullName, 2)) {
-    errors.value.fullName = t('clients.validation.fullNameMinLength');
-  }
-
-  if (!email) {
-    errors.value.email = t('clients.validation.emailRequired');
-  } else if (!isValidEmail(email)) {
-    errors.value.email = t('clients.validation.emailInvalid');
-  }
-
-  if (phoneNumber && !isValidPhone(phoneNumber)) {
-    errors.value.phoneNumber = t('clients.validation.phoneInvalid');
-  }
-
-  if (!projectId) {
-    errors.value.projectId = t('clients.validation.projectRequired');
-  }
-
-  if (Object.keys(errors.value).length > 0) {
-    return;
-  }
 
   formData.value.fullName = fullName;
   formData.value.email = email;
@@ -202,6 +224,8 @@ const accountStatementOptions = computed(() => [
           class="w-full"
           :invalid="!!errors.fullName"
           :placeholder="t('clients.placeholders.fullName')"
+          @blur="validateField('fullName')"
+          @input="validateField('fullName')"
         />
         <small v-if="errors.fullName" class="p-error block mt-1">{{ errors.fullName }}</small>
       </div>
@@ -215,6 +239,8 @@ const accountStatementOptions = computed(() => [
           type="email"
           :invalid="!!errors.email"
           :placeholder="t('clients.placeholders.email')"
+          @blur="validateField('email')"
+          @input="validateField('email')"
         />
         <small v-if="errors.email" class="p-error block mt-1">{{ errors.email }}</small>
       </div>
@@ -227,6 +253,8 @@ const accountStatementOptions = computed(() => [
           class="w-full"
           :invalid="!!errors.phoneNumber"
           :placeholder="t('clients.placeholders.phoneNumber')"
+          @blur="validateField('phoneNumber')"
+          @input="validateField('phoneNumber')"
         />
         <small v-if="errors.phoneNumber" class="p-error block mt-1">{{ errors.phoneNumber }}</small>
       </div>
@@ -237,8 +265,12 @@ const accountStatementOptions = computed(() => [
           id="address"
           v-model="formData.address"
           class="w-full"
+          :invalid="!!errors.address"
           :placeholder="t('clients.placeholders.address')"
+          @blur="validateField('address')"
+          @input="validateField('address')"
         />
+        <small v-if="errors.address" class="p-error block mt-1">{{ errors.address }}</small>
       </div>
 
       <div class="col-12 mb-3">

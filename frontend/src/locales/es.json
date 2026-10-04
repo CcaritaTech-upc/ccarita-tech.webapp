@@ -288,10 +288,16 @@
     },
     "validation": {
       "fullNameRequired": "El nombre completo es obligatorio.",
-      "fullNameMinLength": "El nombre completo debe tener al menos 2 caracteres.",
+      "fullNameMinLength": "El nombre completo debe tener al menos 3 caracteres.",
+      "fullNameMaxLength": "El nombre completo no puede exceder los 100 caracteres.",
+      "fullNameInvalid": "El nombre completo solo puede contener letras y caracteres válidos.",
       "emailRequired": "El correo electrónico es obligatorio.",
       "emailInvalid": "Ingrese un correo electrónico válido (por ejemplo, usuario@empresa.com).",
       "phoneInvalid": "Ingrese un número telefónico válido (de 7 a 15 dígitos).",
+      "addressMinLength": "La dirección debe tener al menos 4 caracteres.",
+      "addressMaxLength": "La dirección no puede exceder los 150 caracteres.",
+      "addressNoHtml": "La dirección no puede contener caracteres HTML (<, >).",
+      "addressInvalid": "La dirección contiene caracteres no permitidos.",
       "projectRequired": "Seleccione un proyecto para este cliente."
     },
     "status": {

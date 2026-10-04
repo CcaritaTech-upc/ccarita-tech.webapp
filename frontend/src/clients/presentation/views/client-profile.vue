@@ -109,11 +109,12 @@ const handleSaveEdit = async (updatedClient) => {
       life: TOAST_ERROR_DURATION_MS
     });
   } catch (error) {
+    const detail = error?.response?.data?.error || t('clients.messages.updateError');
     toast.add({
       severity: 'error',
       summary: t('clients.messages.updateError'),
-      detail: t('clients.messages.updateError'),
-      life: TOAST_ERROR_DURATION_MS
+      detail: detail,
+      life: 5000
     });
   }
 };
