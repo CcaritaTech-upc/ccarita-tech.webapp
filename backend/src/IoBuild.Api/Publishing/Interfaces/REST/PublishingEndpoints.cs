@@ -43,6 +43,47 @@ public static class PublishingEndpoints
         return unit is not null && unit.ProjectId == projectId && await OwnsProjectIdAsync(user, db, projectId, ct);
     }
 
+    private static (bool isValid, string error) ValidateProjectData(string? name, string? location, string? description)
+    {
+        var trimmedName = name?.Trim();
+        if (string.IsNullOrWhiteSpace(trimmedName))
+            return (false, "El nombre del proyecto es obligatorio.");
+        if (trimmedName.Length < 3 || trimmedName.Length > 100)
+            return (false, "El nombre del proyecto debe tener entre 3 y 100 caracteres.");
+        if (trimmedName.Contains('<') || trimmedName.Contains('>'))
+            return (false, "El nombre del proyecto no puede contener etiquetas ni caracteres HTML (<, >).");
+        var nameLetters = System.Text.RegularExpressions.Regex.Matches(trimmedName, @"[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ]").Count;
+        if (nameLetters < 3)
+            return (false, "El nombre del proyecto debe contener al menos 3 letras y no consistir únicamente en números o símbolos.");
+        if (System.Text.RegularExpressions.Regex.IsMatch(trimmedName, @"(.)\1{3,}", System.Text.RegularExpressions.RegexOptions.IgnoreCase))
+            return (false, "El nombre del proyecto no puede contener caracteres repetitivos continuos (ej. aaaa).");
+        if (trimmedName.Length >= 4 && !System.Text.RegularExpressions.Regex.IsMatch(trimmedName, @"[aeiouáéíóúAEIOUÁÉÍÓÚ]", System.Text.RegularExpressions.RegexOptions.IgnoreCase))
+            return (false, "El nombre del proyecto debe contener al menos una vocal.");
+
+        var trimmedLoc = location?.Trim();
+        if (string.IsNullOrWhiteSpace(trimmedLoc))
+            return (false, "La ubicación del proyecto es obligatoria.");
+        if (trimmedLoc.Length < 3 || trimmedLoc.Length > 150)
+            return (false, "La ubicación del proyecto debe tener entre 3 y 150 caracteres.");
+        if (trimmedLoc.Contains('<') || trimmedLoc.Contains('>'))
+            return (false, "La ubicación del proyecto no puede contener caracteres HTML (<, >).");
+        var locLetters = System.Text.RegularExpressions.Regex.Matches(trimmedLoc, @"[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ]").Count;
+        if (locLetters < 3)
+            return (false, "La ubicación del proyecto debe contener al menos 3 letras que describan una dirección o zona válida.");
+        if (System.Text.RegularExpressions.Regex.IsMatch(trimmedLoc, @"(.)\1{3,}", System.Text.RegularExpressions.RegexOptions.IgnoreCase))
+            return (false, "La ubicación del proyecto no puede contener caracteres repetitivos continuos.");
+
+        if (!string.IsNullOrWhiteSpace(description))
+        {
+            if (description.Length > 500)
+                return (false, "La descripción del proyecto no puede exceder los 500 caracteres.");
+            if (description.Contains('<') || description.Contains('>'))
+                return (false, "La descripción del proyecto no puede contener caracteres HTML (<, >).");
+        }
+
+        return (true, string.Empty);
+    }
+
     public static void MapPublishingEndpoints(this WebApplication app)
     {
         // ── Projects Endpoints ──
@@ -82,6 +123,10 @@ public static class PublishingEndpoints
             var tokenBuilderId = SelfId(user);
             if (request.BuilderId.HasValue && request.BuilderId.Value > 0 && request.BuilderId.Value != tokenBuilderId) return Results.Forbid();
             var builderId = request.BuilderId.HasValue && request.BuilderId.Value > 0 ? request.BuilderId.Value : tokenBuilderId;
+
+            var validation = ValidateProjectData(request.Name, request.Location, request.Description);
+            if (!validation.isValid) return Results.Json(new { error = validation.error }, statusCode: 422);
+
             var project = await service.CreateProjectAsync(request.Name, request.Description, request.Location, request.TotalUnits, builderId, request.ImageUrl, ct);
             return Results.Created($"/api/v1/projects/{project.Id}", project);
         }).RequireAuthorization();
@@ -111,6 +156,10 @@ public static class PublishingEndpoints
         {
             var item = await db.Projects.FindAsync([id], ct);
             if (item is null || !OwnsProject(user, item)) return Results.NotFound();
+
+            var validation = ValidateProjectData(request.Name, request.Location, request.Description);
+            if (!validation.isValid) return Results.Json(new { error = validation.error }, statusCode: 422);
+
             item.Name = request.Name;
             item.Description = request.Description;
             item.Location = request.Location;

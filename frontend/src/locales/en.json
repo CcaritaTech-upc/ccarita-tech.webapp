@@ -42,6 +42,24 @@
       "image-url": "Image link",
       "image-url-placeholder": "https://example.com/image.jpg"
     },
+    "validation": {
+      "nameRequired": "Project name is required.",
+      "nameMinLength": "Project name must be at least 3 characters.",
+      "nameMaxLength": "Project name cannot exceed 100 characters.",
+      "nameInvalid": "Project name must contain at least 3 letters and cannot consist only of numbers or symbols.",
+      "nameRepetitive": "Project name cannot contain repetitive continuous characters (e.g. aaaa).",
+      "nameNoHtml": "Project name cannot contain HTML tags or brackets (<, >).",
+      "nameVowels": "Project name must be a legible word or term and contain at least one vowel.",
+      "locationRequired": "Project location is required.",
+      "locationMinLength": "Project location must be at least 3 characters.",
+      "locationMaxLength": "Project location cannot exceed 150 characters.",
+      "locationInvalid": "Project location must contain at least 3 letters and describe a valid street, district or address.",
+      "locationRepetitive": "Project location cannot contain repetitive continuous characters.",
+      "locationNoHtml": "Project location cannot contain HTML tags or brackets (<, >).",
+      "descriptionMaxLength": "Description cannot exceed 500 characters.",
+      "descriptionNoHtml": "Description cannot contain HTML tags or brackets (<, >).",
+      "imageInvalid": "Please enter a valid image URL."
+    },
     "status": {
       "planned": "Planned",
       "in_progress": "In Progress",

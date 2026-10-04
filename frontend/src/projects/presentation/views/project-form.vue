@@ -9,7 +9,12 @@ import useSubscriptionStore from "../../../subscriptions/application/subscriptio
 import { getPlanLimits } from "../../../subscriptions/domain/model/plan-limits.js";
 import { CLOUDINARY_WIDGET_URL } from "../../../shared/infrastructure/constants.js";
 import { getProjectImageUploadConfig } from "../../../shared/infrastructure/cloudinary-config.js";
-import { isValidName, isValidUrl } from "../../../shared/presentation/validators.js";
+import {
+  validateProjectName,
+  validateProjectLocation,
+  validateProjectDescription,
+  isValidUrl
+} from "../../../shared/presentation/validators.js";
 
 const { t } = useI18n();
 const route = useRoute();
@@ -33,6 +38,19 @@ const cloudinaryName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
 const cloudinaryPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
 const cloudinaryReady = ref(false);
 const fileInput = ref(null);
+
+const validateField = (field) => {
+  if (field === 'name') {
+    const res = validateProjectName(form.value.name, t);
+    errors.value.name = res.isValid ? '' : res.error;
+  } else if (field === 'location') {
+    const res = validateProjectLocation(form.value.location, t);
+    errors.value.location = res.isValid ? '' : res.error;
+  } else if (field === 'description') {
+    const res = validateProjectDescription(form.value.description, t);
+    errors.value.description = res.isValid ? '' : res.error;
+  }
+};
 
 onMounted(async () => {
   if (!subscriptionStore.currentPlan && !subscriptionStore.isLoading) {
@@ -139,32 +157,22 @@ const save = async () => {
   const description = (form.value.description || '').trim();
   const imageUrl = (form.value.imageUrl || '').trim();
 
-  if (!name) {
-    errors.value.name = 'El nombre del proyecto es obligatorio.';
-  } else if (!isValidName(name, 3)) {
-    errors.value.name = 'El nombre del proyecto debe tener al menos 3 caracteres.';
-  }
-
-  if (!location) {
-    errors.value.location = 'La ubicación del proyecto es obligatoria.';
-  } else if (!isValidName(location, 3)) {
-    errors.value.location = 'La ubicación debe tener al menos 3 caracteres.';
-  }
-
-  if (description.length > 500) {
-    errors.value.description = 'La descripción no puede exceder los 500 caracteres.';
-  }
+  validateField('name');
+  validateField('location');
+  validateField('description');
 
   if (imageUrl && !imageUrl.startsWith('data:') && !isValidUrl(imageUrl)) {
-    errors.value.imageUrl = 'Ingrese una URL de imagen válida.';
+    errors.value.imageUrl = t('projects.validation.imageInvalid') || 'Ingrese una URL de imagen válida.';
   }
 
-  if (Object.keys(errors.value).length > 0) {
+  const activeErrors = Object.entries(errors.value).filter(([_, err]) => !!err);
+  if (activeErrors.length > 0) {
+    const firstError = activeErrors[0][1];
     toast.add({
       severity: 'warn',
-      summary: 'Campos requeridos',
-      detail: 'Por favor complete los campos obligatorios antes de continuar.',
-      life: 3000
+      summary: t('common.warning') || 'Datos inválidos',
+      detail: firstError,
+      life: 4000
     });
     return;
   }
@@ -273,6 +281,8 @@ const cancel = () => {
                 class="w-full input-enhanced"
                 :invalid="!!errors.name"
                 :placeholder="t('projects.fields.name-placeholder')"
+                @blur="validateField('name')"
+                @input="errors.name && validateField('name')"
             />
             <small v-if="errors.name" class="p-error block mt-1">{{ errors.name }}</small>
           </div>
@@ -289,6 +299,8 @@ const cancel = () => {
                 :invalid="!!errors.description"
                 rows="3"
                 :placeholder="t('projects.fields.description-placeholder')"
+                @blur="validateField('description')"
+                @input="errors.description && validateField('description')"
             />
             <small v-if="errors.description" class="p-error block mt-1">{{ errors.description }}</small>
           </div>
@@ -305,6 +317,8 @@ const cancel = () => {
                 class="w-full input-enhanced"
                 :invalid="!!errors.location"
                 :placeholder="t('projects.fields.location-placeholder')"
+                @blur="validateField('location')"
+                @input="errors.location && validateField('location')"
             />
             <small v-if="errors.location" class="p-error block mt-1">{{ errors.location }}</small>
           </div>
