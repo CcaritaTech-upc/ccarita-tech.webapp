@@ -7,7 +7,8 @@ import {
   isValidEmail,
   isValidPhone,
   validateClientFullName,
-  validateClientAddress
+  validateClientAddress,
+  validateClientEmail
 } from '../../../shared/presentation/validators.js';
 
 const props = defineProps({
@@ -172,10 +173,11 @@ const validateField = (field) => {
     errors.value.fullName = res.isValid ? '' : res.error;
   } else if (field === 'email') {
     const clean = (val || '').trim();
-    if (clean && !isValidEmail(clean)) {
-      errors.value.email = t('clients.validation.emailInvalid');
-    } else {
+    if (!clean) {
       errors.value.email = '';
+    } else {
+      const res = validateClientEmail(clean, t);
+      errors.value.email = res.isValid ? '' : res.error;
     }
   } else if (field === 'phoneNumber') {
     const clean = (val || '').trim();
@@ -244,10 +246,9 @@ const handleSave = () => {
   const emailClean = (formData.value.email || '').trim();
   if (!emailClean) {
     errors.value.email = t('clients.validation.emailRequired');
-  } else if (!isValidEmail(emailClean)) {
-    errors.value.email = t('clients.validation.emailInvalid');
   } else {
-    errors.value.email = '';
+    const emailRes = validateClientEmail(emailClean, t);
+    errors.value.email = emailRes.isValid ? '' : emailRes.error;
   }
 
   validateField('phoneNumber');

@@ -292,7 +292,7 @@
       "fullNameMaxLength": "El nombre completo no puede exceder los 100 caracteres.",
       "fullNameInvalid": "El nombre completo solo puede contener letras y caracteres válidos.",
       "emailRequired": "El correo electrónico es obligatorio.",
-      "emailInvalid": "Ingrese un correo electrónico válido (por ejemplo, usuario@empresa.com).",
+      "emailInvalid": "Ingrese un correo electrónico válido (por ejemplo, usuario{'@'}empresa.com).",
       "emailNoHtml": "El correo electrónico no puede contener etiquetas HTML (<, >).",
       "emailUserTooShort": "El usuario del correo electrónico debe tener al menos 2 caracteres.",
       "emailRepetitive": "El correo electrónico no puede contener secuencias repetitivas ni caracteres continuos.",

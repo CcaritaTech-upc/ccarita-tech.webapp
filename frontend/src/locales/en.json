@@ -292,7 +292,7 @@
       "fullNameMaxLength": "Full name cannot exceed 100 characters.",
       "fullNameInvalid": "Full name can only contain letters and valid characters.",
       "emailRequired": "Email is required.",
-      "emailInvalid": "Enter a valid email address (for example, user@company.com).",
+      "emailInvalid": "Enter a valid email address (for example, user{'@'}company.com).",
       "emailNoHtml": "Email cannot contain HTML tags or brackets (<, >).",
       "emailUserTooShort": "Email username part must be at least 2 characters.",
       "emailRepetitive": "Email cannot contain repetitive sequences or continuous characters.",

@@ -281,7 +281,14 @@ export function validateClientFullName(fullName, t = null) {
  * and valid domain structure.
  */
 export function validateClientEmail(email, t = null) {
-  const tr = (key, fallback) => (t ? t(key) : fallback);
+  const tr = (key, fallback) => {
+    if (!t) return fallback;
+    try {
+      return t(key);
+    } catch {
+      return fallback;
+    }
+  };
   if (!email || typeof email !== 'string' || !email.trim()) {
     return { isValid: false, error: tr('clients.validation.emailRequired', 'El correo electrónico es obligatorio.') };
   }
