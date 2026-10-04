@@ -106,12 +106,11 @@ export function validateProjectName(name, t = null) {
 function checkTextLegibility(text, fieldName, t = null) {
   const tr = (key, fallback) => (t ? t(key) : fallback);
   const trimmed = text.trim();
-  const letters = trimmed.toLowerCase().match(/[a-záéíóúñü]/g) || [];
-  const uniqueLetters = new Set(letters);
   const words = trimmed.split(/\s+/).filter(w => w.length > 0);
 
-  // 1. Any individual word longer than 20 characters, or words without vowels
+  // 1. Any individual word longer than 20 characters, or words without vowels (skip words containing digits such as identifiers/codes/stamps)
   for (const word of words) {
+    if (/\d/.test(word)) continue;
     const cleanWord = word.replace(/[^a-záéíóúñü]/gi, '');
     if (cleanWord.length > 20) {
       return { isValid: false, error: tr('projects.validation.wordTooLong', 'Contiene palabras excesivamente largas o no válidas.') };
@@ -140,11 +139,17 @@ function checkTextLegibility(text, fieldName, t = null) {
     return { isValid: false, error: tr('projects.validation.consonantCluster', 'Contiene combinaciones de consonantes continuas no legibles.') };
   }
 
-  // 5. Vowel ratio check (between 20% and 80% for text with 6+ letters)
+  // Pure words for vowel ratio, keyboard mash and repetitive pattern detection
+  const pureWords = words.filter(w => !/\d/.test(w));
+  const pureText = pureWords.length > 0 ? pureWords.join(' ') : trimmed;
+  const letters = pureText.toLowerCase().match(/[a-záéíóúñü]/g) || [];
+  const uniqueLetters = new Set(letters);
+
+  // 5. Vowel ratio check (between 15% and 85% for text with 6+ letters)
   if (letters.length >= 6) {
-    const vowels = trimmed.match(/[aeiouáéíóúAEIOUÁÉÍÓÚ]/gi) || [];
+    const vowels = pureText.match(/[aeiouáéíóúAEIOUÁÉÍÓÚyY]/gi) || [];
     const ratio = vowels.length / letters.length;
-    if (ratio < 0.20 || ratio > 0.80) {
+    if (ratio < 0.15 || ratio > 0.85) {
       return { isValid: false, error: tr('projects.validation.vowelRatio', 'El texto debe contener una proporción legible de vocales y consonantes.') };
     }
   }
@@ -162,17 +167,17 @@ function checkTextLegibility(text, fieldName, t = null) {
   }
 
   // 7. Repetitive sub-patterns (e.g. asdasd, dfsdfs, etc.)
-  if (/(.{2,5})\1{2,}/i.test(trimmed)) {
+  if (pureWords.length > 0 && /([a-zA-Z]{2,5})\1{2,}/i.test(pureText)) {
     return { isValid: false, error: tr('projects.validation.repetitivePattern', 'Contiene patrones o secuencias repetitivas de caracteres.') };
   }
 
   // 8. Keyboard sequences and pure repetition (e.g. asdf, qwer, zxcv, asdasd)
-  const cleanAlpha = trimmed.toLowerCase().replace(/[^a-záéíóúñü]/gi, '');
-  const KEYBOARD_SEQUENCES = ['asdf', 'qwer', 'zxcv', 'hjkl', 'yuio', 'uiop', 'ghjk', 'fdsa', 'rewq', 'vcxz'];
+  const cleanAlpha = pureText.toLowerCase().replace(/[^a-záéíóúñü]/gi, '');
+  const KEYBOARD_SEQUENCES = ['asdf', 'qwer', 'zxcv', 'hjkl', 'yuio', 'ghjk', 'fdsa', 'rewq', 'vcxz'];
   if (KEYBOARD_SEQUENCES.some(seq => cleanAlpha.includes(seq))) {
     return { isValid: false, error: tr('projects.validation.keyboardMash', 'El texto contiene secuencias de teclas del teclado (ej. asdf).') };
   }
-  if (cleanAlpha.length >= 4 && /^(.{2,4})\1+$/.test(cleanAlpha)) {
+  if (cleanAlpha.length >= 4 && /^([a-z]{2,4})\1+$/.test(cleanAlpha)) {
     return { isValid: false, error: tr('projects.validation.repetitivePattern', 'El texto contiene secuencias repetitivas del teclado.') };
   }
 

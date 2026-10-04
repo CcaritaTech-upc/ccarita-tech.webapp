@@ -50,7 +50,7 @@ async function createClient(page, builder, project, details) {
 }
 
 test('SECURITY client lists and assignments stay inside the authenticated Builder tenant', async ({ page }) => {
-  const suffix = `${Date.now()}${Math.random().toString(36).slice(2, 7)}`;
+  const suffix = `${Date.now()}${Math.floor(Math.random() * 1000)}`;
   const builderA = await createBuilder(page, `${suffix}.a`);
   const builderB = await createBuilder(page, `${suffix}.b`);
   const projectA = await createProject(page, builderA, `Tenant A ${suffix}`);

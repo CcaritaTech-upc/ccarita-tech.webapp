@@ -46,13 +46,14 @@ public static class PublishingEndpoints
     private static (bool isValid, string error) CheckTextLegibility(string text, string fieldName)
     {
         var trimmed = text.Trim();
-        var letters = System.Text.RegularExpressions.Regex.Matches(trimmed, @"[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ]");
-        var vowels = System.Text.RegularExpressions.Regex.Matches(trimmed, @"[aeiouáéíóúAEIOUÁÉÍÓÚ]", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
         var words = trimmed.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries);
 
-        // 1. Any word > 20 chars or words >= 3 chars with no vowels
+        // 1. Any word > 20 chars or words >= 3 chars with no vowels (skip words containing digits such as identifiers/codes/stamps)
         foreach (var word in words)
         {
+            if (System.Text.RegularExpressions.Regex.IsMatch(word, @"\d"))
+                continue;
+
             var clean = System.Text.RegularExpressions.Regex.Replace(word, @"[^a-zA-ZáéíóúÁÉÍÓÚñÑüÜ]", "");
             if (clean.Length > 20)
                 return (false, "El texto contiene palabras excesivamente largas o no válidas.");
@@ -78,37 +79,43 @@ public static class PublishingEndpoints
         if (System.Text.RegularExpressions.Regex.IsMatch(trimmed, @"[bcdfghjklmnñpqrstvwxyzBCDFGHJKLMNÑPQRSTVWXYZ]{5,}", System.Text.RegularExpressions.RegexOptions.IgnoreCase))
             return (false, "El texto contiene combinaciones de consonantes no legibles o de escritura aleatoria.");
 
-        // 5. Vowel ratio check (between 20% and 80% for text with 6+ letters)
-        if (letters.Count >= 6)
+        // Pure words for vowel ratio, keyboard mash and repetitive pattern detection
+        var pureWords = words.Where(w => !System.Text.RegularExpressions.Regex.IsMatch(w, @"\d")).ToList();
+        var pureText = pureWords.Count > 0 ? string.Join(" ", pureWords) : trimmed;
+        var pureLetters = System.Text.RegularExpressions.Regex.Matches(pureText, @"[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ]");
+        var pureVowels = System.Text.RegularExpressions.Regex.Matches(pureText, @"[aeiouáéíóúAEIOUÁÉÍÓÚyY]", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+
+        // 5. Vowel ratio check (between 15% and 85% for text with 6+ letters)
+        if (pureLetters.Count >= 6)
         {
-            var ratio = (double)vowels.Count / letters.Count;
-            if (ratio < 0.20 || ratio > 0.80)
+            var ratio = (double)pureVowels.Count / pureLetters.Count;
+            if (ratio < 0.15 || ratio > 0.85)
                 return (false, "El texto debe contener una proporción legible de vocales y consonantes.");
         }
 
         // 6. Keyboard mash / Home row spam check:
-        if (letters.Count >= 8)
+        if (pureLetters.Count >= 8)
         {
-            var uniqueLetters = new HashSet<char>(trimmed.ToLowerInvariant().Where(c => char.IsLetter(c)));
-            if (letters.Count >= 10 && uniqueLetters.Count <= 4)
+            var uniqueLetters = new HashSet<char>(pureText.ToLowerInvariant().Where(c => char.IsLetter(c)));
+            if (pureLetters.Count >= 10 && uniqueLetters.Count <= 4)
                 return (false, "El texto parece una combinación aleatoria o repetitiva del teclado.");
 
             var homeRowKeys = new HashSet<char>("asdfghjkl".ToCharArray());
-            var homeCount = trimmed.ToLowerInvariant().Count(c => homeRowKeys.Contains(c));
-            if (letters.Count >= 10 && ((double)homeCount / letters.Count) >= 0.88)
+            var homeCount = pureText.ToLowerInvariant().Count(c => homeRowKeys.Contains(c));
+            if (pureLetters.Count >= 10 && ((double)homeCount / pureLetters.Count) >= 0.88)
                 return (false, "El texto contiene patrones repetitivos de teclas del teclado.");
         }
 
         // 7. Repetitive sub-patterns (e.g. asdasd, dfsdfs, etc.)
-        if (System.Text.RegularExpressions.Regex.IsMatch(trimmed, @"(.{2,5})\1{2,}", System.Text.RegularExpressions.RegexOptions.IgnoreCase))
+        if (pureWords.Count > 0 && System.Text.RegularExpressions.Regex.IsMatch(pureText, @"([a-zA-Z]{2,5})\1{2,}", System.Text.RegularExpressions.RegexOptions.IgnoreCase))
             return (false, "El texto contiene patrones o secuencias repetitivas de caracteres.");
 
         // 8. Keyboard sequences and pure repetition (e.g. asdf, qwer, zxcv, asdasd)
-        var cleanAlpha = System.Text.RegularExpressions.Regex.Replace(trimmed.ToLowerInvariant(), @"[^a-záéíóúñü]", "");
-        string[] keyboardSequences = ["asdf", "qwer", "zxcv", "hjkl", "yuio", "uiop", "ghjk", "fdsa", "rewq", "vcxz"];
+        var cleanAlpha = System.Text.RegularExpressions.Regex.Replace(pureText.ToLowerInvariant(), @"[^a-záéíóúñü]", "");
+        string[] keyboardSequences = ["asdf", "qwer", "zxcv", "hjkl", "yuio", "ghjk", "fdsa", "rewq", "vcxz"];
         if (keyboardSequences.Any(seq => cleanAlpha.Contains(seq)))
             return (false, "El texto contiene secuencias de teclas del teclado (ej. asdf).");
-        if (cleanAlpha.Length >= 4 && System.Text.RegularExpressions.Regex.IsMatch(cleanAlpha, @"^(.{2,4})\1+$"))
+        if (cleanAlpha.Length >= 4 && System.Text.RegularExpressions.Regex.IsMatch(cleanAlpha, @"^([a-z]{2,4})\1+$"))
             return (false, "El texto contiene secuencias repetitivas del teclado.");
 
         return (true, string.Empty);
