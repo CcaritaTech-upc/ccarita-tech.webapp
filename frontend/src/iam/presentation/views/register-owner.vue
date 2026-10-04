@@ -709,6 +709,12 @@ function goToLogin() {
   }
 }
 
+@media (max-width: 768px) {
+  .auth-image-side {
+    display: none;
+  }
+}
+
 @media (max-width: 640px) {
   .auth-form-side {
     padding: 1rem;

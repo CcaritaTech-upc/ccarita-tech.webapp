@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Configuraciones personalizadas para el widget de subida de Cloudinary
  * alineadas con la identidad visual de IoBuild (Verde Esmeralda #10B981, Inter font, Español).
  */
@@ -72,9 +72,7 @@ export function getAvatarUploadConfig(cloudName, uploadPreset) {
             }
         },
         singleUploadAutoClose: true,
-        cropping: true,
-        croppingAspectRatio: 1,
-        showSkipCropButton: true,
+        cropping: false,
         clientAllowedFormats: ['png', 'jpg', 'jpeg', 'webp'],
         maxFileSize: 5 * 1024 * 1024, // 5MB
         styles: ioBuildStyles
@@ -110,17 +108,11 @@ export function getProjectImageUploadConfig(cloudName, uploadPreset) {
                 queue: {
                     title: "Subiendo portada...",
                     done: "Listo"
-                },
-                crop: {
-                    title: "Ajustar imagen del proyecto",
-                    crop_btn: "Recortar y Guardar",
-                    skip_btn: "Usar sin recortar"
                 }
             }
         },
         singleUploadAutoClose: true,
-        cropping: true,
-        showSkipCropButton: true,
+        cropping: false,
         clientAllowedFormats: ['png', 'jpg', 'jpeg', 'webp'],
         maxFileSize: 10 * 1024 * 1024, // 10MB
         styles: ioBuildStyles

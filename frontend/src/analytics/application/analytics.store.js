@@ -2,10 +2,12 @@ import { defineStore } from "pinia";
 import { ref } from "vue";
 import { AnalyticsApi } from "../infrastructure/analytics-api.js";
 import { DeviceApi } from "@/devices/infrastructure/device-api.js";
+import { ProjectApi } from "@/projects/infrastructure/project-api.js";
 import { ANALYTICS_DEFAULT_MINUTES, POLLING_INTERVAL_MS } from "@/shared/infrastructure/constants.js";
 
 const analyticsApi = new AnalyticsApi();
 const deviceApi = new DeviceApi();
+const projectApi = new ProjectApi();
 
 export const useAnalyticsStore = defineStore("analytics", () => {
     const builderDashboard = ref(null);
@@ -27,7 +29,29 @@ export const useAnalyticsStore = defineStore("analytics", () => {
     async function fetchBuilderDashboard(builderId, silent = false) {
         if (!silent) loading.value = true;
         try {
-            builderDashboard.value = await analyticsApi.getBuilderDashboard(builderId);
+            const rawDashboard = await analyticsApi.getBuilderDashboard(builderId);
+
+            // Reconcile with active projects to purge any ghost/deleted projects from metrics
+            if (rawDashboard && Array.isArray(rawDashboard.projectsOverview)) {
+                try {
+                    const projectsRes = await projectApi.getProjectsByBuilderId(builderId);
+                    const activeList = projectsRes?.data || [];
+                    const activeIds = new Set(activeList.map(p => Number(p.id)));
+
+                    rawDashboard.projectsOverview = rawDashboard.projectsOverview.filter(p => activeIds.has(Number(p.id)));
+                    rawDashboard.activeProjectsCount = activeList.length;
+                    rawDashboard.totalDevices = rawDashboard.projectsOverview.reduce((sum, p) => sum + (Number(p.deviceCount) || 0), 0);
+                    rawDashboard.totalUnits = rawDashboard.projectsOverview.reduce((sum, p) => sum + (Number(p.totalUnits) || 0), 0);
+                    rawDashboard.occupiedUnits = rawDashboard.projectsOverview.reduce((sum, p) => sum + (Number(p.occupiedUnits) || 0), 0);
+                    rawDashboard.occupancyRate = rawDashboard.totalUnits > 0
+                        ? Math.round((rawDashboard.occupiedUnits / rawDashboard.totalUnits) * 100)
+                        : 0;
+                } catch (reconErr) {
+                    console.warn('Reconciling builder dashboard with active projects skipped:', reconErr);
+                }
+            }
+
+            builderDashboard.value = rawDashboard;
         } catch (error) {
             errors.value.push(error);
             console.error('Error fetching builder dashboard:', error);

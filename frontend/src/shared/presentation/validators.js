@@ -43,8 +43,8 @@ export function isValidAge(age, min = 18, max = 120) {
   return !isNaN(num) && Number.isInteger(num) && num >= min && num <= max;
 }
 
-/** Validates company years in business, where a new company may have zero years. */
-export function isValidYearsInBusiness(years, max = 120) {
+/** Validates company years in business, where a new company may have zero years (max 80). */
+export function isValidYearsInBusiness(years, max = 80) {
   if (years === null || years === undefined || years === '') return false;
   const num = Number(years);
   return Number.isInteger(num) && num >= 0 && num <= max;

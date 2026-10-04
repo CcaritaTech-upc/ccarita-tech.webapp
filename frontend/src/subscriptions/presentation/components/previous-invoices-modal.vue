@@ -12,8 +12,16 @@ const props = defineProps({
 
 const emit = defineEmits(["close"]);
 
-const openReceipt = (url) => {
-  if (url) window.open(url, "_blank");
+const openReceipt = (url, invoiceId = '') => {
+  if (!url) return;
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `invoice_${invoiceId || 'receipt'}.pdf`;
+  link.target = '_blank';
+  link.rel = 'noopener noreferrer';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
 };
 </script>
 
@@ -78,7 +86,7 @@ const openReceipt = (url) => {
                   v-if="inv.downloadUrl"
                   type="button"
                   class="download-btn"
-                  @click="openReceipt(inv.downloadUrl)"
+                  @click="openReceipt(inv.downloadUrl, inv.id)"
                 >
                   <i class="pi pi-download"></i>
                   <span>{{ t('subscriptions.download-receipt') }}</span>

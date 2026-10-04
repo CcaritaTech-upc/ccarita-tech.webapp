@@ -22,7 +22,10 @@ const toggleDrawer = () => {
 
 const currentUser = computed(() => iamStore.currentUser);
 const userRole = computed(() => currentUser.value?.role?.toLowerCase() || 'builder');
-const hasActiveSubscription = computed(() => isActiveStatus(subscriptionStore.currentSubscription?.status));
+const hasActiveSubscription = computed(() => {
+  const sub = subscriptionStore.currentSubscription;
+  return isActiveStatus(sub?.status, sub?.endDate);
+});
 
 onMounted(async () => {
   const userId = currentUser.value?.id;

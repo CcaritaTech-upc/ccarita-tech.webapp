@@ -5,6 +5,8 @@ import { useRoute, useRouter } from "vue-router";
 import { useToast } from "primevue/usetoast";
 import useProjectStore from "../../application/project.store.js";
 import { Project } from "../../domain/model/project.entity.js";
+import useSubscriptionStore from "../../../subscriptions/application/subscription.store.js";
+import { getPlanLimits } from "../../../subscriptions/domain/model/plan-limits.js";
 import { CLOUDINARY_WIDGET_URL } from "../../../shared/infrastructure/constants.js";
 import { getProjectImageUploadConfig } from "../../../shared/infrastructure/cloudinary-config.js";
 import { isValidName, isValidUrl } from "../../../shared/presentation/validators.js";
@@ -14,6 +16,7 @@ const route = useRoute();
 const router = useRouter();
 const toast = useToast();
 const store = useProjectStore();
+const subscriptionStore = useSubscriptionStore();
 
 const form = ref({
   name: "",
@@ -32,6 +35,13 @@ const cloudinaryReady = ref(false);
 const fileInput = ref(null);
 
 onMounted(async () => {
+  if (!subscriptionStore.currentPlan && !subscriptionStore.isLoading) {
+    subscriptionStore.loadSubscriptions();
+  }
+  if (!store.projects.length) {
+    store.fetchProjects();
+  }
+
   if (isEdit.value) {
     let existing = store.getProjectById(route.params.id);
     if (!existing) {
@@ -157,6 +167,19 @@ const save = async () => {
       life: 3000
     });
     return;
+  }
+
+  if (!isEdit.value) {
+    const limits = getPlanLimits(subscriptionStore.currentPlan);
+    if (!limits.isUnlimited && store.projects.length >= limits.maxProjects) {
+      toast.add({
+        severity: 'warn',
+        summary: t('subscriptions.warning') || 'Límite de proyectos alcanzado',
+        detail: t('subscriptions.projectLimitExceeded', { max: limits.maxProjects }) || `Has alcanzado el límite de proyectos de tu plan (${limits.maxProjects} proyectos). Actualiza tu suscripción para crear más proyectos.`,
+        life: 4000
+      });
+      return;
+    }
   }
 
   saving.value = true;

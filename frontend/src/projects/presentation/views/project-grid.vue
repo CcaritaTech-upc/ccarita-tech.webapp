@@ -32,6 +32,7 @@ const navigateToDetails = (id) => router.push({ name: "projects-management-detai
         <p class="text-sm text-gray-500 mt-1 m-0">Gestiona tus proyectos, pisos, unidades y dispositivos IoT.</p>
       </div>
       <pv-button
+        v-if="store.projects.length"
         :label="t('projects.add')"
         icon="pi pi-plus"
         class="custom-green-button"

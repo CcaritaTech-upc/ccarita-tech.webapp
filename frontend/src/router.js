@@ -22,7 +22,7 @@ async function builderHasActiveSubscription() {
         const currentUser = JSON.parse(localStorage.getItem(CURRENT_USER_KEY) || 'null');
         if (!currentUser?.id) return false;
         const { data } = await subscriptionApi.getSubscriptionByBuilderId(currentUser.id);
-        return !!data && isActiveStatus(data.status);
+        return !!data && isActiveStatus(data.status, data.endDate);
     } catch (error) {
         console.error('[subscription-gate] check failed:', error);
         return false;
@@ -52,15 +52,18 @@ const routes = [
     },
     {
         path: '/projects',
+        meta: { requiresRole: 'builder' },
         children: projectsRoutes
     },
     {
         path: '/clients',
         name: 'clients-module',
+        meta: { requiresRole: 'builder' },
         children: clientsRoutes
     },
     {
         path: '/subscriptions',
+        meta: { requiresRole: 'builder' },
         children:  subscriptionsRoutes
     },
     {
@@ -86,10 +89,6 @@ const router = createRouter({
 });
 
 router.beforeEach(async (to, from, next) => {
-    // Update page title
-    let baseTitle = 'IoBuild';
-    document.title = `${baseTitle} - ${to.meta['title'] || ''}`;
-
     // Check if route requires authentication
     const isPublicRoute = to.meta?.public === true;
     const token = localStorage.getItem(TOKEN_KEY);
@@ -106,15 +105,32 @@ router.beforeEach(async (to, from, next) => {
         return;
     }
 
+    // ── Role gate: RBAC validation ──────────────────────────────────────
+    // Check if route or any parent route requires a specific role.
+    const requiredRoleRecord = to.matched.slice().reverse().find(record => record.meta?.requiresRole);
+    if (requiredRoleRecord && isAuthenticated) {
+        const currentUser = JSON.parse(localStorage.getItem(CURRENT_USER_KEY) || 'null');
+        const userRole = String(currentUser?.role ?? '').toLowerCase();
+        const requiredRole = String(requiredRoleRecord.meta.requiresRole).toLowerCase();
+        if (userRole !== requiredRole) {
+            // Unauthorized role: redirect to their own dashboard
+            next(ROUTES.ANALYTICS_DASHBOARD);
+            return;
+        }
+    }
+
     // ── Subscription gate (builders only) ──────────────────────────────
-    // A builder without an active subscription may only reach the subscriptions
-    // section (and iam, to log in/out). Everything else redirects there, since
-    // those features are part of what the subscription pays for.
+    // A builder without an active subscription may still access their profile,
+    // dashboard and subscription management. Restricted features (projects, clients)
+    // redirect to subscriptions.
     if (isAuthenticated) {
         const currentUser = JSON.parse(localStorage.getItem(CURRENT_USER_KEY) || 'null');
         const isBuilder = String(currentUser?.role).toLowerCase() === 'builder';
         const isAllowedWithoutSub = to.path.startsWith(ROUTES.SUBSCRIPTIONS_BASE)
-            || to.path.startsWith(ROUTES.IAM_BASE);
+            || to.path.startsWith(ROUTES.IAM_BASE)
+            || to.path.startsWith(ROUTES.PROFILES_BASE)
+            || to.path === ROUTES.HOME
+            || to.path.startsWith(ROUTES.ANALYTICS_BASE);
 
         if (isBuilder && !isAllowedWithoutSub) {
             // Retry up to 2 times with a short delay to handle the race window
@@ -133,22 +149,14 @@ router.beforeEach(async (to, from, next) => {
         }
     }
 
-    // ── Role gate: Owner-only routes ────────────────────────────────────
-    // Routes with meta.requiresRole = 'owner' are blocked for non-Owner users.
-    // Builders are redirected to the analytics dashboard; unauthenticated users
-    // are already redirected to login above.
-    if (to.meta?.requiresRole) {
-        const currentUser = JSON.parse(localStorage.getItem(CURRENT_USER_KEY) || 'null');
-        const userRole = String(currentUser?.role ?? '').toLowerCase();
-        const requiredRole = String(to.meta.requiresRole).toLowerCase();
-        if (userRole !== requiredRole) {
-            // Builder or unexpected role: send to their own dashboard
-            next(ROUTES.ANALYTICS_DASHBOARD);
-            return;
-        }
-    }
-
     next();
+});
+
+router.afterEach((to) => {
+    // Synchronize document.title after navigation resolves
+    const baseTitle = 'IoBuild';
+    const title = to.meta?.title || to.matched.slice().reverse().find(r => r.meta?.title)?.meta?.title;
+    document.title = title ? `${baseTitle} - ${title}` : baseTitle;
 });
 
 export default router;

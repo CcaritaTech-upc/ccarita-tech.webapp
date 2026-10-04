@@ -524,9 +524,9 @@ async function clearUnitOwner(unit) {
         </p>
       </div>
 
-      <div class="text-center mt-2">
+      <div v-if="!unassignedClients.length" class="text-center mt-2">
         <pv-button
-            :label="te('projects.structure.register-new-client') ? t('projects.structure.register-new-client') : '+ Ir a registrar nuevo Cliente'"
+            :label="te('projects.structure.register-new-client') ? t('projects.structure.register-new-client') : 'Ir a registrar nuevo Cliente'"
             icon="pi pi-plus"
             text
             size="small"

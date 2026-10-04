@@ -1,9 +1,13 @@
 <script setup>
 import { ref, computed, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { useRouter } from 'vue-router';
 import { useToast } from 'primevue/usetoast';
 import useProjectStore from '../../application/project.store.js';
 import { useDeviceStore } from '../../../devices/application/device.store.js';
+import useSubscriptionStore from '../../../subscriptions/application/subscription.store.js';
+import { useAnalyticsStore } from '../../../analytics/application/analytics.store.js';
+import { getPlanLimits } from '../../../subscriptions/domain/model/plan-limits.js';
 import { TOAST_INVOICE_ERROR_DURATION_MS, TOAST_AUTH_ERROR_DURATION_MS } from '../../../shared/infrastructure/constants.js';
 
 const props = defineProps({
@@ -19,8 +23,11 @@ const props = defineProps({
 
 const emit = defineEmits(['update:visible', 'structure-defined']);
 
+const router = useRouter();
 const store = useProjectStore();
 const deviceStore = useDeviceStore();
+const subscriptionStore = useSubscriptionStore();
+const analyticsStore = useAnalyticsStore();
 const toast = useToast();
 const { t, te } = useI18n();
 
@@ -32,8 +39,70 @@ const MAX_FLOORS = 50;
 const MAX_UNITS_PER_FLOOR = 20;
 const MAX_TOTAL_UNITS = 500;
 
+const currentPlanLimits = computed(() => {
+    return getPlanLimits(subscriptionStore.currentPlan);
+});
+
+const currentDevicesCount = computed(() => {
+    return Number(analyticsStore.builderDashboard?.totalDevices) || 0;
+});
+
 const totalUnits = computed(() => (Number(floors.value) || 0) * (Number(unitsPerFloor.value) || 0));
 const isTotalUnitsExceeded = computed(() => totalUnits.value > MAX_TOTAL_UNITS);
+
+// Estimated new devices created by defining this structure
+const estimatedNewDevices = computed(() => {
+    const fCount = Number(floors.value) || 0;
+    const uCount = Number(unitsPerFloor.value) || 0;
+    if (fCount <= 0 || uCount <= 0) return 0;
+
+    let floorDevs = 0;
+    for (let f = 1; f <= fCount; f++) {
+        const types = deviceTypesByFloor.value[f];
+        if (types && types.length > 0) {
+            floorDevs += types.length;
+        } else {
+            floorDevs += 3; // Backend default provision per floor
+        }
+    }
+
+    let unitDevs = 0;
+    const totalU = fCount * uCount;
+    let customCount = 0;
+    for (const [key, types] of Object.entries(unitDevicePackages.value)) {
+        if (types && types.length > 0) {
+            const [fStr] = key.split('-');
+            const fNum = parseInt(fStr, 10);
+            if (fNum <= fCount) {
+                unitDevs += types.length;
+                customCount++;
+            }
+        }
+    }
+    const defaultUnits = Math.max(0, totalU - customCount);
+    unitDevs += defaultUnits * 2; // Backend default provision per unit
+
+    return floorDevs + unitDevs;
+});
+
+const projectedTotalDevices = computed(() => {
+    return currentDevicesCount.value + estimatedNewDevices.value;
+});
+
+const isPlanDeviceLimitExceeded = computed(() => {
+    if (currentPlanLimits.value.isUnlimited || currentPlanLimits.value.maxDevices === Infinity) {
+        return false;
+    }
+    return projectedTotalDevices.value > currentPlanLimits.value.maxDevices;
+});
+
+const isAlreadyAtOrOverLimit = computed(() => {
+    if (currentPlanLimits.value.isUnlimited || currentPlanLimits.value.maxDevices === Infinity) {
+        return false;
+    }
+    return currentDevicesCount.value >= currentPlanLimits.value.maxDevices;
+});
+
 const isInvalidStructure = computed(() => {
     const f = Number(floors.value);
     const u = Number(unitsPerFloor.value);
@@ -44,7 +113,8 @@ const isInvalidStructure = computed(() => {
         !u ||
         u < 1 ||
         u > MAX_UNITS_PER_FLOOR ||
-        isTotalUnitsExceeded.value
+        isTotalUnitsExceeded.value ||
+        isPlanDeviceLimitExceeded.value
     );
 });
 
@@ -67,8 +137,19 @@ watch(() => props.visible, (val) => {
         deviceTypesByFloor.value = {};
         unitDevicePackages.value = {};
         deviceStore.loadDeviceTypes();
+        if (!subscriptionStore.currentPlan && !subscriptionStore.isLoading) {
+            subscriptionStore.loadSubscriptions();
+        }
+        if (!analyticsStore.builderDashboard) {
+            analyticsStore.loadBuilderDashboard();
+        }
     }
 });
+
+function navigateToSubscriptions() {
+    localVisible.value = false;
+    router.push({ name: 'my-subscription' });
+}
 
 watch(localVisible, (val) => {
     emit('update:visible', val);
@@ -298,6 +379,18 @@ async function handleSubmit() {
         return;
     }
 
+    if (isPlanDeviceLimitExceeded.value) {
+        toast.add({
+            severity: 'error',
+            summary: te('subscriptions.quotaExceededTitle') ? t('subscriptions.quotaExceededTitle') : 'Límite de dispositivos excedido',
+            detail: te('subscriptions.quotaExceededToast')
+                ? t('subscriptions.quotaExceededToast', { max: currentPlanLimits.value.maxDevices, plan: currentPlanLimits.value.name })
+                : `Esta estructura excede el límite de ${currentPlanLimits.value.maxDevices} dispositivos de su plan ${currentPlanLimits.value.name}. Por favor actualice su suscripción.`,
+            life: TOAST_AUTH_ERROR_DURATION_MS
+        });
+        return;
+    }
+
     submitting.value = true;
     try {
         const payload = buildPayload();
@@ -446,18 +539,49 @@ function handleCancel() {
                 </div>
             </div>
 
-            <!-- Summary -->
-            <div class="ds-summary" :class="{ 'ds-summary--warning': isTotalUnitsExceeded }">
-                <i :class="isTotalUnitsExceeded ? 'pi pi-exclamation-triangle' : 'pi pi-info-circle'"></i>
-                <div>
+            <!-- Summary & Quota Status -->
+            <div
+                class="ds-summary"
+                :class="{
+                    'ds-summary--danger': isPlanDeviceLimitExceeded || isTotalUnitsExceeded,
+                    'ds-summary--warning': !isPlanDeviceLimitExceeded && !isTotalUnitsExceeded && !currentPlanLimits.isUnlimited && projectedTotalDevices >= (currentPlanLimits.maxDevices * 0.8)
+                }"
+            >
+                <i :class="(isPlanDeviceLimitExceeded || isTotalUnitsExceeded) ? 'pi pi-exclamation-circle' : 'pi pi-info-circle'"></i>
+                <div class="ds-summary__content">
                     <div>
                         {{ te('projects.structure.summary-prefix') ? t('projects.structure.summary-prefix') : 'Esto creará' }}
                         <strong>{{ totalUnits }}</strong>
                         {{ te('projects.structure.units-label') ? t('projects.structure.units-label') : 'departamento(s)' }}:
                         {{ te('projects.structure.summary-detail') ? t('projects.structure.summary-detail', { floors: floors || 0, units: unitsPerFloor || 0 }) : `${floors || 0} piso(s) × ${unitsPerFloor || 0} departamento(s) por piso.` }}
                     </div>
+
+                    <!-- Quota calculation line -->
+                    <div class="ds-quota-line">
+                        <span>{{ te('subscriptions.usage-devices') ? t('subscriptions.usage-devices') : 'Dispositivos IoT' }}:</span>
+                        <strong>{{ te('subscriptions.quotaDevicesCalc') ? t('subscriptions.quotaDevicesCalc', { current: currentDevicesCount, newDevs: estimatedNewDevices, total: projectedTotalDevices, max: currentPlanLimits.label }) : `${currentDevicesCount} en uso + ~${estimatedNewDevices} nuevos = ${projectedTotalDevices} / ${currentPlanLimits.label}` }}</strong>
+                        <span class="ds-quota-badge" :class="{ 'ds-quota-badge--danger': isPlanDeviceLimitExceeded }">
+                            Plan {{ currentPlanLimits.name }}
+                        </span>
+                    </div>
+
                     <div v-if="isTotalUnitsExceeded" class="ds-error-text">
                         {{ te('projects.structure.max-units-exceeded') ? t('projects.structure.max-units-exceeded', { max: MAX_TOTAL_UNITS }) : `Supera el límite máximo permitido de ${MAX_TOTAL_UNITS} departamentos por proyecto.` }}
+                    </div>
+
+                    <div v-if="isPlanDeviceLimitExceeded" class="ds-error-text">
+                        <span v-if="isAlreadyAtOrOverLimit">
+                            {{ te('subscriptions.quotaAlreadyExceededMsg') ? t('subscriptions.quotaAlreadyExceededMsg', { current: currentDevicesCount, max: currentPlanLimits.label }) : `Ya has alcanzado o superado el límite de tu plan (${currentDevicesCount}/${currentPlanLimits.label} dispositivos). Actualiza tu plan para definir más estructuras.` }}
+                        </span>
+                        <span v-else>
+                            {{ te('subscriptions.quotaWillExceedMsg') ? t('subscriptions.quotaWillExceedMsg', { projected: projectedTotalDevices, max: currentPlanLimits.label }) : `Esta estructura resultará en ~${projectedTotalDevices} dispositivos, superando el límite de ${currentPlanLimits.label} dispositivos de tu plan.` }}
+                        </span>
+                        <div>
+                            <button type="button" class="ds-quota-upgrade-link" @click="navigateToSubscriptions">
+                                <i class="pi pi-arrow-up-right"></i>
+                                {{ te('subscriptions.upgrade') ? t('subscriptions.upgrade') : 'Actualizar Plan de Suscripción' }}
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -745,10 +869,71 @@ function handleCancel() {
     color: #d97706 !important;
 }
 
+.ds-summary--danger {
+    background: #fef2f2 !important;
+    border-left-color: #ef4444 !important;
+    color: #991b1b !important;
+}
+
+.ds-summary--danger .pi {
+    color: #dc2626 !important;
+}
+
+.ds-summary__content {
+    flex: 1;
+}
+
+.ds-quota-line {
+    margin-top: 0.35rem;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+    font-size: 0.8rem;
+}
+
+.ds-quota-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 0.72rem;
+    font-weight: 700;
+    padding: 0.15rem 0.5rem;
+    border-radius: 9999px;
+    background: #e2e8f0;
+    color: #334155;
+}
+
+.ds-quota-badge--danger {
+    background: #fee2e2;
+    color: #b91c1c;
+}
+
+.ds-quota-upgrade-link {
+    margin-top: 0.4rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: #dc2626;
+    cursor: pointer;
+    text-decoration: underline;
+    background: none;
+    border: none;
+    padding: 0;
+    font-family: inherit;
+}
+
+.ds-quota-upgrade-link:hover {
+    color: #991b1b;
+}
+
 .ds-error-text {
-    margin-top: 0.25rem;
+    margin-top: 0.35rem;
     font-weight: 600;
     color: #dc2626;
+    line-height: 1.4;
 }
 
 .ds-section-title {

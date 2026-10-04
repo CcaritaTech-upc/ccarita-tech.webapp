@@ -124,6 +124,30 @@ public static class PublishingEndpoints
         {
             var item = await db.Projects.FindAsync([id], ct);
             if (item is null || !OwnsProject(user, item)) return Results.NotFound();
+
+            // 1. Remove clients associated with this project
+            var clients = await db.Clients.Where(c => c.ProjectId == id).ToListAsync(ct);
+            if (clients.Count > 0) db.Clients.RemoveRange(clients);
+
+            // 2. Remove devices and their projections
+            var devices = await db.Devices.Where(d => d.ProjectId == id).ToListAsync(ct);
+            if (devices.Count > 0) db.Devices.RemoveRange(devices);
+
+            var devProjections = await db.DeviceProjections.Where(d => d.ProjectId == id).ToListAsync(ct);
+            if (devProjections.Count > 0) db.DeviceProjections.RemoveRange(devProjections);
+
+            // 3. Remove units and their projections
+            var units = await db.Units.Where(u => u.ProjectId == id).ToListAsync(ct);
+            if (units.Count > 0) db.Units.RemoveRange(units);
+
+            var unitProjections = await db.UnitProjections.Where(u => u.ProjectId == id).ToListAsync(ct);
+            if (unitProjections.Count > 0) db.UnitProjections.RemoveRange(unitProjections);
+
+            // 4. Remove project projections
+            var projectProjections = await db.ProjectProjections.Where(p => p.ProjectId == id).ToListAsync(ct);
+            if (projectProjections.Count > 0) db.ProjectProjections.RemoveRange(projectProjections);
+
+            // 5. Remove project record
             db.Projects.Remove(item);
             await db.SaveChangesAsync(ct);
             return Results.NoContent();
@@ -144,6 +168,43 @@ public static class PublishingEndpoints
             var project = await db.Projects.FindAsync([id], ct);
             if (project is null || !OwnsProject(user, project)) return Results.NotFound();
             if (project.StructureDefined) return Results.Conflict(new { error = "Project structure already defined." });
+
+            // Validate builder subscription device quota
+            var builderId = SelfId(user);
+            var sub = await db.Subscriptions
+                .Where(s => s.BuilderId == builderId && s.Status == "active")
+                .OrderByDescending(s => s.Id)
+                .FirstOrDefaultAsync(ct);
+
+            int maxAllowedDevices = 200; // default to Pro
+            if (sub != null)
+            {
+                var plan = await db.Plans.FindAsync([sub.PlanId], ct);
+                if (plan != null)
+                {
+                    var planName = plan.Name.ToLowerInvariant();
+                    if (planName.Contains("starter")) maxAllowedDevices = 50;
+                    else if (planName.Contains("pro")) maxAllowedDevices = 200;
+                    else if (planName.Contains("enterprise")) maxAllowedDevices = int.MaxValue;
+                }
+            }
+
+            if (maxAllowedDevices != int.MaxValue)
+            {
+                var builderProjectIds = await db.Projects.Where(p => p.BuilderId == builderId).Select(p => p.Id).ToListAsync(ct);
+                var currentDevicesCount = await db.Devices.CountAsync(d => builderProjectIds.Contains(d.ProjectId), ct);
+                var floorCount = request.FloorNumbers is { Count: > 0 } ? request.FloorNumbers.Distinct().Count(f => f >= 1 && f <= request.Floors) : request.Floors;
+                var newFloorDevices = floorCount * 3;
+                var newUnitDevices = floorCount * request.UnitsPerFloor * 2;
+                var projectedTotal = currentDevicesCount + newFloorDevices + newUnitDevices;
+
+                if (projectedTotal > maxAllowedDevices)
+                {
+                    return Results.Json(new {
+                        error = $"Plan device limit exceeded. This structure would create {newFloorDevices + newUnitDevices} devices (total: {projectedTotal}), exceeding your plan limit of {maxAllowedDevices} devices. Please upgrade your subscription."
+                    }, statusCode: 422);
+                }
+            }
 
             try
             {
