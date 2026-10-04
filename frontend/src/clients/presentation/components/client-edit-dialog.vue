@@ -196,8 +196,11 @@ const validateField = (field) => {
   }
 };
 
-const onFieldInput = (field) => {
+const onFieldInput = (field, val) => {
   touched.value[field] = true;
+  if (val !== undefined && formData.value) {
+    formData.value[field] = val;
+  }
   validateField(field);
 };
 
@@ -206,27 +209,23 @@ const onFieldBlur = (field) => {
   validateField(field);
 };
 
-// Immediate reactive watcher on email input so errors appear and clear in real-time
-watch(() => formData.value.email, (newVal) => {
-  if (touched.value.email || (newVal && newVal.length > 0)) {
-    validateField('email');
-  }
+// Reactive watchers so errors appear and clear dynamically
+watch(() => formData.value.email, () => {
+  validateField('email');
 });
 
-watch(() => formData.value.fullName, (newVal) => {
-  if (touched.value.fullName || (newVal && newVal.length > 0)) {
+watch(() => formData.value.fullName, () => {
+  if (touched.value.fullName || (formData.value.fullName && formData.value.fullName.length > 0)) {
     validateField('fullName');
   }
 });
 
-watch(() => formData.value.phoneNumber, (newVal) => {
-  if (touched.value.phoneNumber || (newVal && newVal.length > 0)) {
-    validateField('phoneNumber');
-  }
+watch(() => formData.value.phoneNumber, () => {
+  validateField('phoneNumber');
 });
 
-watch(() => formData.value.address, (newVal) => {
-  if (touched.value.address || (newVal && newVal.length > 0)) {
+watch(() => formData.value.address, () => {
+  if (touched.value.address || (formData.value.address && formData.value.address.length > 0)) {
     validateField('address');
   }
 });
@@ -322,7 +321,7 @@ const accountStatementOptions = computed(() => [
           class="w-full"
           :invalid="!!errors.fullName"
           :placeholder="t('clients.placeholders.fullName')"
-          @input="onFieldInput('fullName')"
+          @input="(e) => onFieldInput('fullName', e?.target?.value)"
           @blur="onFieldBlur('fullName')"
         />
         <small v-if="errors.fullName" class="p-error block mt-1 text-xs">{{ errors.fullName }}</small>
@@ -340,7 +339,7 @@ const accountStatementOptions = computed(() => [
           class="w-full"
           :invalid="!!errors.email"
           :placeholder="t('clients.placeholders.email')"
-          @input="onFieldInput('email')"
+          @input="(e) => onFieldInput('email', e?.target?.value)"
           @blur="onFieldBlur('email')"
         />
         <small v-if="errors.email" class="p-error block mt-1 text-xs">{{ errors.email }}</small>
@@ -358,7 +357,7 @@ const accountStatementOptions = computed(() => [
           class="w-full"
           :invalid="!!errors.phoneNumber"
           :placeholder="t('clients.placeholders.phoneNumber')"
-          @input="onFieldInput('phoneNumber')"
+          @input="(e) => onFieldInput('phoneNumber', e?.target?.value)"
           @blur="onFieldBlur('phoneNumber')"
         />
         <small v-if="errors.phoneNumber" class="p-error block mt-1 text-xs">{{ errors.phoneNumber }}</small>
@@ -376,7 +375,7 @@ const accountStatementOptions = computed(() => [
           class="w-full"
           :invalid="!!errors.address"
           :placeholder="t('clients.placeholders.address')"
-          @input="onFieldInput('address')"
+          @input="(e) => onFieldInput('address', e?.target?.value)"
           @blur="onFieldBlur('address')"
         />
         <small v-if="errors.address" class="p-error block mt-1 text-xs">{{ errors.address }}</small>
