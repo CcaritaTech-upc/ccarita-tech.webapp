@@ -4,9 +4,9 @@ import { useI18n } from 'vue-i18n';
 import { useToast } from 'primevue/usetoast';
 import { ProjectsFacade } from '../../infrastructure/projects.facade.js';
 import {
+  isValidEmail,
   isValidPhone,
   validateClientFullName,
-  validateClientEmail,
   validateClientAddress
 } from '../../../shared/presentation/validators.js';
 
@@ -171,8 +171,12 @@ const validateField = (field) => {
     const res = validateClientFullName(val, t);
     errors.value.fullName = res.isValid ? '' : res.error;
   } else if (field === 'email') {
-    const res = validateClientEmail(val, t);
-    errors.value.email = res.isValid ? '' : res.error;
+    const clean = (val || '').trim();
+    if (clean && !isValidEmail(clean)) {
+      errors.value.email = t('clients.validation.emailInvalid');
+    } else {
+      errors.value.email = '';
+    }
   } else if (field === 'phoneNumber') {
     const clean = (val || '').trim();
     if (clean && !isValidPhone(clean)) {
@@ -237,7 +241,16 @@ const handleSave = () => {
   };
 
   validateField('fullName');
-  validateField('email');
+
+  const emailClean = (formData.value.email || '').trim();
+  if (!emailClean) {
+    errors.value.email = t('clients.validation.emailRequired');
+  } else if (!isValidEmail(emailClean)) {
+    errors.value.email = t('clients.validation.emailInvalid');
+  } else {
+    errors.value.email = '';
+  }
+
   validateField('phoneNumber');
   validateField('address');
   validateField('projectId');
