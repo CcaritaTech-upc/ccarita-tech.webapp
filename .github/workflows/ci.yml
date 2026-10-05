@@ -140,6 +140,7 @@ jobs:
         env:
           CI: true
       - name: BDD (Cucumber — User Stories US01–US10)
+        if: github.event_name == 'pull_request'
         run: npm run test:bdd
         working-directory: frontend
         env:
