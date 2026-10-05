@@ -2,6 +2,9 @@
   "header": {
     "welcome": "Welcome"
   },
+  "common": {
+    "success": "Success"
+  },
   "option": {
     "dashboard": "Dashboard",
     "home": "Home",
