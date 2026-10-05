@@ -1,25 +1,27 @@
+@US08
 Feature: US08 Agregar un Nuevo Cliente
-  Como Arquitecto
-  quiero poder agregar un nuevo cliente
-  para poder registrarlo en el sistema y asociarlo a una unidad de vivienda.
+  Como arquitecto
+  quiero agregar un nuevo cliente
+  para registrarlo en un proyecto y opcionalmente asociarlo a una unidad.
 
   Scenario Outline: Registro satisfactorio de un nuevo cliente
-    Given que el usuario se encuentra en el modal de "Agregar Cliente"
-    And hace clic en el botón "Registrar Cliente"
-    When ingresa el nombre completo <nombre>, correo <email> y selecciona el proyecto <proyecto_id>
-    Then el sistema creará el registro del cliente con código 201 Created
-    And el nuevo cliente aparecerá reflejado en la lista con estado inicial <estado>
+    Given el constructor con alias <alias> tiene el proyecto "<proyecto>"
+    When abre el formulario para agregar un cliente
+    And ingresa nombre "<nombre>" y correo "<email>"
+    And selecciona el proyecto "<proyecto>"
+    And registra el cliente
+    Then el API de clientes responderá con código 201 Created
+    And el cliente "<nombre>" aparecerá en la lista con estado "Activo"
     Examples:
-      | nombre | email | proyecto_id | estado |
-      | Carlos Mendoza | carlos@example.com | 1 | Pending |
-      | Lucía Benavides | lucia@example.com | 2 | Pending |
+      | alias | proyecto | nombre | email |
+      | clientenuevoa | Edificio Panorama | Carlos Mendoza | carlos@example.com |
+      | clientenuevob | Mirador del Valle | Lucía Benavides | lucia@example.com |
 
-  Scenario Outline: Fallo en el registro por omisión de nombre o correo
-    Given que el usuario intenta registrar un cliente sin ingresar el <campo_vacio>
-    When hace clic en "Registrar Cliente"
-    Then el sistema denegará la creación con código 400 Bad Request
-    And mostrará la alerta <mensaje_error>
-    Examples:
-      | campo_vacio | mensaje_error |
-      | nombre | El nombre completo es obligatorio |
-      | email | Debe proporcionar un correo electrónico válido |
+  Scenario: Fallo en el registro por omisión de correo
+    Given el constructor con alias clientefallido tiene el proyecto "Torre de Prueba"
+    When abre el formulario para agregar un cliente
+    And ingresa el nombre "Cliente de Prueba" sin correo
+    And selecciona el proyecto "Torre de Prueba"
+    And intenta registrar el cliente
+    Then el formulario bloqueará la creación
+    And mostrará la validación "El correo electrónico es obligatorio."

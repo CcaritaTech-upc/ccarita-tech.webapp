@@ -1,0 +1,27 @@
+# Isolated local stack for Cucumber/Playwright. Use a separate Compose project
+# so generated accounts and records never touch the regular developer DB volume.
+services:
+  iobuild-api:
+    container_name: !reset null
+    ports: !override
+      - "127.0.0.1:18080:8080"
+      - "127.0.0.1:15080:8080"
+
+  mysql-monolith:
+    container_name: !reset null
+
+  frontend:
+    container_name: !reset null
+
+  nginx:
+    container_name: !reset null
+    ports: !override
+      - "127.0.0.1:18081:80"
+
+  mosquitto:
+    container_name: !reset null
+    ports: !override
+      - "127.0.0.1:11883:1883"
+
+  simulator:
+    container_name: !reset null

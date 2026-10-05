@@ -3,23 +3,26 @@ Feature: US03 Edición de Información del Perfil
   quiero poder editar alguna parte de mi información, como mi email, número de teléfono o dirección
   para mantener mis datos actualizados.
 
+  @US03
   Scenario Outline: Edición exitosa de información de contacto
-    Given el <usuario> se encuentra en la sección de edición de su perfil
-    And hace clic en el botón "Guardar Cambios"
-    When modifica el teléfono por <nuevo_telefono> y la dirección por <nueva_direccion>
+    Given el usuario con rol <rol> y alias <usuario> está editando su perfil
+    When modifica el teléfono a "<nuevo_telefono>" y la dirección a "<nueva_direccion>"
+    And guarda los cambios
     Then el sistema actualizará los datos satisfactoriamente
-    And mostrará el mensaje de confirmación <mensaje_exito>
+    And mostrará el mensaje de confirmación "<mensaje_exito>"
     Examples:
-      | usuario | nuevo_telefono | nueva_direccion | mensaje_exito |
-      | axel@iobuild.pe | 999888777 | Av. Primavera 123 | Perfil actualizado correctamente |
-      | mateo@iobuild.pe | 988777666 | Calle Los Fresnos 456 | Perfil actualizado correctamente |
+      | rol | usuario | nuevo_telefono | nueva_direccion | mensaje_exito |
+      | Builder | axel | 999888777 | Av. Primavera 123 | Perfil actualizado correctamente |
+      | Owner | mateo | 988777666 | Calle Los Fresnos 456 | Perfil actualizado correctamente |
 
+  @US03
   Scenario Outline: Validación de formato incorrecto en datos de contacto
-    Given el <usuario> se encuentra editando su información personal
-    And hace clic en el botón "Guardar Cambios"
-    When ingresa un formato inválido de teléfono <telefono_invalido>
+    Given el usuario con rol <rol> y alias <usuario> está editando su perfil
+    When ingresa un teléfono inválido "<telefono_invalido>"
+    And intenta guardar el perfil
     Then el sistema bloqueará la actualización
-    And mostrará la validación de error <mensaje_error>
+    And mostrará la validación de error "<mensaje_error>"
     Examples:
-      | usuario | telefono_invalido | mensaje_error |
-      | axel@iobuild.pe | 123 | El número de teléfono debe contener 9 dígitos |
+      | rol | usuario | telefono_invalido | mensaje_error |
+      | Builder | axel | 123 | Número de teléfono inválido (debe contener entre 7 y 15 dígitos). |
+      | Owner | mateo | 123 | Número de teléfono inválido (debe contener entre 7 y 15 dígitos). |

@@ -13,7 +13,16 @@
     "server": "json-server --watch server/db.json --route server/routes.json",
     "test:unit": "vitest run",
     "test:nginx": "node tests/nginx-config.mjs",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "test:us": "node tests/bdd/run-us.mjs",
+    "test:bdd:us03": "cucumber-js --config cucumber.js --tags @US03",
+    "test:bdd:devices": "cucumber-js --config cucumber.js --tags @US01",
+    "test:bdd:auth-profile": "cucumber-js --config cucumber.js --tags \"@US02 or @US03 or @US10\"",
+    "test:bdd:publishing": "cucumber-js --config cucumber.js --tags \"@US04 or @US05 or @US06\"",
+    "test:bdd:clients": "cucumber-js --config cucumber.js --tags \"@US07 or @US08\"",
+    "test:bdd:subscriptions": "cucumber-js --config cucumber.js --tags @US09",
+    "test:bdd": "cucumber-js --config cucumber.js",
+    "test:bdd:current": "cucumber-js --config cucumber.js --tags \"@US01 or @US02 or @US03 or @US04 or @US05 or @US06 or @US07 or @US08 or @US09 or @US10\""
   },
   "dependencies": {
     "@primeuix/themes": "^1.2.3",
@@ -30,6 +39,7 @@
     "vue-router": "^4.5.1"
   },
   "devDependencies": {
+    "@cucumber/cucumber": "^12.9.0",
     "@playwright/test": "^1.63.0",
     "@vitejs/plugin-vue": "^6.0.1",
     "json-server": "^0.17.4",

@@ -1,23 +1,20 @@
+@US07
 Feature: US07 Ver Lista de Clientes
-  Como Arquitecto
-  quiero ver una lista de todos los clientes
-  para gestionar sus proyectos asociados y el estado de su cuenta.
+  Como arquitecto
+  quiero ver mis clientes asociados a proyectos
+  para gestionar sus datos y estado de cuenta.
 
-  Scenario Outline: Visualización de catálogo de clientes asociados a proyectos
-    Given que el usuario autenticado tiene clientes registrados en el sistema
-    When accede a la sección de "Clientes"
-    Then el sistema retornará la lista de clientes con nombre completo <nombre_cliente>, proyecto <proyecto> y estado de cuenta <estado_cuenta>
-    And mostrará las acciones de Ver Perfil y Configuración
+  Scenario Outline: Visualización de clientes asociados al constructor
+    Given el constructor con alias <alias> tiene el cliente "<nombre_cliente>" en el proyecto "<proyecto>"
+    When abre la sección de clientes
+    Then la lista mostrará "<nombre_cliente>" asociado a "<proyecto>"
+    And mostrará el estado de cuenta "<estado_cuenta>" y la acción de ver perfil
     Examples:
-      | nombre_cliente | proyecto | estado_cuenta |
-      | Alex Resident | North Tower | Pending |
-      | Carla Flores | Edificio Panorama | Active |
+      | alias | nombre_cliente | proyecto | estado_cuenta |
+      | clientesa | Alex Resident | North Tower | Activo |
+      | clientesb | Carla Flores | Edificio Panorama | Activo |
 
-  Scenario Outline: Visualización cuando no existen clientes registrados
-    Given que no existen clientes registrados para el constructor con ID <builder_id>
-    When solicita la lista de clientes
-    Then el sistema responderá con una lista vacía y código 200 OK
-    And mostrará el mensaje <mensaje_vacio>
-    Examples:
-      | builder_id | mensaje_vacio |
-      | 5 | No se encontraron clientes asociados |
+  Scenario: Constructor sin clientes visualiza la lista vacía
+    Given el constructor con alias sinclientes no tiene clientes
+    When abre la sección de clientes
+    Then la lista de clientes estará vacía

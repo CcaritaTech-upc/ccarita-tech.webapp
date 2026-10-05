@@ -139,6 +139,12 @@ jobs:
         working-directory: frontend
         env:
           CI: true
+      - name: BDD (Cucumber — User Stories US01–US10)
+        run: npm run test:bdd
+        working-directory: frontend
+        env:
+          CI: true
+          E2E_BASE_URL: http://localhost:8081
       - name: Compose down
         if: always()
         run: docker compose -f docker-compose.yml down -v
