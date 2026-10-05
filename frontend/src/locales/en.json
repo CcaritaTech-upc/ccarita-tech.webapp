@@ -175,6 +175,8 @@
     "builderRole": "Builder",
     "save": "Save Changes",
     "cancel": "Cancel editing",
+    "saveSuccess": "Profile updated successfully.",
+    "saveError": "Could not update the profile. Please try again.",
 
     "sceneNames": {
       "401": "Cinema mode",

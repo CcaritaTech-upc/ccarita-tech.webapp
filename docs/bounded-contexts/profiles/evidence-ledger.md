@@ -1,5 +1,51 @@
 # Profiles evidence ledger
 
+## Profile save feedback — 2026-10-04
+
+Builder and Owner profile edits now show localized confirmation only after the
+profile PUT succeeds. A failed request stays in edit mode and shows an error
+toast so unsaved changes are not presented as saved.
+
+```yaml
+context: profiles
+feature: profile-save-feedback
+journey: Builder or Owner edits profile details; the UI confirms only a successful persisted update.
+actor_coverage:
+  - actor: Builder
+    happy_path: frontend/tests/e2e/profiles-manage.spec.js
+  - actor: Owner
+    happy_path: frontend/tests/e2e/profiles-manage.spec.js
+scenarios:
+  - tier: B
+    scenario: Successful profile update displays localized confirmation and survives reload for both roles.
+    owner: frontend/tests/e2e/profiles-manage.spec.js
+  - tier: B
+    scenario: Failed profile update displays an error, keeps the edit form open, and does not persist unsaved values.
+    owner: frontend/tests/e2e/profiles-manage.spec.js
+layer_ownership:
+  G0: Vitest suite and production build validate frontend modules and translations.
+  G1: Playwright success paths use the profile API backed by isolated MySQL; failed responses are injected at the HTTP boundary.
+  G2: Playwright validates visible feedback and stored values after reload.
+  G3: Builder and Owner happy paths plus failed-save handling are covered.
+  G4: Focused profile E2E repeated twice without flake.
+gates:
+  G0: skipped — local Vitest/build are green; CI has not run for this worktree.
+  G1: skipped — local API/MySQL E2E is green; CI has not run for this worktree.
+  G2: skipped — local system E2E is green; CI has not run for this worktree.
+  G3: skipped — local actor/failure scenarios are green; CI has not run for this worktree.
+  G4: skipped — local repeat is deterministic; CI has not run for this worktree.
+commands:
+  - command: npm run test:unit
+    result: 77/77 passed in 3.30s.
+  - command: npm run build
+    result: passed in 15.60s.
+  - command: E2E_BASE_URL=http://127.0.0.1:18081 E2E_NGINX=1 E2E_CLOUDINARY_DUMMY=1 E2E_SIMULATED_PAYMENTS=1 npm run test:e2e -- tests/e2e/profiles-manage.spec.js --workers=1
+    result: 4/4 passed for Builder and Owner update success and failure.
+  - command: same isolated E2E command with --workers=1 --repeat-each=2
+    result: 8/8 passed; no flaky results.
+open_risks: []
+```
+
 ## Backend test navigation — 2026-10-02
 
 The [Profiles catalogue](test-catalog.md) maps creation, management and photo

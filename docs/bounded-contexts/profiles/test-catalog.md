@@ -8,6 +8,7 @@ inherited Risk trait. The service range theory expands to two cases.
 | Creation fields and years-in-business range | `Creation/Application/ProfileCreationTests.cs` | Application, InMemory | U ×2 |
 | Own create/read/update, age/years separation, photo route, errors/fuzz | `Management/Api/ProfileAccessTests.cs` | API, InMemory; injected photo uploader | A ×4, B ×3, D |
 | Create/read/update, migration/backfill, duplicate create and photo durability | `Management/Persistence/ProfilePersistenceMySqlTests.cs` | Persistence, opt-in MySQL; fake uploader | A ×4 |
+| Owner/Builder profile updates, success feedback, and error retention | `frontend/tests/e2e/profiles-manage.spec.js` | Playwright system E2E; clean MySQL stack | G2, both actors |
 | Failed upload leaves stored photo unchanged | `Photo/Application/ProfilePhotoFailureTests.cs` | Application, InMemory; broken uploader | A |
 | Photo success/failure/CAS | `Photo/Application/ProfilePhotoWorkflowTests.cs` | Application, InMemory; fake uploader | U ×3 |
 | Signed multipart and provider failure | `Photo/Contract/CloudinaryHttpAdapterTests.cs` | Adapter contract, fake HTTP and fixed time | U ×2 |

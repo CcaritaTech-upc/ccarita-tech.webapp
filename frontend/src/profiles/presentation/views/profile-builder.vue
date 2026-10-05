@@ -49,11 +49,13 @@
             <pv-button
               :label="$t('profile.save')"
               class="edit-button"
+              :disabled="isSaving"
               @click="toggleEdit"
             />
             <pv-button
               :label="$t('profile.cancel')"
               class="cancel-button"
+              :disabled="isSaving"
               @click="cancelEdit"
             />
           </div>
@@ -151,16 +153,19 @@
 <script setup>
 import { ref, computed, reactive } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useToast } from 'primevue/usetoast'
 import { useProfileStore } from '../../application/profile.store.js'
 import { ProfileApi } from '../../infrastructure/profile-api.js'
 import { isValidName, isValidPhone, isValidEmail, isValidYearsInBusiness } from '../../../shared/presentation/validators.js'
 import PvButton from 'primevue/button'
 
 const { t } = useI18n()
+const toast = useToast()
 const store = useProfileStore()
 const profile = computed(() => store.profile)
 const api = new ProfileApi()
 const isEditing = ref(false)
+const isSaving = ref(false)
 const fileInput = ref(null)
 
 const errors = reactive({
@@ -227,11 +232,11 @@ function handlePhotoChange(event) {
 
 async function toggleEdit() {
   if (isEditing.value) {
-    if (!validate()) {
+    if (!validate() || isSaving.value) {
       return
     }
-    await saveProfile()
-    isEditing.value = false
+    const saved = await saveProfile()
+    if (saved) isEditing.value = false
   } else {
     errors.name = ''
     errors.phoneNumber = ''
@@ -243,6 +248,9 @@ async function toggleEdit() {
 }
 
 async function saveProfile() {
+  if (isSaving.value) return false
+  isSaving.value = true
+
   try {
     // Only send fields that belong to profiles bounded context
     // Email and role are not part of profiles, they belong to IAM
@@ -257,12 +265,25 @@ async function saveProfile() {
       secondEmail: profile.value.secondEmail,
       yearsInBusiness: profile.value.yearsInBusiness === '' ? null : profile.value.yearsInBusiness
     })
-    console.log('Profile updated successfully')
+    toast.add({
+      severity: 'success',
+      summary: t('profile.saveSuccess'),
+      life: 3000
+    })
     if (profile.value?.userId) {
       await store.fetchProfile(profile.value.userId)
     }
+    return true
   } catch (error) {
     console.error('Error updating profile:', error)
+    toast.add({
+      severity: 'error',
+      summary: t('profile.saveError'),
+      life: 5000
+    })
+    return false
+  } finally {
+    isSaving.value = false
   }
 }
 

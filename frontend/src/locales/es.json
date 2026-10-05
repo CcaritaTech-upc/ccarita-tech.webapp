@@ -175,6 +175,8 @@
     "builderRole": "Constructor",
     "save": "Guardar Cambios",
     "cancel": "Cancelar Edición",
+    "saveSuccess": "Perfil actualizado correctamente",
+    "saveError": "No se pudo actualizar el perfil. Inténtalo de nuevo.",
 
     "sceneNames": {
       "401": "Modo Cine",
