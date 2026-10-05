@@ -6,6 +6,7 @@ service collaboration. `U` means inherited methods without a Risk trait.
 
 | Capability | File relative to `backend/tests/` | Actual layer / dependencies | Inherited tiers |
 |---|---|---|---|
+| Technical Story TS04 device list/read ownership by Builder project and Owner unit | `TS/TS04/DeviceListApiTests.cs` | API, InMemory; selectable with `TechnicalStory=TS04` | 4 contract/access cases |
 | Owner/Builder device management and anonymous rejection | `Modules/Devices/Management/Api/DeviceManageTests.cs` | API, InMemory | A ×3 |
 | Command→telemetry→status, authorization/ranges/power-off | `Modules/Devices/Control/Api/DeviceControlFlowTests.cs` | API, InMemory; MQTT disabled; happy path retains `Layer=Contract` | A ×3 |
 | Command serialization, error bodies and command fuzz | `Modules/Devices/Control/Api/DeviceControlRiskTests.cs` | API, InMemory; MQTT disabled | B, C, D |
@@ -16,6 +17,7 @@ service collaboration. `U` means inherited methods without a Risk trait.
 ## Run the functionality
 
 ```sh
+npm --prefix frontend run test:ts -- 04
 dotnet test backend/tests/Modules/IoBuild.Modules.Tests.csproj --no-restore --filter "Context=Devices"
 dotnet test backend/tests/Integration/IoBuild.Integration.Tests.csproj --no-restore --filter "Context=Devices"
 dotnet test backend/tests/Modules/IoBuild.Modules.Tests.csproj --no-restore --filter "Flow=DEVICES.CONTROL&Risk=D"

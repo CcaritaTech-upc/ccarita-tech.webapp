@@ -9,16 +9,25 @@ namespace IoBuild.Api.Devices.Interfaces.REST;
 
 public static class DevicesEndpoints
 {
-    // Mutations need a manager: the unit owner for unit devices, the project
-    // builder for project (floor) devices. Anything else reads as not found.
-    private static async Task<bool> ManagesDeviceAsync(System.Security.Claims.ClaimsPrincipal user, IoBuild.Api.Persistence.IoBuildDbContext db, IoBuild.Api.Devices.Domain.Model.Aggregates.Device device, CancellationToken ct)
+    // Builders access devices in their own projects. Owners access only devices
+    // attached to units assigned to them. Use the same boundary for reads and mutations.
+    private static async Task<bool> CanAccessDeviceAsync(System.Security.Claims.ClaimsPrincipal user, IoBuild.Api.Persistence.IoBuildDbContext db, IoBuild.Api.Devices.Domain.Model.Aggregates.Device device, CancellationToken ct)
     {
-        if (!int.TryParse(user.FindFirst(System.Security.Claims.ClaimTypes.Sid)?.Value, out var id)) return false;
-        var role = user.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value;
-        if (device.UnitId.HasValue && string.Equals(role, "Owner", StringComparison.Ordinal)
-            && await db.UnitOwnerProjections.AnyAsync(item => item.UnitId == device.UnitId && item.OwnerUserId == id, ct)) return true;
-        var project = await db.Projects.FindAsync([device.ProjectId], ct);
-        return project is not null && string.Equals(role, "Builder", StringComparison.OrdinalIgnoreCase) && project.BuilderId == id;
+        var rawId = user.FindFirst(System.Security.Claims.ClaimTypes.Sid)?.Value
+            ?? user.FindFirst("sid")?.Value
+            ?? user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value
+            ?? user.FindFirst("sub")?.Value;
+        if (!int.TryParse(rawId, out var userId) || userId <= 0) return false;
+
+        var role = user.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value ?? user.FindFirst("role")?.Value;
+        if (string.Equals(role, "Owner", StringComparison.OrdinalIgnoreCase))
+        {
+            return device.UnitId.HasValue && await db.UnitOwnerProjections.AnyAsync(
+                item => item.UnitId == device.UnitId.Value && item.OwnerUserId == userId, ct);
+        }
+
+        if (!string.Equals(role, "Builder", StringComparison.OrdinalIgnoreCase)) return false;
+        return await db.Projects.AnyAsync(project => project.Id == device.ProjectId && project.BuilderId == userId, ct);
     }
 
     public static void MapDevicesEndpoints(this WebApplication app)
@@ -39,14 +48,41 @@ public static class DevicesEndpoints
 
         group.MapGet("/devices/types", () => Results.Ok(deviceTypesResult)).AllowAnonymous();
         group.MapGet("/custom-device-types", () => Results.Ok(deviceTypesResult)).AllowAnonymous();
-        group.MapGet("/devices", async ([FromQuery] int? unitId, [FromQuery] int? projectId, IoBuildDbContext db, CancellationToken ct) =>
+        group.MapGet("/devices", async ([FromQuery] int? unitId, [FromQuery] int? projectId, System.Security.Claims.ClaimsPrincipal user, IoBuildDbContext db, CancellationToken ct) =>
         {
+            var rawId = user.FindFirst(System.Security.Claims.ClaimTypes.Sid)?.Value
+                ?? user.FindFirst("sid")?.Value
+                ?? user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value
+                ?? user.FindFirst("sub")?.Value;
+            if (!int.TryParse(rawId, out var userId) || userId <= 0) return Results.Unauthorized();
+
+            var role = user.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value ?? user.FindFirst("role")?.Value;
             var query = db.Devices.AsQueryable();
+            if (string.Equals(role, "Builder", StringComparison.OrdinalIgnoreCase))
+            {
+                query = query.Where(device => db.Projects.Any(project => project.Id == device.ProjectId && project.BuilderId == userId));
+            }
+            else if (string.Equals(role, "Owner", StringComparison.OrdinalIgnoreCase))
+            {
+                query = query.Where(device => device.UnitId.HasValue && db.UnitOwnerProjections.Any(ownership =>
+                    ownership.UnitId == device.UnitId.Value && ownership.OwnerUserId == userId));
+            }
+            else
+            {
+                return Results.Forbid();
+            }
+
             if (unitId.HasValue) query = query.Where(d => d.UnitId == unitId.Value);
             if (projectId.HasValue) query = query.Where(d => d.ProjectId == projectId.Value);
             return Results.Ok((await query.OrderBy(device => device.Id).ToListAsync(ct)).Select(DeviceResponse.From));
         }).RequireAuthorization();
-        group.MapGet("/devices/{id:int}", async (int id, IoBuildDbContext db, CancellationToken ct) => await db.Devices.FindAsync([id], ct) is { } device ? Results.Ok(DeviceResponse.From(device)) : Results.NotFound()).RequireAuthorization();
+        group.MapGet("/devices/{id:int}", async (int id, System.Security.Claims.ClaimsPrincipal user, IoBuildDbContext db, CancellationToken ct) =>
+        {
+            var device = await db.Devices.FindAsync([id], ct);
+            return device is not null && await CanAccessDeviceAsync(user, db, device, ct)
+                ? Results.Ok(DeviceResponse.From(device))
+                : Results.NotFound();
+        }).RequireAuthorization();
         group.MapPost("/devices", async (CreateDeviceRequest request, System.Security.Claims.ClaimsPrincipal user, IoBuildDbContext db, DeviceRegistryService registry, CancellationToken ct) =>
         {
             var ownerId = int.TryParse(user.FindFirst(System.Security.Claims.ClaimTypes.Sid)?.Value, out var id) ? id : 0;
@@ -79,8 +115,8 @@ public static class DevicesEndpoints
             await db.SaveChangesAsync(ct);
             await registry.AnnounceAsync(device, ct); return Results.Created($"/api/v1/devices/{device.Id}", DeviceResponse.From(device));
         }).RequireAuthorization();
-        group.MapPut("/devices/{id:int}", async (int id, CreateDeviceRequest request, System.Security.Claims.ClaimsPrincipal user, IoBuildDbContext db, DeviceRegistryService registry, CancellationToken ct) => { var device = await db.Devices.FindAsync([id], ct); if (device is null || !await ManagesDeviceAsync(user, db, device, ct)) return Results.NotFound(); device.Name = request.Name; device.Type = request.Type; device.Location = request.Location; device.MacAddress = request.MacAddress; device.ProjectId = request.ProjectId; device.Status = request.Status; await db.SaveChangesAsync(ct); await registry.AnnounceAsync(device, ct); return Results.NoContent(); }).RequireAuthorization();
-        group.MapDelete("/devices/{id:int}", async (int id, System.Security.Claims.ClaimsPrincipal user, IoBuildDbContext db, DeviceRegistryService registry, CancellationToken ct) => { var device = await db.Devices.FindAsync([id], ct); if (device is null || !await ManagesDeviceAsync(user, db, device, ct)) return Results.NotFound(); registry.QueueTombstone(id); var devProj = await db.DeviceProjections.FindAsync([id], ct); if (devProj is not null) db.DeviceProjections.Remove(devProj); db.Devices.Remove(device); await db.SaveChangesAsync(ct); try { await registry.ReconcileAsync(ct); } catch (HttpRequestException) { } return Results.NoContent(); }).RequireAuthorization();
+        group.MapPut("/devices/{id:int}", async (int id, CreateDeviceRequest request, System.Security.Claims.ClaimsPrincipal user, IoBuildDbContext db, DeviceRegistryService registry, CancellationToken ct) => { var device = await db.Devices.FindAsync([id], ct); if (device is null || !await CanAccessDeviceAsync(user, db, device, ct)) return Results.NotFound(); device.Name = request.Name; device.Type = request.Type; device.Location = request.Location; device.MacAddress = request.MacAddress; device.ProjectId = request.ProjectId; device.Status = request.Status; await db.SaveChangesAsync(ct); await registry.AnnounceAsync(device, ct); return Results.NoContent(); }).RequireAuthorization();
+        group.MapDelete("/devices/{id:int}", async (int id, System.Security.Claims.ClaimsPrincipal user, IoBuildDbContext db, DeviceRegistryService registry, CancellationToken ct) => { var device = await db.Devices.FindAsync([id], ct); if (device is null || !await CanAccessDeviceAsync(user, db, device, ct)) return Results.NotFound(); registry.QueueTombstone(id); var devProj = await db.DeviceProjections.FindAsync([id], ct); if (devProj is not null) db.DeviceProjections.Remove(devProj); db.Devices.Remove(device); await db.SaveChangesAsync(ct); try { await registry.ReconcileAsync(ct); } catch (HttpRequestException) { } return Results.NoContent(); }).RequireAuthorization();
         group.MapPost("/devices/{id:int}/commands", async (int id, DeviceCommandRequest request, System.Security.Claims.ClaimsPrincipal user, DeviceCommandService commands, CancellationToken ct) => { var ownerId = int.TryParse(user.FindFirst(System.Security.Claims.ClaimTypes.Sid)?.Value, out var value) ? value : 0; var role = user.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value; try { var command = await commands.SendAuthorizedAsync(id, ownerId, role, request.Attribute, request.Value, ct); return Results.Ok(new { deviceId = id, attribute = request.Attribute, value = request.Value, acceptedAt = command.IssuedAt }); } catch (ArgumentException exception) { return Results.BadRequest(new { error = exception.Message }); } catch (UnauthorizedAccessException exception) { return Results.Json(new { error = exception.Message }, statusCode: 403); } catch (KeyNotFoundException exception) { return Results.NotFound(new { error = exception.Message }); } catch (InvalidOperationException exception) { return Results.Conflict(new { error = exception.Message }); } catch (HttpRequestException exception) { return Results.Json(new { error = exception.Message }, statusCode: 503); } }).RequireAuthorization();
         group.MapPost("/devices/telemetry", async (TelemetryMessage request, DeviceTelemetryService telemetry, CancellationToken ct) =>
         {
@@ -90,16 +126,17 @@ public static class DevicesEndpoints
         }).AllowAnonymous();
         group.MapPost("/devices/telemetry/replay", async (DeviceTelemetryService telemetry, CancellationToken ct) => Results.Ok(new { replayed = await telemetry.ReplayInfluxAsync(ct) })).RequireAuthorization();
         group.MapPost("/devices/reconcile", async (DeviceRegistryService registry, CancellationToken ct) => { await registry.ReconcileAsync(ct); return Results.Ok(new { reconciled = true }); }).AllowAnonymous();
-        group.MapGet("/devices/{id:int}/energy", async (int id, DateTimeOffset? from, DateTimeOffset? to, IoBuildDbContext db, CancellationToken ct) =>
+        group.MapGet("/devices/{id:int}/energy", async (int id, DateTimeOffset? from, DateTimeOffset? to, System.Security.Claims.ClaimsPrincipal user, IoBuildDbContext db, CancellationToken ct) =>
         {
-            if (await db.Devices.FindAsync([id], ct) is null) return Results.NotFound(new { message = $"Device with ID {id} not found" });
+            var device = await db.Devices.FindAsync([id], ct);
+            if (device is null || !await CanAccessDeviceAsync(user, db, device, ct)) return Results.NotFound(new { message = $"Device with ID {id} not found" });
             var start = from ?? DateTimeOffset.UtcNow.AddDays(-1); var end = to ?? DateTimeOffset.UtcNow;
             return Results.Ok(await db.DeviceTelemetry.Where(item => item.DeviceId == id && item.OccurredAt >= start && item.OccurredAt <= end).OrderBy(item => item.OccurredAt).Select(item => new { timestamp = item.OccurredAt, energyKwh = item.EnergyKwh, temperatureC = item.TemperatureC, voltageV = item.VoltageV }).ToListAsync(ct));
         }).RequireAuthorization();
-        group.MapGet("/devices/{id:int}/status", async (int id, IoBuildDbContext db, CancellationToken ct) =>
+        group.MapGet("/devices/{id:int}/status", async (int id, System.Security.Claims.ClaimsPrincipal user, IoBuildDbContext db, CancellationToken ct) =>
         {
             var device = await db.Devices.FindAsync([id], ct);
-            if (device is null) return Results.NotFound(new { message = $"Device with ID {id} not found" });
+            if (device is null || !await CanAccessDeviceAsync(user, db, device, ct)) return Results.NotFound(new { message = $"Device with ID {id} not found" });
             var telemetry = await db.DeviceTelemetry.Where(item => item.DeviceId == id).OrderByDescending(item => item.OccurredAt).FirstOrDefaultAsync(ct);
             var shadow = await db.DeviceShadows.FindAsync([id], ct);
             object? desired = null;

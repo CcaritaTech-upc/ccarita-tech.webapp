@@ -14,6 +14,7 @@
     <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" />
   </ItemGroup>
   <ItemGroup><Using Include="Xunit" /></ItemGroup>
+  <ItemGroup><Compile Include="../TS/**/*.cs" /></ItemGroup>
   <ItemGroup><ProjectReference Include="..\\..\\src\\IoBuild.Api\\IoBuild.Api.csproj" /></ItemGroup>
   <ItemGroup><ProjectReference Include="..\\TestKit\\IoBuild.TestKit.csproj" /></ItemGroup>
 </Project>

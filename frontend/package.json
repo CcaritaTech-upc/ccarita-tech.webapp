@@ -15,6 +15,7 @@
     "test:nginx": "node tests/nginx-config.mjs",
     "test:e2e": "playwright test",
     "test:us": "node tests/bdd/run-us.mjs",
+    "test:ts": "node ../backend/tests/TS/run.mjs",
     "test:bdd:us03": "cucumber-js --config cucumber.js --tags @US03",
     "test:bdd:devices": "cucumber-js --config cucumber.js --tags @US01",
     "test:bdd:auth-profile": "cucumber-js --config cucumber.js --tags \"@US02 or @US03 or @US10\"",

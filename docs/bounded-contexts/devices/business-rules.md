@@ -13,9 +13,14 @@ Journey: DEVICES.CONTROL (Owner sends commands to own unit devices).
 
 ## Manage
 
-- Reading the device list requires login but is unfiltered by design for now
-  (the frontend fetches all and filters client-side); per-role visibility
-  scoping is a scheduled risk, not a silent guarantee.
+- Device data reads require ownership: Builders see devices in their own
+  projects; Owners see devices in units assigned through `UnitOwnerProjection`.
+  Collection filters (`projectId`, `unitId`) narrow that authorized set; they
+  never broaden it. Foreign device IDs read as not found.
+- The device list, by-ID read, status, and energy routes share this access
+  boundary. There is no global Admin list role; other roles cannot list devices.
+- The device-type catalog and anonymous telemetry ingestion are separate
+  endpoints with their own intentionally different access rules.
 - Mutations require ownership: the unit owner for unit devices, the project
   builder for project devices. Foreign ids read as not found.
 - Custom unit devices require the Owner role plus propagated unit ownership;

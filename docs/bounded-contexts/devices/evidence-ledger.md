@@ -74,12 +74,40 @@ failures:
   - class: product
     evidence_for: [PUT and DELETE device endpoints required login but enforced zero ownership: any user could edit or delete any device]
     evidence_against: [create-custom path already checks Owner role plus unit ownership]
-    verdict: unit-owner-or-project-builder management check on both endpoints (foreign reads as not found); list stays unfiltered by design, recorded as scheduled risk
-open_risks:
-  - risk: device list has no per-role visibility scoping (frontend fetches all and filters client-side)
-    owner: ccarita-tech
-    review_by: 2026-10-01
+    verdict: unit-owner-or-project-builder management check on mutations; list visibility was unscoped at that time and is closed by the TS04 read-scope follow-up below
+open_risks: []
 roles_covered:
   - role: Owner
     happy_path: frontend/tests/e2e/devices-control.spec.js
+```
+
+## TS04 read-scope follow-up — 2026-10-05
+
+Builder list/read access now requires the device's project to belong to the
+authenticated Builder. Owner list/read access requires a unit assigned through
+`UnitOwnerProjection`. The same check applies to list, by-ID, status, and energy
+reads. No global Admin panel or list role is supported.
+
+```yaml
+journey: DEVICES.VISIBILITY (Builder project and Owner unit device reads)
+gates:
+  G0: skipped (no separate pure rule changed; ownership is asserted at the API boundary)
+  G1: passed (WebApplicationFactory with isolated EF Core InMemory store)
+  G2: passed (Builder device-list Gherkin and Owner controls E2E on disposable Compose/MySQL stack)
+  G3: passed (foreign Builder and unassigned Owner reads return 404)
+  G4: passed (TS04 reran in complete TS suite; isolated system tests cleaned up)
+commands:
+  - command: npm run test:ts -- 04 (from frontend/)
+    result: 4/4 passed
+  - command: dotnet test backend/tests/Modules/IoBuild.Modules.Tests.csproj --filter "FullyQualifiedName~IoBuild.Modules.Tests.Devices"
+    result: 13/13 passed
+  - command: dotnet test backend/tests/Modules/IoBuild.Modules.Tests.csproj --filter "TechnicalStory~TS"
+    result: 15/15 passed (TS01-TS05)
+  - command: npm run test:us -- 01 (from frontend/)
+    result: 3/3 scenarios and 9/9 steps passed in disposable Compose stack (Builder journey)
+  - command: E2E_BASE_URL=http://localhost:18081 npm --prefix frontend run test:e2e -- tests/e2e/devices-control.spec.js (disposable Compose project ts04-device-readscope)
+    result: 1/1 passed (Owner control happy path; stack and volumes removed)
+skip_reasons:
+  G0: No independent pure domain rule changed; authorization is verified at the API boundary.
+open_risks: []
 ```
