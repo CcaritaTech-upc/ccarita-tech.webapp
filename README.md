@@ -137,7 +137,7 @@ Diez experiment cards basadas en el repositorio `webapp/`: monolito modular .NET
 | E-05 | Tests de arquitectura del monolito | Validado (reformulado) | Detecta 4 de 4 regresiones hacia microservicios; **0 de 1** acoplamientos entre módulos. |
 | E-06 | E2E por rol en entorno tipo producción | Validado | 27 escenarios en verde, 0 fallos, 5 omitidos, en 4 de 4 corridas. |
 | E-07 | Seguridad en CI | Validado | Hallazgos nuevos: `npm audit` hoy falla el gate; el secreto falso no se bloquea. |
-| E-08 | BDD solo en Pull Requests | Validado | Ahorro del 42 % en pushes medido en el CI (264 s → 153.5 s); falta ver el BDD ejecutarse en un PR. |
+| E-08 | BDD solo en Pull Requests | Validado | Ahorro del 42 % en pushes medido en el CI (264 s → 153.5 s); en un PR el BDD corrió y pasó (32 escenarios, 139 pasos, 105 s). |
 | E-09 | Evidence ledger y gates | Validado | 25 de 25 riesgos con dueño y fecha. |
 | E-10 | Capacidad del login bajo concurrencia | Validado | 0 errores en 1 300 solicitudes, pero p95 = 2.05 s a 50 usuarios (meta 1 s): **no se cumple**. |
 
@@ -259,7 +259,7 @@ Diez experiment cards basadas en el repositorio `webapp/`: monolito modular .NET
 
 ### E-08 — BDD con Cucumber solo en Pull Requests
 
-**Tipo:** técnico (pipeline) y de producto (historias de usuario) · **Estado:** Validado — el ahorro en pushes está medido en el CI; la ejecución en un PR queda pendiente
+**Tipo:** técnico (pipeline) y de producto (historias de usuario) · **Estado:** Validado — medido en el CI: el ahorro en pushes y la ejecución del BDD en un PR
 
 | Campo | Contenido |
 |---|---|
@@ -268,8 +268,8 @@ Diez experiment cards basadas en el repositorio `webapp/`: monolito modular .NET
 | **Experimento** | **Grupo experimental:** el paso condicional de `ci.yml` (`if: github.event_name == 'pull_request'`, commit `3c7bcfd` del 2026-10-05 13:48).<br>**Control (sin experimentar):** el mismo paso sin condición, que corrió en cada push entre el commit `2bb119c` (2026-10-05 00:31) y `3c7bcfd`. Se compararon las duraciones reales del job `frontend-e2e` en ambos periodos y se corrió el BDD completo en local contra el stack levantado. |
 | **Métrica(s)** | (1) Escenarios y pasos verdes.<br>(2) Historias cubiertas.<br>(3) Minutos que añade el BDD al job. |
 | **Criterio de éxito** | Pushes ≥ 20 % más rápidos, 10 de 10 historias verificadas en PR. |
-| **Muestra / Duración** | CI: 4 pushes con el BDD sin condición y 2 pushes con la condición (todos del 2026-10-05). Local: 1 ejecución completa del BDD. |
-| **Decisión** | **Resultados:**<br>• **CI, control (BDD en cada push):** el job `frontend-e2e` duró 247, 250, 275 y 285 s (media **264 s**); el paso BDD tardó 107, 110, 124 y 134 s (media **119 s**) y pasó en las 4 ejecuciones.<br>• **CI, con la condición:** el job duró 150 y 157 s (media **153.5 s**) y el paso BDD salió como `skipped`.<br>• **Ahorro medido en push: 42 %** (264 s → 153.5 s), por encima del 20 % de la meta. ✔<br>• **Local:** **32 escenarios y 139 pasos en verde**, cubriendo las **10 historias (US01–US10)**, en 146 s.<br>**Pendiente:** desde que se agregó la condición no ha habido ningún PR, así que **no hay evidencia en el CI de que el paso BDD se ejecute en un PR** (el último PR del historial es del 2026-10-04, anterior al paso). Esa parte del criterio (10 de 10 historias verificadas en PR) se confirma al abrir un PR.<br>**Decisión:** mantener la condición; confirmarla con un PR a `main`. |
+| **Muestra / Duración** | CI: 4 pushes con el BDD sin condición y 2 pushes con la condición (todos del 2026-10-05), y 1 pull request (2026-11-23). Local: 1 ejecución completa del BDD. |
+| **Decisión** | **Resultados:**<br>• **CI, control (BDD en cada push):** el job `frontend-e2e` duró 247, 250, 275 y 285 s (media **264 s**); el paso BDD tardó 107, 110, 124 y 134 s (media **119 s**) y pasó en las 4 ejecuciones.<br>• **CI, con la condición:** el job duró 150 y 157 s (media **153.5 s**) y el paso BDD salió como `skipped`.<br>• **Ahorro medido en push: 42 %** (264 s → 153.5 s), por encima del 20 % de la meta. ✔<br>• **Local:** **32 escenarios y 139 pasos en verde**, cubriendo las **10 historias (US01–US10)**, en 146 s.<br>• **CI, en un pull request (PR `develop` → `main`, 2026-11-23):** el paso BDD **se ejecutó y pasó**: **32 escenarios y 139 pasos en verde, en 105 s**, dentro de un job `frontend-e2e` de 254 s. Es el mismo resultado que en local. Hasta este PR no había evidencia en el CI de que el paso corriera en un PR, porque el último PR anterior (2026-10-04) es previo a que se agregara el paso.<br>**Decisión:** mantener la condición: el BDD completo corre en los PRs (donde cuesta ~105 s extra) y los pushes se ahorran ~42 % del job. |
 
 ---
 
@@ -319,7 +319,7 @@ Diez experiment cards basadas en el repositorio `webapp/`: monolito modular .NET
 1. **Los tests de MySQL no corren contra MySQL en el CI** (E-03): pasan en 67 ms sin base real.
 2. **El gate `npm audit` fallaría hoy** (E-07): 1 crítica y 18 altas.
 3. **El acoplamiento entre módulos no tiene ninguna protección** (E-05).
-4. **Desde que el BDD se limitó a PRs no ha habido ningún PR**, así que no hay evidencia en el CI de que el paso corra en un PR (E-08). Lo que sí está medido: la condición ahorra 42 % del job en cada push.
+4. **El BDD limitado a PRs funciona en el CI** (E-08): se ejecutó y pasó en el PR 4 (32 escenarios, 105 s) y la condición ahorra 42 % del job en cada push.
 5. **Gate 1 no acelera los tests tanto como se esperaba** (E-01): ahorra ~20 % local y ~33 % en CI.
 6. **El secreto falso no se bloquea con la configuración actual de TruffleHog** (E-07), porque solo falla con secretos verificados.
 7. **El login se estanca en ~40 solicitudes por segundo** (E-10): a 50 usuarios simultáneos el p95 es 2.05 s.
