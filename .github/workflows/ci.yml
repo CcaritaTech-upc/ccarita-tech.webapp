@@ -45,11 +45,16 @@ jobs:
       - name: Build
         run: dotnet build backend/IoBuild.sln --no-restore
 
-      - name: Test (Gate 1 — Tier A fast)
-        run: dotnet test backend/IoBuild.sln --no-restore --verbosity minimal --filter "Risk=A"
+      # Tier A tests that are not API tests: every API test boots a full
+      # ASP.NET host, so they are the expensive part of Tier A. Gate 1 stays
+      # fast; the Tier A API tests run in Gate 2 (same job, still blocking).
+      - name: Test (Gate 1 — Tier A fast, non-API)
+        run: dotnet test backend/IoBuild.sln --no-restore --verbosity minimal --filter "Risk=A&Layer!=Api"
 
-      - name: Test (Gate 2 — full convergence suite)
-        run: dotnet test backend/IoBuild.sln --no-restore --verbosity minimal
+      # Complement of Gate 1: everything that Gate 1 did not run, so no test
+      # runs twice and none is skipped (36 + 229 = 265 tests).
+      - name: Test (Gate 2 — remaining convergence suite)
+        run: dotnet test backend/IoBuild.sln --no-restore --verbosity minimal --filter "(Risk!=A)|(Layer=Api)"
 
       - name: Guard MySQL engine version (8.0)
         run: |
