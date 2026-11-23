@@ -31,6 +31,24 @@ jobs:
 
   build-and-test:
     runs-on: ubuntu-latest
+    # Production database engine for the persistence tests. Without
+    # IOBUILD_TEST_MYSQL_CONNECTION the *MySqlTests return early and "pass"
+    # without touching a database. The version matches docker-compose.yml and
+    # the guard step below; the schema is created by MySqlFixture through the
+    # same path production uses.
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: ci-only-password
+          MYSQL_DATABASE: iobuild_test
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -pci-only-password --silent"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
     steps:
       - uses: actions/checkout@v4
 
@@ -48,8 +66,12 @@ jobs:
       - name: Test (Gate 1 — Tier A fast)
         run: dotnet test backend/IoBuild.sln --no-restore --verbosity minimal --filter "Risk=A"
 
+      # Only here, so Gate 1 stays fast and the persistence tests run once, for
+      # real, against the MySQL service above.
       - name: Test (Gate 2 — full convergence suite)
         run: dotnet test backend/IoBuild.sln --no-restore --verbosity minimal
+        env:
+          IOBUILD_TEST_MYSQL_CONNECTION: Server=127.0.0.1;Port=3306;Database=iobuild_test;User=root;Password=ci-only-password
 
       - name: Guard MySQL engine version (8.0)
         run: |
