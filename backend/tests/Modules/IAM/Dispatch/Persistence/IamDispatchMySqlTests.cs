@@ -13,8 +13,8 @@ public sealed partial class IamWorkflowTests
         var connectionString = Environment.GetEnvironmentVariable("IOBUILD_TEST_MYSQL_CONNECTION");
         if (string.IsNullOrWhiteSpace(connectionString)) return;
 
-        await using var db = new IoBuildDbContext(new DbContextOptionsBuilder<IoBuildDbContext>()
-            .UseMySql(connectionString, ServerVersion.AutoDetect(connectionString)).Options);
+        // Through the fixture so the schema exists on a fresh database.
+        await using var db = IoBuild.TestKit.MySqlFixture.CreateIsolatedContext(connectionString);
         // Lease selection is global over the shared outbox table: with foreign
         // rows present it would lease someone else's row (pilot rule: avoid
         // shared data). A fresh database (CI compose up) runs this proof.
