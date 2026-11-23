@@ -160,6 +160,12 @@ public static class SubscriptionsEndpoints
             var confirmation = await provider.ConfirmSessionAsync(sessionId, ct);
             if (confirmation is null) return Results.Problem(statusCode: 503);
 
+            // Serialize confirmations per builder: the read-then-write below is not
+            // atomic, and a racer holding a stale read could expire the winner's
+            // active row without inserting its own (zero active subscriptions).
+            await using var confirmLock = await BuilderConfirmLock.AcquireAsync(db, confirmation.BuilderId, ct);
+            if (confirmLock is null) return Results.Problem(statusCode: 503, detail: "Could not serialize subscription confirmation; retry.");
+
             var existing = await db.Subscriptions.FirstOrDefaultAsync(s => s.BuilderId == confirmation.BuilderId && s.PlanId == confirmation.PlanId && s.Status == "active", ct);
             
             // Deactivate any other active subscriptions for this builder
