@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { uniqueStamp } from '../support/unique-stamp.js';
 
 // IAM.REGISTRATION.HAPPY_PATH (Builder) + IAM.LOGIN.HAPPY_PATH (Builder)
 // Convergent Testing G2: every served actor needs its own happy-path evidence
@@ -6,7 +7,7 @@ import { test, expect } from '@playwright/test';
 // iam-happy-path.spec.js; this is the Builder variant. Same 2-step stepper
 // shape under /iam, same stable-ID locators, Builder role on submit.
 test('IAM Builder happy path: register, login, authorized access', async ({ page }) => {
-  const stamp = Date.now();
+  const stamp = uniqueStamp();
   const email = `e2e.builder.${stamp}@example.test`;
   const password = 'secret123';
 

@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { uniqueStamp } from '../support/unique-stamp.js';
 
 test('Nginx static delivery: compression, scoped immutable cache, fresh SPA and robots', async ({ request }) => {
   test.skip(process.env.E2E_NGINX !== '1', 'Requires the production Nginx delivery boundary');
@@ -60,7 +61,7 @@ for (const route of ['login', 'register-owner', 'register-builder']) {
 }
 
 test('Authenticated non-auth entry does not request the auth background', async ({ page }) => {
-  const email = `e2e.preload.${Date.now()}@example.test`;
+  const email = `e2e.preload.${uniqueStamp()}@example.test`;
   const registration = await page.request.post('/api/v1/users', {
     data: { email, password: 'secret123', role: 'Builder' },
   });

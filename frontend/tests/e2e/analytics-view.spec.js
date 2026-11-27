@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { provisionAssignedOwner } from './owner-assignment.fixture.js';
+import { uniqueStamp } from '../support/unique-stamp.js';
 
 // ANALYTICS.VIEW per actor (Builder and Owner).
 // Convergent Testing G2: each role sees its own dashboard shape through the
@@ -7,7 +8,7 @@ import { provisionAssignedOwner } from './owner-assignment.fixture.js';
 // here the UI renders the right dashboard and the metrics endpoint carries
 // the builder's own project.
 test('ANALYTICS Builder: dashboard renders with own project metrics', async ({ page }) => {
-  const stamp = Date.now();
+  const stamp = uniqueStamp();
   await page.goto('/iam/register-builder');
   await page.locator('#email').fill(`e2e.an.b.${stamp}@example.test`);
   await page.locator('#password').fill('secret123');
@@ -46,7 +47,7 @@ test('ANALYTICS Builder: dashboard renders with own project metrics', async ({ p
 });
 
 test('ANALYTICS Owner: dashboard renders the owner view', async ({ page }) => {
-  const stamp = Date.now();
+  const stamp = uniqueStamp();
   const email = `e2e.an.o.${stamp}@example.test`;
   await provisionAssignedOwner(page, email, stamp);
   await page.goto('/iam/register-owner');

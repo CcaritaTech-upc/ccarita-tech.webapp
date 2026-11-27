@@ -1,14 +1,9 @@
 import { expect } from '@playwright/test';
 import { provisionAssignedOwner } from '../../e2e/owner-assignment.fixture.js';
+import { uniqueStamp } from '../../support/unique-stamp.js';
 
 export const TEST_PASSWORD = 'secret123';
 
-// Client emails reject four or more identical characters in a row, which a
-// timestamp plus random digits can produce, so such runs are shortened.
-function makeSuffix() {
-  const digits = `${Date.now()}${Math.floor(Math.random() * 1000).toString().padStart(3, '0')}`;
-  return digits.replace(/(.){3,}/g, '$1$1');
-}
 
 export async function registerTestActor(page, role, alias, {
   name,
@@ -16,7 +11,7 @@ export async function registerTestActor(page, role, alias, {
   activeSubscription = true,
   subscriptionPlanId = 1,
 } = {}) {
-  const suffix = makeSuffix();
+  const suffix = uniqueStamp();
   const normalizedRole = role.toLowerCase();
   const email = `bdd.${normalizedRole}.${alias}.${suffix}@example.test`;
   const profileName = name || `BDD ${role} ${alias}`;

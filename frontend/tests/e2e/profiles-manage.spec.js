@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { provisionAssignedOwner } from './owner-assignment.fixture.js';
+import { uniqueStamp } from '../support/unique-stamp.js';
 
 // PROFILES.MANAGE per actor (Builder and Owner).
 // Convergent Testing G2 with the IAM handoff the journey depends on:
@@ -7,7 +8,7 @@ import { provisionAssignedOwner } from './owner-assignment.fixture.js';
 // first and then proves the profile view shows that same data, updates it,
 // and keeps it after a full reload (durability, not local state).
 async function registerViaUi(page, role, email, name, username) {
-  const stamp = Date.now();
+  const stamp = uniqueStamp();
   await page.goto(`/iam/register-${role}`);
   await page.locator('#email').fill(email);
   await page.locator('#password').fill('secret123');
@@ -66,7 +67,7 @@ async function proveProfileManage(page, name, newAddress, yearsInBusiness = null
 }
 
 test('PROFILES Builder: registration data manages through view, update, reload', async ({ page }) => {
-  const stamp = Date.now();
+  const stamp = uniqueStamp();
   await registerViaUi(page, 'builder', `e2e.prof.b.${stamp}@example.test`, 'E2E Prof Builder', `e2eprofb${String(stamp).slice(-6)}`);
 
   // Builders need an active subscription to reach the profile route (router
@@ -78,7 +79,7 @@ test('PROFILES Builder: registration data manages through view, update, reload',
 });
 
 test('PROFILES Owner: registration data manages through view, update, reload', async ({ page }) => {
-  const stamp = Date.now();
+  const stamp = uniqueStamp();
   const email = `e2e.prof.o.${stamp}@example.test`;
   await provisionAssignedOwner(page, email, stamp);
   await registerViaUi(page, 'owner', email, 'E2E Prof Owner', `e2eprofo${String(stamp).slice(-6)}`);
@@ -87,7 +88,7 @@ test('PROFILES Owner: registration data manages through view, update, reload', a
 
 for (const role of ['builder', 'owner']) {
   test(`PROFILES ${role}: failed update shows error and preserves unsaved edits`, async ({ page }) => {
-    const stamp = Date.now();
+    const stamp = uniqueStamp();
     const email = `e2e.prof.fail.${role}.${stamp}@example.test`;
 
     if (role === 'owner') {

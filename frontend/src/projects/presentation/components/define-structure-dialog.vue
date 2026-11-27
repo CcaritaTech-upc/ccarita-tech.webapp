@@ -7,7 +7,6 @@ import useProjectStore from '../../application/project.store.js';
 import { useDeviceStore } from '../../../devices/application/device.store.js';
 import useSubscriptionStore from '../../../subscriptions/application/subscription.store.js';
 import { useAnalyticsStore } from '../../../analytics/application/analytics.store.js';
-import { useIamStore } from '../../../iam/application/iam.store.js';
 import { getPlanLimits } from '../../../subscriptions/domain/model/plan-limits.js';
 import { TOAST_INVOICE_ERROR_DURATION_MS, TOAST_AUTH_ERROR_DURATION_MS } from '../../../shared/infrastructure/constants.js';
 
@@ -140,12 +139,6 @@ watch(() => props.visible, (val) => {
         deviceStore.loadDeviceTypes();
         if (!subscriptionStore.currentPlan && !subscriptionStore.isLoading) {
             subscriptionStore.loadSubscriptions();
-        }
-        if (!analyticsStore.builderDashboard) {
-            const builderId = useIamStore().currentUser?.id;
-            if (builderId) {
-                analyticsStore.fetchBuilderDashboard(builderId, true).catch(() => {});
-            }
         }
     }
 });

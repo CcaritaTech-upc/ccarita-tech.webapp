@@ -1,9 +1,9 @@
 import { test, expect } from '@playwright/test';
-import crypto from 'node:crypto';
 import { provisionAssignedOwner } from './owner-assignment.fixture.js';
+import { uniqueStamp } from '../support/unique-stamp.js';
 
 async function session(page, role) {
-  const stamp = `${Date.now()}${crypto.randomInt(100, 1000)}`;
+  const stamp = uniqueStamp();
   const email = `e2e.round2.${role}.${stamp}@example.test`;
   if (role === 'Owner') await provisionAssignedOwner(page, email, stamp);
   const registration = await page.request.post('/api/v1/users', { data: { email, password: 'secret123', role } });
@@ -85,8 +85,8 @@ for (const role of ['builder', 'owner']) test(`ROUND2 registration ${role}: sema
   const errors = [];
   page.on('pageerror', e => errors.push(e.message));
   page.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });
-  const email = `e2e.clipboard.${role}.${Date.now()}@example.test`;
-  if (role === 'owner') await provisionAssignedOwner(page, email, `${Date.now()}clipboard`);
+  const email = `e2e.clipboard.${role}.${uniqueStamp()}@example.test`;
+  if (role === 'owner') await provisionAssignedOwner(page, email, `${uniqueStamp()}clipboard`);
   await page.goto(`/iam/register-${role}`);
   await expect(page.locator('link[rel="preconnect"][href="https://fonts.googleapis.com"]')).toHaveCount(1);
   await expect(page.locator('link[rel="preconnect"][href="https://fonts.gstatic.com"][crossorigin]')).toHaveCount(1);

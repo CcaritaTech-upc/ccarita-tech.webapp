@@ -1,6 +1,7 @@
 import { Given, When, Then } from '@cucumber/cucumber';
 import { expect } from '@playwright/test';
 import { createTestClient, createTestProject, registerTestActor } from '../support/app-fixtures.js';
+import { uniqueStamp } from '../../support/unique-stamp.js';
 
 Given('el constructor con alias {word} tiene el cliente {string} en el proyecto {string}', async function (alias, clientName, projectName) {
   this.actor = await registerTestActor(this.page, 'Builder', alias);
@@ -12,7 +13,7 @@ Given('el constructor con alias {word} tiene el cliente {string} en el proyecto 
   });
   this.client = await createTestClient(this.page, {
     fullName: clientName,
-    email: `bdd.client.${alias}.${Date.now()}@example.test`,
+    email: `bdd.client.${alias}.${uniqueStamp()}@example.test`,
     projectId: this.project.id,
     projectName,
   });
