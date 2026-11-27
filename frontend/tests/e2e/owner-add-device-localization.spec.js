@@ -5,7 +5,8 @@ import { provisionAssignedOwner } from './owner-assignment.fixture.js';
 // DEVICES owner journey, language ES: the Add Device entry point and dialog
 // carry no English text.
 test('Owner sees the Add Device dialog in Spanish', async ({ page }) => {
-  const suffix = `${Date.now()}${crypto.randomInt(100, 1000)}`;
+  // Client emails reject four or more identical characters in a row.
+  const suffix = `${Date.now()}${crypto.randomInt(100, 1000)}`.replace(/(.){3,}/g, '$1$1');
   const email = `ui.owner.${suffix}@example.test`;
   const password = 'ui-owner-password-123';
 
