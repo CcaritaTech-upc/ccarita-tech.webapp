@@ -560,6 +560,31 @@
       "cancel": "Cancel",
       "delete": "Delete"
     },
+    "addDialog": {
+      "title": "Add Device",
+      "type": "Device Type",
+      "typePlaceholder": "Select a device type",
+      "noTypes": "No unit-compatible device types available.",
+      "name": "Device Name",
+      "namePlaceholder": "e.g. Living Room AC",
+      "unit": "Assign to Unit",
+      "unitPlaceholder": "Select a unit",
+      "noUnits": "No units found. Make sure your owner dashboard has loaded.",
+      "unitOption": "Unit {unit} — {project}",
+      "unknownProject": "Unknown project",
+      "cancel": "Cancel",
+      "submit": "Add Device",
+      "errors": {
+        "typeRequired": "Select a device type.",
+        "nameLength": "The device name must be between 2 and 50 characters.",
+        "unitRequired": "Select an assigned unit.",
+        "noProject": "Could not determine the project for the selected unit. Please reload and try again.",
+        "duplicate": "A device of this type already exists in this unit.",
+        "validation": "Validation error. Please check your selection.",
+        "forbidden": "Permission denied. Make sure you own the selected unit.",
+        "unexpected": "An unexpected error occurred. Please try again."
+      }
+    },
     "add": { "title": "Add Device" },
     "messages": {
       "createSuccess": "Device created successfully",

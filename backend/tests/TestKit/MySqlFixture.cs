@@ -48,7 +48,22 @@ public static class MySqlFixture
             // the unique index on plans.Name. Seeded first, every host sees
             // existing rows and skips the insert.
             DataSeeder.SeedAsync(db, CancellationToken.None).GetAwaiter().GetResult();
+            ReserveProbeIds(db);
             SchemaReady.Add(connectionString);
+        }
+    }
+
+    // Persistence tests insert probe rows with fixed ids (91xxx). Classes run in
+    // parallel on one database, and each explicit insert moves AUTO_INCREMENT
+    // forward, so a generated id could take a probe id first ("Duplicate entry
+    // for key PRIMARY"). Generated ids start far above that range instead.
+    private static void ReserveProbeIds(IoBuildDbContext db)
+    {
+        foreach (var table in new[] { "iam_users", "projects", "units", "devices", "clients", "subscriptions" })
+        {
+#pragma warning disable EF1002 // table names are the constants above
+            db.Database.ExecuteSqlRaw($"ALTER TABLE {table} AUTO_INCREMENT = 1000000");
+#pragma warning restore EF1002
         }
     }
 

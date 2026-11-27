@@ -1,5 +1,6 @@
 <script setup>
 import { reactive, computed, ref, watch, onMounted } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useAnalyticsStore } from '../../../analytics/application/analytics.store.js';
 import { DeviceApi } from '../../infrastructure/device-api.js';
 import { DeviceStatus } from '../../domain/model/device-status.enum.js';
@@ -23,6 +24,7 @@ const props = defineProps({
 const emit = defineEmits(['update:modelValue', 'created']);
 
 const analyticsStore = useAnalyticsStore();
+const { t, locale } = useI18n();
 
 // ── Catalog types ─────────────────────────────────────────────────────────────
 
@@ -47,9 +49,9 @@ async function loadCatalogTypes() {
 }
 
 const typeOptions = computed(() =>
-  catalogTypes.value.map((t) => ({
-    label: t.displayName,
-    value: t.code,
+  catalogTypes.value.map((type) => ({
+    label: type.displayName,
+    value: type.code,
   }))
 );
 
@@ -58,7 +60,10 @@ const typeOptions = computed(() =>
 /** Units sourced from the owner dashboard payload (myUnitsDetails). */
 const unitOptions = computed(() =>
   (analyticsStore.ownerDashboard?.myUnitsDetails ?? []).map((u) => ({
-    label: `Unit ${u.unitId} — ${u.projectName ?? 'Unknown project'}`,
+    label: t('devices.addDialog.unitOption', {
+      unit: u.unitId,
+      project: u.projectName ?? t('devices.addDialog.unknownProject'),
+    }),
     value: u.unitId,
     projectId: u.projectId ?? null,
   }))
@@ -109,6 +114,9 @@ const errors = reactive({
   unit: ''
 });
 
+// Inline errors store translation keys; a server message is shown as received.
+const translate = (value) => (value?.startsWith('devices.') ? t(value) : value);
+
 // ── Validation ────────────────────────────────────────────────────────────────
 
 function validate() {
@@ -118,15 +126,15 @@ function validate() {
   let valid = true;
 
   if (!form.selectedTypeCode) {
-    errors.type = 'Seleccione un tipo de dispositivo.';
+    errors.type = 'devices.addDialog.errors.typeRequired';
     valid = false;
   }
   if (!form.deviceName || form.deviceName.trim().length < 2 || form.deviceName.trim().length > 50) {
-    errors.name = 'El nombre del dispositivo debe tener entre 2 y 50 caracteres.';
+    errors.name = 'devices.addDialog.errors.nameLength';
     valid = false;
   }
   if (form.selectedUnitId == null) {
-    errors.unit = 'Seleccione una unidad asignada.';
+    errors.unit = 'devices.addDialog.errors.unitRequired';
     valid = false;
   }
   return valid;
@@ -148,7 +156,7 @@ async function onSubmit() {
     const projectId = selectedUnit?.projectId ?? null;
 
     if (!projectId) {
-      errorMessage.value = 'Could not determine the project for the selected unit. Please reload and try again.';
+      errorMessage.value = 'devices.addDialog.errors.noProject';
       return;
     }
 
@@ -166,16 +174,17 @@ async function onSubmit() {
     visible.value = false;
   } catch (err) {
     const status = err?.response?.status;
-    const serverMessage = err?.response?.data?.error;
+    // The API answers in English, so its text is only used for the English UI.
+    const serverMessage = locale.value === 'en' ? err?.response?.data?.error : undefined;
 
     if (status === 409) {
-      errorMessage.value = serverMessage ?? 'A device of this type already exists in this unit.';
+      errorMessage.value = serverMessage ?? 'devices.addDialog.errors.duplicate';
     } else if (status === 400) {
-      errorMessage.value = serverMessage ?? 'Validation error. Please check your selection.';
+      errorMessage.value = serverMessage ?? 'devices.addDialog.errors.validation';
     } else if (status === 403) {
-      errorMessage.value = 'Permission denied. Make sure you own the selected unit.';
+      errorMessage.value = 'devices.addDialog.errors.forbidden';
     } else {
-      errorMessage.value = serverMessage ?? 'An unexpected error occurred. Please try again.';
+      errorMessage.value = serverMessage ?? 'devices.addDialog.errors.unexpected';
     }
     console.error('[AddCustomDeviceDialog] submit error:', err);
   } finally {
@@ -192,7 +201,7 @@ function onCancel() {
   <pv-dialog
     v-model:visible="visible"
     modal
-    header="Add Device"
+    :header="t('devices.addDialog.title')"
     :style="{ width: '480px' }"
     contentClass="add-device-dialog"
     @hide="onCancel"
@@ -201,59 +210,59 @@ function onCancel() {
 
       <!-- Error banner -->
       <pv-message v-if="errorMessage" severity="error" :closable="false" class="error-banner">
-        {{ errorMessage }}
+        {{ translate(errorMessage) }}
       </pv-message>
 
       <!-- Device type picker -->
       <div class="field">
-        <label class="field-label">Device Type <span class="required">*</span></label>
+        <label class="field-label">{{ t('devices.addDialog.type') }} <span class="required">*</span></label>
         <pv-select
           v-model="form.selectedTypeCode"
           :options="typeOptions"
           option-label="label"
           option-value="value"
           :loading="catalogLoading"
-          placeholder="Select a device type"
+          :placeholder="t('devices.addDialog.typePlaceholder')"
           :invalid="!!errors.type"
           class="field-input"
           @change="errors.type = ''"
         />
-        <small v-if="errors.type" class="p-error block mt-1">{{ errors.type }}</small>
+        <small v-if="errors.type" class="p-error block mt-1">{{ translate(errors.type) }}</small>
         <small v-else-if="typeOptions.length === 0 && !catalogLoading" class="hint warn">
-          No unit-compatible device types available.
+          {{ t('devices.addDialog.noTypes') }}
         </small>
       </div>
 
       <!-- Device name (instance label) -->
       <div class="field">
-        <label class="field-label">Device Name <span class="required">*</span></label>
+        <label class="field-label">{{ t('devices.addDialog.name') }} <span class="required">*</span></label>
         <pv-input-text
           v-model="form.deviceName"
-          placeholder="e.g. Living Room AC"
+          :placeholder="t('devices.addDialog.namePlaceholder')"
           maxlength="50"
           :invalid="!!errors.name"
           class="field-input"
           @input="errors.name = ''"
         />
-        <small v-if="errors.name" class="p-error block mt-1">{{ errors.name }}</small>
+        <small v-if="errors.name" class="p-error block mt-1">{{ translate(errors.name) }}</small>
       </div>
 
       <!-- Unit picker -->
       <div class="field">
-        <label class="field-label">Assign to Unit <span class="required">*</span></label>
+        <label class="field-label">{{ t('devices.addDialog.unit') }} <span class="required">*</span></label>
         <pv-select
           v-model="form.selectedUnitId"
           :options="unitOptions"
           option-label="label"
           option-value="value"
-          placeholder="Select a unit"
+          :placeholder="t('devices.addDialog.unitPlaceholder')"
           :invalid="!!errors.unit"
           class="field-input"
           @change="errors.unit = ''"
         />
-        <small v-if="errors.unit" class="p-error block mt-1">{{ errors.unit }}</small>
+        <small v-if="errors.unit" class="p-error block mt-1">{{ translate(errors.unit) }}</small>
         <small v-else-if="unitOptions.length === 0" class="hint warn">
-          No units found. Make sure your owner dashboard has loaded.
+          {{ t('devices.addDialog.noUnits') }}
         </small>
       </div>
 
@@ -261,9 +270,9 @@ function onCancel() {
 
     <template #footer>
       <div class="dialog-footer">
-        <pv-button label="Cancel" text @click="onCancel" />
+        <pv-button :label="t('devices.addDialog.cancel')" text @click="onCancel" />
         <pv-button
-          label="Add Device"
+          :label="t('devices.addDialog.submit')"
           icon="pi pi-check"
           :loading="submitting"
           :disabled="catalogLoading"

@@ -178,7 +178,7 @@ onMounted(async () => {
     <template v-if="isOwner">
       <div class="owner-actions mb-4">
         <pv-button
-          label="Add Device"
+          :label="t('devices.actions.add')"
           icon="pi pi-plus"
           @click="openCustomDeviceDialog"
         />
