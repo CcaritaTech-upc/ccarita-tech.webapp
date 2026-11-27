@@ -551,6 +551,31 @@
       "cancel": "Cancelar",
       "delete": "Eliminar"
     },
+    "addDialog": {
+      "title": "Agregar Dispositivo",
+      "type": "Tipo de dispositivo",
+      "typePlaceholder": "Selecciona un tipo de dispositivo",
+      "noTypes": "No hay tipos de dispositivo disponibles para unidades.",
+      "name": "Nombre del dispositivo",
+      "namePlaceholder": "p. ej. Aire acondicionado de la sala",
+      "unit": "Asignar a unidad",
+      "unitPlaceholder": "Selecciona una unidad",
+      "noUnits": "No se encontraron unidades. Verifica que tu panel de propietario haya cargado.",
+      "unitOption": "Unidad {unit} — {project}",
+      "unknownProject": "Proyecto desconocido",
+      "cancel": "Cancelar",
+      "submit": "Agregar Dispositivo",
+      "errors": {
+        "typeRequired": "Selecciona un tipo de dispositivo.",
+        "nameLength": "El nombre del dispositivo debe tener entre 2 y 50 caracteres.",
+        "unitRequired": "Selecciona una unidad asignada.",
+        "noProject": "No se pudo determinar el proyecto de la unidad seleccionada. Recarga e inténtalo de nuevo.",
+        "duplicate": "Ya existe un dispositivo de este tipo en esta unidad.",
+        "validation": "Error de validación. Revisa tu selección.",
+        "forbidden": "Permiso denegado. Verifica que la unidad seleccionada sea tuya.",
+        "unexpected": "Ocurrió un error inesperado. Inténtalo de nuevo."
+      }
+    },
     "add": { "title": "Agregar Dispositivo" },
     "status": { "online": "Online", "offline": "Offline" },
     "telemetry": {
