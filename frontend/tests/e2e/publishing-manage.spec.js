@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { uniqueStamp } from '../support/unique-stamp.js';
 
 // PUBLISHING.MANAGE.HAPPY_PATH (Builder)
 // Convergent Testing G2: the builder creates a project through the UI form,
@@ -6,7 +7,7 @@ import { test, expect } from '@playwright/test';
 // validation unit tests and the versioned structure proofs), and the UI
 // reflects the provisioned units.
 test('PUBLISHING Builder happy path: create project, define structure, see units', async ({ page }) => {
-  const stamp = Date.now();
+  const stamp = uniqueStamp();
   const projectName = `E2E Towers ${stamp}`;
 
   // Builder account via UI.

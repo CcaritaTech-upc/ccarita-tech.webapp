@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { uniqueStamp } from '../support/unique-stamp.js';
 
 // IAM form feedback: field-specific guidance where it helps, generic messages
 // where specificity would aid an attacker. Registration errors name the field
@@ -14,7 +15,7 @@ test('IAM registration names each failing field', async ({ page }) => {
   await expect(page.getByText('Please confirm your password.')).toBeVisible();
 
   // Step 1 filled: reach step 2, submit it empty.
-  const stamp = Date.now();
+  const stamp = uniqueStamp();
   await page.locator('#email').fill(`feedback.${stamp}@example.test`);
   await page.locator('#password').fill('secret123');
   await page.locator('#confirmPassword').fill('secret123');
@@ -30,7 +31,7 @@ test('IAM registration names each failing field', async ({ page }) => {
 });
 
 test('IAM Owner registration requires an assigned unit in UI and backend', async ({ page }) => {
-  const email = `unassigned.${Date.now()}@example.test`;
+  const email = `unassigned.${uniqueStamp()}@example.test`;
   await page.goto('/iam/register-owner');
   await page.locator('#email').fill(email);
   await page.locator('#password').fill('secret123');
@@ -59,7 +60,7 @@ test('IAM Owner registration requires an assigned unit in UI and backend', async
 test('IAM Owner registration fails closed when unit assignment cannot be verified', async ({ page }) => {
   await page.route('**/api/v1/authentication/invitation**', route => route.abort());
   await page.goto('/iam/register-owner');
-  await page.locator('#email').fill(`verification-unavailable.${Date.now()}@example.test`);
+  await page.locator('#email').fill(`verification-unavailable.${uniqueStamp()}@example.test`);
   await page.locator('#password').fill('secret123');
   await page.locator('#confirmPassword').fill('secret123');
 
@@ -72,7 +73,7 @@ test('IAM Owner registration fails closed when unit assignment cannot be verifie
 test('IAM login failure is generic and reveals nothing', async ({ page }) => {
   await page.goto('/iam/login');
   await expect(page.getByLabel('Password', { exact: true })).toBeVisible();
-  await page.locator('#email').fill(`nobody.${Date.now()}@example.test`);
+  await page.locator('#email').fill(`nobody.${uniqueStamp()}@example.test`);
   await page.locator('#password').fill('wrong-password');
   await page.locator('button[type="submit"]').click();
 
