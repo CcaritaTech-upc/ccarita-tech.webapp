@@ -1,4 +1,7 @@
 <script setup>
+import { useI18n } from 'vue-i18n';
+
+const { t } = useI18n();
 const props = defineProps({
   unit: {
     type: Object,
@@ -8,12 +11,12 @@ const props = defineProps({
 
 const unitLabel = () => {
   if (props.unit.floor && props.unit.roomNumber) {
-    return `Floor ${props.unit.floor} · Unit ${props.unit.roomNumber}`;
+    return t('analytics.unitCard.label', { floor: props.unit.floor, unit: props.unit.roomNumber });
   }
-  return `Unit #${props.unit.unitId}`;
+  return t('analytics.unitCard.fallback', { id: props.unit.unitId });
 };
 
-const isOccupied = () => props.unit.status === 'Occupied';
+const isOccupied = () => String(props.unit.status ?? '').toLowerCase() === 'occupied';
 </script>
 
 <template>
@@ -25,7 +28,7 @@ const isOccupied = () => props.unit.status === 'Occupied';
       </div>
       <span class="connection-status" :class="isOccupied() ? 'status-occupied' : 'status-active'">
         <i :class="['pi', isOccupied() ? 'pi-check-circle' : 'pi-home']"></i>
-        {{ isOccupied() ? 'Occupied' : 'Available' }}
+        {{ t(isOccupied() ? 'analytics.unitCard.occupied' : 'analytics.unitCard.available') }}
       </span>
     </div>
 

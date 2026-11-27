@@ -1,5 +1,6 @@
 <script setup>
 import { ref, computed, watch, onMounted } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useCommandStore } from '../../application/command.store.js';
 import { useAnalyticsStore } from '../../../analytics/application/analytics.store.js';
 import { useDeviceStore } from '../../application/device.store.js';
@@ -38,11 +39,19 @@ const deviceStore = useDeviceStore();
 const toast = useToast();
 const deviceApi = new DeviceApi();
 
+const { t, te } = useI18n();
+
 // Fixed dropdown options for boolean attributes — the catalog does not send enumMembers for them.
-const BOOLEAN_OPTIONS = [
-  { label: 'On', value: true },
-  { label: 'Off', value: false },
-];
+const booleanOptions = computed(() => [
+  { label: t('devices.control.on'), value: true },
+  { label: t('devices.control.off'), value: false },
+]);
+
+// Catalog attribute names without a translation are shown as received.
+function attributeLabel(name) {
+  const key = `devices.control.attributes.${name}`;
+  return te(key) ? t(key) : name;
+}
 
 // Normalise the attribute value kind so comparisons are casing-agnostic.
 function kind(attr) {
@@ -121,7 +130,7 @@ const hasControls = computed(() => props.controllableAttributes.length > 0);
 const deviceId = computed(() => props.device?.deviceId ?? props.device?.id);
 
 function enumOptions(attr) {
-  if (kind(attr) === 'boolean') return BOOLEAN_OPTIONS;
+  if (kind(attr) === 'boolean') return booleanOptions.value;
   return (attr.enumMembers ?? []).map((m) => ({ label: m, value: m }));
 }
 
@@ -133,8 +142,11 @@ async function onSend(attr) {
   if (result.success) {
     toast.add({
       severity: 'success',
-      summary: 'Command sent',
-      detail: `${attr.name} set to ${value}${attr.unit ? ' ' + attr.unit : ''}`,
+      summary: t('devices.control.commandSent'),
+      detail: t('devices.control.commandDetail', {
+        attribute: attributeLabel(attr.name),
+        value: `${typeof value === 'boolean' ? t(value ? 'devices.control.on' : 'devices.control.off') : value}${attr.unit ? ' ' + attr.unit : ''}`,
+      }),
       life: TOAST_SUCCESS_DURATION_MS,
     });
 
@@ -210,7 +222,7 @@ async function onSend(attr) {
   } else {
     toast.add({
       severity: result.status === 403 ? 'warn' : 'error',
-      summary: result.status === 403 ? 'Permission denied' : 'Command failed',
+      summary: t(result.status === 403 ? 'devices.control.denied' : 'devices.control.failed'),
       detail: result.message,
       life: TOAST_AUTH_ERROR_DURATION_MS,
     });
@@ -227,7 +239,7 @@ async function onSend(attr) {
       :class="{ 'control-row--locked': locked(attr) }"
     >
       <div class="control-meta">
-        <span class="control-label">{{ attr.name }}</span>
+        <span class="control-label">{{ attributeLabel(attr.name) }}</span>
         <span v-if="attr.unit" class="control-unit">{{ attr.unit }}</span>
       </div>
 
@@ -236,7 +248,7 @@ async function onSend(attr) {
         <div class="slider-group">
           <input
             type="range"
-            :aria-label="`${device.deviceName || 'Device'} ${attr.name}`"
+            :aria-label="`${device.deviceName || t('devices.control.device')} ${attributeLabel(attr.name)}`"
             :min="attr.min"
             :max="attr.max"
             :step="1"
@@ -251,7 +263,7 @@ async function onSend(attr) {
       <!-- Enum / Boolean: dropdown -->
       <template v-else-if="kind(attr) === 'enum' || kind(attr) === 'boolean'">
         <pv-select
-          :aria-label="`${device.deviceName || 'Device'} ${attr.name}`"
+          :aria-label="`${device.deviceName || t('devices.control.device')} ${attributeLabel(attr.name)}`"
           v-model="localValues[attr.name]"
           :options="enumOptions(attr)"
           option-label="label"
@@ -262,7 +274,7 @@ async function onSend(attr) {
       </template>
 
       <pv-button
-        label="Send"
+        :label="t('devices.control.send')"
         icon="pi pi-send"
         size="small"
         :loading="commandStore.sending"

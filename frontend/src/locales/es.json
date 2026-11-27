@@ -17,6 +17,8 @@
     "payments": "Pagos"
   },
   "projects": {
+    "gridSubtitle": "Gestiona tus proyectos, pisos, unidades y dispositivos IoT.",
+    "gridEmpty": "Aún no has registrado ningún proyecto. Comienza creando el primero.",
     "title": "Proyectos",
     "add": "Nuevo Proyecto",
     "edit-title": "Editar Proyecto",
@@ -534,6 +536,30 @@
     }
   },
   "devices": {
+    "myUnit": {
+      "title": "Dispositivos de mi unidad",
+      "name": "Nombre",
+      "status": "Estado",
+      "lastOnline": "Última conexión",
+      "control": "Control",
+      "empty": "Todavía no hay dispositivos en tu unidad."
+    },
+    "control": {
+      "send": "Enviar",
+      "on": "Encendido",
+      "off": "Apagado",
+      "device": "Dispositivo",
+      "commandSent": "Comando enviado",
+      "commandDetail": "{attribute}: {value}",
+      "denied": "Permiso denegado",
+      "failed": "No se pudo enviar el comando",
+      "attributes": {
+        "power": "Alimentación",
+        "brightness": "Brillo",
+        "mode": "Modo",
+        "targetTemperature": "Temperatura objetivo"
+      }
+    },
     "title": "Gestión de dispositivos",
     "loading": "Cargando dispositivos...",
     "refresh": "Actualizar",
@@ -561,7 +587,7 @@
       "unit": "Asignar a unidad",
       "unitPlaceholder": "Selecciona una unidad",
       "noUnits": "No se encontraron unidades. Verifica que tu panel de propietario haya cargado.",
-      "unitOption": "Unidad {unit} — {project}",
+      "unitOption": "{unit} — {project}",
       "unknownProject": "Proyecto desconocido",
       "cancel": "Cancelar",
       "submit": "Agregar Dispositivo",
@@ -577,9 +603,12 @@
       }
     },
     "add": { "title": "Agregar Dispositivo" },
-    "status": { "online": "Online", "offline": "Offline" },
+    "status": {
+      "standby": "En espera", "online": "En línea", "offline": "Desconectado" },
     "telemetry": {
       "selectDevice": "Seleccionar Dispositivo",
+      "lastHour": "Última hora",
+      "last24h": "Últimas 24 h",
       "energyChart": "Consumo de Energía (kWh) - Últimas 24h",
       "status": "Estado",
       "lastSeen": "Última Conexión",
@@ -732,6 +761,16 @@
     }
   },
   "analytics": {
+    "live": {
+      "title": "Energía en vivo — últimos {minutes} min",
+      "subtitle": "Se actualiza cada 30 s"
+    },
+    "unitCard": {
+      "label": "Piso {floor} · Unidad {unit}",
+      "fallback": "Unidad #{id}",
+      "occupied": "Ocupada",
+      "available": "Disponible"
+    },
     "deviceTypes": {
       "SmartMeter": "Medidor Inteligente",
       "WaterSensor": "Sensor de Agua",

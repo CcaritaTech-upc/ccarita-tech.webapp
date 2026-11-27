@@ -4,7 +4,7 @@ import { provisionAssignedOwner } from './owner-assignment.fixture.js';
 
 // DEVICES owner journey, language ES: the Add Device entry point and dialog
 // carry no English text.
-test('Owner sees the Add Device dialog in Spanish', async ({ page }) => {
+test('Owner sees the unit dashboard and Add Device dialog in Spanish', async ({ page }) => {
   // Client emails reject four or more identical characters in a row.
   const suffix = `${Date.now()}${crypto.randomInt(100, 1000)}`.replace(/(.){3,}/g, '$1$1');
   const email = `ui.owner.${suffix}@example.test`;
@@ -25,11 +25,20 @@ test('Owner sees the Add Device dialog in Spanish', async ({ page }) => {
     localStorage.setItem('currentUser', JSON.stringify({ id: user.id, email: user.email, role: user.role }));
   }, owner);
 
+  // The owner's own unit is reported as occupied, in the chosen language.
+  await page.goto('/analytics/dashboard');
+  const unitCard = page.locator('.unit-card').first();
+  await expect(unitCard).toContainText('Piso 1 · Unidad E1');
+  await expect(unitCard).toContainText('Ocupada');
+  await expect(page.getByRole('heading', { name: /Energía en vivo/ })).toBeVisible();
+
   await page.goto('/devices/device-management');
   await page.getByRole('button', { name: 'Agregar Dispositivo' }).click();
 
   const dialog = page.getByRole('dialog');
   await expect(dialog).toContainText('Agregar Dispositivo');
+  // The unit is named by floor and room, not by its database id.
+  await expect(dialog).toContainText('Piso 1 · Unidad E1');
   await expect(dialog).toContainText('Tipo de dispositivo');
   await expect(dialog).toContainText('Nombre del dispositivo');
   await expect(dialog).toContainText('Asignar a unidad');

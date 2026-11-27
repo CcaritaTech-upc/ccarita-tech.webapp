@@ -29,7 +29,7 @@ const navigateToDetails = (id) => router.push({ name: "projects-management-detai
     <div class="flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
       <div>
         <h1 class="text-2xl font-bold text-gray-900 m-0">{{ t("projects.title") }}</h1>
-        <p class="text-sm text-gray-500 mt-1 m-0">Gestiona tus proyectos, pisos, unidades y dispositivos IoT.</p>
+        <p class="text-sm text-gray-500 mt-1 m-0">{{ t('projects.gridSubtitle') }}</p>
       </div>
       <pv-button
         v-if="store.projects.length"
@@ -64,7 +64,7 @@ const navigateToDetails = (id) => router.push({ name: "projects-management-detai
         <i class="pi pi-building"></i>
       </div>
       <h3 class="text-lg font-bold text-gray-800 m-0">{{ t('projects.messages.no-projects') }}</h3>
-      <p class="text-sm text-gray-500 mt-1 mb-4">Aún no has registrado ningún proyecto. Comienza creando el primero.</p>
+      <p class="text-sm text-gray-500 mt-1 mb-4">{{ t('projects.gridEmpty') }}</p>
       <pv-button
         :label="t('projects.add')"
         icon="pi pi-plus"
