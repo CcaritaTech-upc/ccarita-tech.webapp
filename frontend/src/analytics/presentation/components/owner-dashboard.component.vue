@@ -29,10 +29,10 @@ const userId = computed(() => iamStore.currentUser?.id ?? null);
 const liveMinutes = ref(ANALYTICS_DEFAULT_MINUTES);
 
 const timeRange = ref('24h');
-const timeRangeOptions = [
+const timeRangeOptions = computed(() => [
   { label: t('devices.telemetry.lastHour'), value: '1h' },
   { label: t('devices.telemetry.last24h'), value: '24h' }
-];
+]);
 
 // BUG 1 fix: source selector exclusively from the owner-scoped dashboard payload.
 // Do NOT use analyticsStore.devices (all-tenant list — builder dashboard dependency).
@@ -114,9 +114,17 @@ const getStatusSeverity = (status) => {
 const getStatusLabel = (status) => {
   const s = String(status ?? '').trim().toLowerCase();
   if (s === 'online' || s === 'active') return t('devices.status.online');
-  if (s === 'idle' || s === 'standby') return 'Standby';
+  if (s === 'idle' || s === 'standby') return t('devices.status.standby');
   if (status) return t('devices.status.offline');
   return t('devices.telemetry.unknown');
+};
+
+// The health card uses the same wording as the device table: a standby device
+// is reachable, but it is not reported as plain "online".
+const healthLabel = (status) => {
+  const s = String(status ?? '').trim().toLowerCase();
+  if (s === 'idle' || s === 'standby') return t('devices.status.standby');
+  return t(isOnlineStatus(status) ? 'analytics.owner.device.online' : 'analytics.owner.device.offline');
 };
 
 const formatLastSeen = (lastSeen) => {
@@ -126,11 +134,11 @@ const formatLastSeen = (lastSeen) => {
 
 const formatDesiredValue = (val) => {
   if (val === null || val === undefined) return '—';
-  if (typeof val === 'boolean') return val ? 'On' : 'Off';
+  if (typeof val === 'boolean') return t(val ? 'devices.control.on' : 'devices.control.off');
   if (typeof val === 'number') return val;
   const s = String(val);
-  if (s.toLowerCase() === 'true') return 'On';
-  if (s.toLowerCase() === 'false') return 'Off';
+  if (s.toLowerCase() === 'true') return t('devices.control.on');
+  if (s.toLowerCase() === 'false') return t('devices.control.off');
   return s;
 };
 
@@ -332,8 +340,8 @@ const chartOptions = {
     
     <!-- Live Energy Chart -->
     <div class="chart-container live-energy-section">
-      <h3 class="chart-title">Live Energy — Last {{ liveMinutes }} min</h3>
-      <p class="chart-subtitle">Auto-refreshes every 30s</p>
+      <h3 class="chart-title">{{ $t('analytics.live.title', { minutes: liveMinutes }) }}</h3>
+      <p class="chart-subtitle">{{ $t('analytics.live.subtitle') }}</p>
       <div class="chart-wrapper">
         <LiveEnergyChart :user-id="userId" role="owner" :minutes="liveMinutes" />
       </div>
@@ -395,7 +403,7 @@ const chartOptions = {
                 :key="key"
                 class="status-field"
               >
-                <span class="status-label">{{ key }}</span>
+                <span class="status-label">{{ $te(`devices.control.attributes.${key}`) ? $t(`devices.control.attributes.${key}`) : key }}</span>
                 <span class="status-value">{{ formatDesiredValue(val) }}</span>
               </div>
             </template>
@@ -447,7 +455,7 @@ const chartOptions = {
               class="device-status"
               :class="isOnlineStatus(device.status) ? 'status-online' : 'status-offline'"
             >
-              {{ isOnlineStatus(device.status) ? $t('analytics.owner.device.online') : $t('analytics.owner.device.offline') }}
+              {{ healthLabel(device.status) }}
             </span>
           </div>
           <div class="device-health-body">
