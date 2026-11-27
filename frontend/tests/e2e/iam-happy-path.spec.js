@@ -1,12 +1,13 @@
 import { test, expect } from '@playwright/test';
 import { provisionAssignedOwner } from './owner-assignment.fixture.js';
+import { uniqueStamp } from '../support/unique-stamp.js';
 
 // IAM.REGISTRATION.HAPPY_PATH + IAM.LOGIN.HAPPY_PATH
 // Convergent Testing: system/E2E proves the user-visible outcome only.
 // Exhaustive validation lives in lower layers (vitest/xUnit).
 // Resilient locators: stable IDs first, roles second. No getByLabel on PrimeVue wrappers.
 test('IAM happy path: register, login, authorized access, logout, revoked token', async ({ page }) => {
-  const stamp = Date.now();
+  const stamp = uniqueStamp();
   const email = `e2e.${stamp}@example.test`;
   const password = 'secret123';
 

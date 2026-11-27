@@ -17,6 +17,8 @@
     "payments": "Payments"
   },
   "projects": {
+    "gridSubtitle": "Manage your projects, floors, units and IoT devices.",
+    "gridEmpty": "You have not registered any project yet. Start by creating the first one.",
     "title": "Projects",
     "add": "Add Project",
     "edit-title": "Edit Project",
@@ -534,6 +536,30 @@
     }
   },
   "devices": {
+    "myUnit": {
+      "title": "My Unit Devices",
+      "name": "Name",
+      "status": "Status",
+      "lastOnline": "Last Online",
+      "control": "Control",
+      "empty": "No unit devices provisioned yet."
+    },
+    "control": {
+      "send": "Send",
+      "on": "On",
+      "off": "Off",
+      "device": "Device",
+      "commandSent": "Command sent",
+      "commandDetail": "{attribute} set to {value}",
+      "denied": "Permission denied",
+      "failed": "Command failed",
+      "attributes": {
+        "power": "power",
+        "brightness": "brightness",
+        "mode": "mode",
+        "targetTemperature": "targetTemperature"
+      }
+    },
     "title": "Device Management",
     "loading": "Loading devices...",
     "refresh": "Refresh",
@@ -570,7 +596,7 @@
       "unit": "Assign to Unit",
       "unitPlaceholder": "Select a unit",
       "noUnits": "No units found. Make sure your owner dashboard has loaded.",
-      "unitOption": "Unit {unit} — {project}",
+      "unitOption": "{unit} — {project}",
       "unknownProject": "Unknown project",
       "cancel": "Cancel",
       "submit": "Add Device",
@@ -596,7 +622,8 @@
       "deleteConfirmTitle": "Delete Device",
       "deleteConfirmMessage": "Are you sure you want to delete '{name}'?"
     },
-    "status": { "online": "Online", "offline": "Offline" },
+    "status": {
+      "standby": "Standby", "online": "Online", "offline": "Offline" },
     "telemetry": {
       "selectDevice": "Select Device",
       "energyChart": "Energy Consumption (kWh) - Last 24h",
@@ -734,6 +761,16 @@
     }
   },
   "analytics": {
+    "live": {
+      "title": "Live Energy — Last {minutes} min",
+      "subtitle": "Auto-refreshes every 30s"
+    },
+    "unitCard": {
+      "label": "Floor {floor} · Unit {unit}",
+      "fallback": "Unit #{id}",
+      "occupied": "Occupied",
+      "available": "Available"
+    },
     "deviceTypes": {
       "SmartMeter": "Smart Meter",
       "WaterSensor": "Water Sensor",

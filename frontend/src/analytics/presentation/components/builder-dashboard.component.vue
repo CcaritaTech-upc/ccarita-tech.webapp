@@ -407,8 +407,8 @@ const translateDeviceType = (type) => {
     
     <!-- Live Energy Chart -->
     <div class="chart-container live-energy-section">
-      <h3 class="chart-title">Live Energy — Last {{ liveMinutes }} min</h3>
-      <p class="chart-subtitle">Auto-refreshes every 30s</p>
+      <h3 class="chart-title">{{ $t('analytics.live.title', { minutes: liveMinutes }) }}</h3>
+      <p class="chart-subtitle">{{ $t('analytics.live.subtitle') }}</p>
       <div class="chart-wrapper">
         <LiveEnergyChart v-if="userId" :user-id="userId" role="builder" :minutes="liveMinutes" />
       </div>

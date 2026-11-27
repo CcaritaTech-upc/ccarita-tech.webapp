@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { uniqueStamp } from '../support/unique-stamp.js';
 
 // DEVICES.CONTROL.HAPPY_PATH (Owner)
 // Convergent Testing G2 across bounded contexts, as the product works: a
@@ -7,7 +8,7 @@ import { test, expect } from '@playwright/test';
 // and device); the owner then drives brightness from the UI and the deployed
 // stack reflects it on the device status endpoint.
 test('DEVICES Owner happy path: provision, register, command, reflected status', async ({ page }) => {
-  const stamp = Date.now();
+  const stamp = uniqueStamp();
   const ownerEmail = `e2e.dev.o.${stamp}@example.test`;
   const password = 'secret123';
 

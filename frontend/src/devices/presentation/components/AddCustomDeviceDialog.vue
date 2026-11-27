@@ -61,7 +61,10 @@ const typeOptions = computed(() =>
 const unitOptions = computed(() =>
   (analyticsStore.ownerDashboard?.myUnitsDetails ?? []).map((u) => ({
     label: t('devices.addDialog.unitOption', {
-      unit: u.unitId,
+      // floor and room as the user knows them; the database id is only a fallback
+      unit: u.floor && u.roomNumber
+        ? t('analytics.unitCard.label', { floor: u.floor, unit: u.roomNumber })
+        : t('analytics.unitCard.fallback', { id: u.unitId }),
       project: u.projectName ?? t('devices.addDialog.unknownProject'),
     }),
     value: u.unitId,

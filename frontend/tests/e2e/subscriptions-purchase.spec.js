@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { uniqueStamp } from '../support/unique-stamp.js';
 
 // SUBSCRIPTIONS.PURCHASE.HAPPY_PATH (Builder)
 // Convergent Testing G2: the purchasing actor's journey through the deployed
@@ -9,7 +10,7 @@ test('SUBSCRIPTIONS Builder happy path: browse plans, pay, active subscription',
   page.on('request', request => {
     if (/js\.stripe\.com|\/stripe-[^/]+\.js/.test(request.url())) stripeRequests.push(request.url());
   });
-  const stamp = Date.now();
+  const stamp = uniqueStamp();
   const email = `e2e.subs.${stamp}@example.test`;
   const password = 'secret123';
 

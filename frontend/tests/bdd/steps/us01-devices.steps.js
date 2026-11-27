@@ -45,7 +45,8 @@ Then('la tabla mostrará los dispositivos de piso y unidad con su estado de cone
   for (const name of expectedNames) {
     const row = this.page.getByRole('row').filter({ hasText: name }).first();
     await expect(row).toBeVisible();
-    await expect(row).toContainText(/Online|Offline/);
+    // The scenario runs in Spanish, so the connection status is Spanish too.
+    await expect(row).toContainText(/En línea|Desconectado/);
   }
 });
 

@@ -140,9 +140,6 @@ watch(() => props.visible, (val) => {
         if (!subscriptionStore.currentPlan && !subscriptionStore.isLoading) {
             subscriptionStore.loadSubscriptions();
         }
-        if (!analyticsStore.builderDashboard) {
-            analyticsStore.loadBuilderDashboard();
-        }
     }
 });
 

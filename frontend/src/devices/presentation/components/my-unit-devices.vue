@@ -48,7 +48,7 @@ const getStatusSeverity = (status) => {
 const getStatusLabel = (status) => {
   const s = String(status ?? '').trim().toLowerCase();
   if (s === 'online' || s === 'active') return t('devices.status.online');
-  if (s === 'idle' || s === 'standby') return 'Standby';
+  if (s === 'idle' || s === 'standby') return t('devices.status.standby');
   if (status) return t('devices.status.offline');
   return t('devices.telemetry.unknown');
 };
@@ -70,7 +70,7 @@ onMounted(() => {
 
 <template>
   <div class="section">
-    <h3 class="section-title">My Unit Devices</h3>
+    <h3 class="section-title">{{ t('devices.myUnit.title') }}</h3>
     <pv-data-table
       v-if="devices.length"
       :value="devices"
@@ -78,8 +78,8 @@ onMounted(() => {
       striped-rows
       size="small"
     >
-      <pv-column field="deviceName" header="Name" />
-      <pv-column header="Status">
+      <pv-column field="deviceName" :header="t('devices.myUnit.name')" />
+      <pv-column :header="t('devices.myUnit.status')">
         <template #body="{ data }">
           <pv-tag
             :value="getStatusLabel(data.status)"
@@ -87,13 +87,13 @@ onMounted(() => {
           />
         </template>
       </pv-column>
-      <pv-column header="Last Online">
+      <pv-column :header="t('devices.myUnit.lastOnline')">
         <template #body="{ data }">
           <span>{{ formatLastSeen(data.lastOnline) }}</span>
         </template>
       </pv-column>
       <!-- Control column — visible only for Owner role -->
-      <pv-column v-if="isOwner" header="Control">
+      <pv-column v-if="isOwner" :header="t('devices.myUnit.control')">
         <template #body="{ data }">
           <DeviceControlPanel
             :device="data"
@@ -108,7 +108,7 @@ onMounted(() => {
         </template>
       </pv-column>
     </pv-data-table>
-    <p v-else class="no-data">No unit devices provisioned yet.</p>
+    <p v-else class="no-data">{{ t('devices.myUnit.empty') }}</p>
   </div>
 </template>
 
